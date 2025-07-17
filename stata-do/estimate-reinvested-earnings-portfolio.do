@@ -106,32 +106,42 @@ save "`oecd'", replace
 // -------------------------------------------------------------------------- //
 // Import data on net asset position of countries
 // -------------------------------------------------------------------------- //
-
+/*
 // IMF
-import delimited "$input_data_dir/imf-data/balance-of-payments/BOP_04-04-2024 10-40-55-91.csv", clear encoding(utf8)
+*import delimited "$input_data_dir/imf-data/balance-of-payments/BOP_04-04-2024 10-40-55-91.csv", clear encoding(utf8)
+use "$wid_dir/Country-Updates/National_Accounts/imf-data/IIP-treated-$pastyear.dta", clear
 
-drop if countryname == "Cayman Islands" // Data inconsistent with EWN
+drop if country == "Cayman Islands" // Data inconsistent with EWN
 drop if value == 0
-keep if timeperiod > 2015 & timeperiod <= ($pastyear - 1)
-rename countrycode ifsid
-rename timeperiod year
-keep ifsid countryname indicatorcode year value
+keep if year > 2015 & year <= ($pastyear - 1)
 
-greshape wide value, i(ifsid year) j(indicatorcode) string
+keep if inlist(code2,"A_P","L_P")	
+keep if inlist(code3, "P_F5_MV","D")
+ 
+// Note: From 2025 version the codes to be used are:
+//		  - P_F5_MV is "Portfolio investment, Equity and investment fund shares"
+//        - D       is "Direct Investment"
 
-generate ptf_asset = valueIAPE_BP6_USD
-generate ptf_liabi = valueILPE_BP6_USD
+gen code= code2+code3
+drop code2 code3
+ 
+keep country code year value
 
-generate fdi_asset = valueIAD_BP6_USD
-generate fdi_liabi = valueILD_BP6_USD
+greshape wide value, i(country year) j(code) string
 
-keep countryname ifsid year ptf_asset ptf_liabi
+generate ptf_asset = valueA_PP_F5_MV // Before: IAPE_BP6_USD
+generate ptf_liabi = valueL_PP_F5_MV // Before: ILPE_BP6_USD
+
+generate fdi_asset = valueA_PD // before: IAD_BP6_USD
+generate fdi_liabi = valueL_PD // beofre: ILD_BP6_USD
+
+keep country year ptf_*
 
 tempfile iip
 save "`iip'"
-
+*/
 // EWN
-import excel "$input_data_dir/ewn-data/EWN-dataset_12-2023.xlsx", sheet("Dataset") clear firstrow case(lower)
+import excel "$input_data_dir/ewn-data/EWN-database-2024.xlsx", sheet("Dataset") clear firstrow case(lower)
 
 rename portfolioequityassets   ptf_asset
 rename portfolioequityliabilities ptf_liabi
@@ -376,82 +386,21 @@ save "`share_foreign'", replace
 // Use IMF CPIS database to redistribute foreign earnings
 // -------------------------------------------------------------------------- //
 
-import delimited "$input_data_dir/imf-data/cpis/CPIS_04-04-2024 10-53-59-65.csv", clear encoding(utf8)
+*import delimited "$input_data_dir/imf-data/cpis/CPIS_04-04-2024 10-53-59-65.csv", clear encoding(utf8)
+use "$wid_dir/Country-Updates/National_Accounts/imf-data/PIP-treated-$pastyear.dta", clear
 
-drop if countryname == "World"
-
-rename timeperiod year
+keep if indicator=="P_F51_P_SCC_USD" // before: "I_L_E_T_T_BP6_DV_USD"
+drop if countryname=="World"
 
 // Identify country
-kountry countrycode, from(imfn) to(iso2c)
-rename _ISO2C_ iso1
-
-replace iso1 = "VG" if countryname == "British Virgin Islands"
-replace iso1 = "GG" if countryname == "Guernsey"
-replace iso1 = "JE" if countryname == "Jersey"
-replace iso1 = "PR" if countryname == "Puerto Rico"
-replace iso1 = "VI" if countryname == "United States Virgin Islands"
-replace iso1 = "IM" if countryname == "Isle of Man"
-replace iso1 = "AD" if countryname == "Andorra, Principality of"
-replace iso1 = "WF" if countryname == "Wallis and Futuna Islands"
-replace iso1 = "EH" if countryname == "Western Sahara"
-replace iso1 = "MC" if countryname == "Monaco"
-replace iso1 = "VA" if countryname == "Holy See"
-replace iso1 = "LI" if countryname == "Liechtenstein"
-replace iso1 = "RS" if countryname == "Serbia, Rep. of"
-replace iso1 = "PS" if countryname == "West Bank and Gaza"
-replace iso1 = "TC" if countryname == "Turks and Caicos Islands"
-replace iso1 = "NF" if countryname == "Norfolk Island"
-replace iso1 = "NU" if countryname == "Niue"
-replace iso1 = "YT" if countryname == "Mayotte"
-replace iso1 = "KP" if countryname == "Korea, Dem. People's Rep. of"
-replace iso1 = "PN" if countryname == "Pitcairn Islands"
-replace iso1 = "TV" if countryname == "Tuvalu"
-replace iso1 = "TK" if countryname == "Tokelau"
-replace iso1 = "BQ" if countryname == "Bonaire, St. Eustatius and Saba"
-replace iso1 = "CW" if countryname == "Curaçao, Kingdom of the Netherlands"
-replace iso1 = "SX" if countryname == "Sint Maarten, Kingdom of the Netherlands"
-replace iso1 = "KS" if countryname == "Kosovo, Rep. of"
-replace iso1 = "SS" if countryname == "South Sudan, Rep. of"
-replace iso1 = "@" + string(countrycode) if iso1 == ""
-
+countrycode countryname,             generate(iso1) from("imf data")
 // Identify counterpart country
-kountry counterpartcountrycode, from(imfn) to(iso2c)
-rename _ISO2C_ iso2
-
-replace iso2 = "VG" if counterpartcountryname == "British Virgin Islands"
-replace iso2 = "GG" if counterpartcountryname == "Guernsey"
-replace iso2 = "JE" if counterpartcountryname == "Jersey"
-replace iso2 = "PR" if counterpartcountryname == "Puerto Rico"
-replace iso2 = "VI" if counterpartcountryname == "United States Virgin Islands"
-replace iso2 = "IM" if counterpartcountryname == "Isle of Man"
-replace iso2 = "AD" if counterpartcountryname == "Andorra, Principality of"
-replace iso2 = "WF" if counterpartcountryname == "Wallis and Futuna Islands"
-replace iso2 = "EH" if counterpartcountryname == "Western Sahara"
-replace iso2 = "MC" if counterpartcountryname == "Monaco"
-replace iso2 = "VA" if counterpartcountryname == "Holy See"
-replace iso2 = "LI" if counterpartcountryname == "Liechtenstein"
-replace iso2 = "RS" if counterpartcountryname == "Serbia, Rep. of"
-replace iso2 = "PS" if counterpartcountryname == "West Bank and Gaza"
-replace iso2 = "TC" if counterpartcountryname == "Turks and Caicos Islands"
-replace iso2 = "NF" if counterpartcountryname == "Norfolk Island"
-replace iso2 = "NU" if counterpartcountryname == "Niue"
-replace iso2 = "YT" if counterpartcountryname == "Mayotte"
-replace iso2 = "KP" if counterpartcountryname == "Korea, Dem. People's Rep. of"
-replace iso2 = "PN" if counterpartcountryname == "Pitcairn Islands"
-replace iso2 = "TV" if counterpartcountryname == "Tuvalu"
-replace iso2 = "TK" if counterpartcountryname == "Tokelau"
-replace iso2 = "BQ" if counterpartcountryname == "Bonaire, St. Eustatius and Saba"
-replace iso2 = "CW" if counterpartcountryname == "Curaçao, Kingdom of the Netherlands"
-replace iso2 = "SX" if counterpartcountryname == "Sint Maarten, Kingdom of the Netherlands"
-replace iso2 = "KS" if counterpartcountryname == "Kosovo, Rep. of"
-replace iso2 = "SS" if counterpartcountryname == "South Sudan, Rep. of"
-replace iso2 = "@" + string(counterpartcountrycode) if iso2 == ""
+countrycode counterpart_countryname, generate(iso2) from("imf data")
 
 // Split Curacao and Sint Marteen in counterpart country
-expand 2 if counterpartcountryname == "Curaçao and Sint Maarten", gen(cw)
-replace iso2 = "CW" if counterpartcountryname == "Curaçao and Sint Maarten" & cw
-replace iso2 = "SX" if counterpartcountryname == "Curaçao and Sint Maarten" & !cw
+expand 2 if counterpart_countryname == "Curaçao and Sint Maarten", gen(cw)
+replace iso2 = "CW" if counterpart_countryname == "Curaçao and Sint Maarten" & cw
+replace iso2 = "SX" if counterpart_countryname == "Curaçao and Sint Maarten" & !cw
 drop cw
 rename iso2 iso
 merge n:1 iso year using "`gdp_cw_sx'", keep(master match) nogenerate keepusing(share_gdp)
@@ -631,7 +580,7 @@ sort iso year
 drop if missing(ptfrn)
 
 save "$work_data/reinvested-earnings-portfolio.dta", replace
-
+/*
 use "$work_data/reinvested-earnings-portfolio.dta", clear
 
 generate ptfrn_perc = 100*ptfrn

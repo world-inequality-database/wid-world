@@ -24,6 +24,7 @@ foreach r in `r(varlist)' {
 }
 
 gen corecountry=1
+drop if iso=="WO"
 
 * clean repeated subdivision denominations
 *replace region3="" if region2==region3
@@ -35,12 +36,18 @@ ds iso titlename shortname corecountry TH, not
 preserve
 	* Generate a table with name-Alpha2 codes equivalences 
 	import excel "$codes_dictionary", sheet("Region_List") cellrange(A2:B22) firstrow clear	
+	replace Alpha2 = substr(Alpha2,1,2)
+	replace ShortName = substr(ShortName, 1, length(ShortName) - 6) if regexm(ShortName, " \(MER\)$")
 	foreach r in `r(varlist)'{
 		gen `r' = ShortName
 	}
 	drop ShortName
 	rename (Alpha2) (code)
-	
+
+	foreach v in region1 region2 region3 {
+		replace `v' = "South & South-East Asia"       if code=="XS"
+		replace `v' = "Other South & South-East Asia" if code=="OI"
+	}
 	tempfile regions_list
 	save "`regions_list'"
 restore
@@ -71,6 +78,12 @@ preserve
 	import excel "$codes_dictionary", sheet("Region_List") cellrange(A2:B22) firstrow clear
 	rename (Alpha2 ShortName) (iso shortname)
 	drop if iso=="WO"
+	
+	replace iso = substr(iso,1,2)
+	replace shortname = substr(shortname, 1, length(shortname) - 6) if regexm(shortname, " \(MER\)$")
+	replace shortname = "South & South-East Asia"       if iso=="XS"
+	replace shortname = "Other South & South-East Asia" if iso=="OI"
+	
 	tempfile regions
 	save   "`regions'"
 restore

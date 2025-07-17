@@ -423,16 +423,34 @@ foreach var in ptepx ptdpx {
 } 
 drop ratiocheck 
 
-//--------  Import data from Nievas Piketty 2025 ---------------------------- //
 foreach v in         fdinx ptfnx comnx taxnx {
 *            pinnx =             comnx taxnx
 	gen coef_`v'=`v'/nnfin
 }
 
+
+//--------  Import data from Nievas Piketty 2025 ---------------------------- //
+/*
+// Had made correction of VG
+drop if iso=="VG" & year==2023
+expand 2 if iso=="VG" & year==2022, gen(xpnd)
+replace year=2023 if xpnd==1
+drop xpnd
+*/
+/*
+sort iso year 
+foreach v in finrx finpx nwgxa  nwgxd {
+    replace `v' = . if iso=="VG" & year==2023
+    replace `v' = `v'[_n-1] if iso=="VG" & year==2023
+}
+*/
+
+
 preserve
 	* Import Data
 	use "$work_data/NievasPiketty2025WBOP.dta", clear
-	drop if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso, "QL","QM","WO","QE")
+	keep if year<=2022
+	
 	* Generate Fivelets as defined in the Wid-Dictionary
 	gen      fivelet= "finrx"  if origin =="D1b" 
 	replace  fivelet= "finpx"  if origin =="D1c" 
@@ -448,9 +466,7 @@ preserve
 	reshape wide value, i(iso year) j(fivelet) string
 	rename value* *
 	
-	*calculate net values
-	gen double nnfin = finrx - finpx
-	gen double nwnxa = nwgxa - nwgxd
+	
 	
 	*rename * *_paper
 	*rename (iso_paper year_paper) (iso year)
@@ -459,14 +475,99 @@ preserve
 	
 	tempfile np2025
 	save `np2025'
+	
+	keep  if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso, "QL","QM","WO","QE")
+	
+	rename * paper_*
+	rename (paper_iso paper_year)(region2 year)
+	tempfile np2025_reg 
+	save    `np2025_reg'
+	
 restore
 
 merge 1:1 iso year using "`np2025'", nogen update replace
 
+
+// Adjust countries in residual regions to fitin in the residual regions of NP2025
+* Step 1: Prepare data
+* keep corecountries after 1970
+merge 1:1 iso year using "$work_data/import-core-country-codes-year-output.dta", nogen keepusing(region2 corecountry)
+drop if corecountry!=1 & year>= 1970
+sort iso year 
+
+
+*calculate gdp of regions
+bys year region2: egen reg_gdp_usd = total(gdpusd) 
+
+* Bring regions from Paper
+merge m:1 region2 year using "`np2025_reg'", nogenerate keep(master match)
+
+* Calculate monetary values of the variables
+foreach v in finrx finpx nwgxa  nwgxd {
+	replace `v'=`v'* gdpusd
+	replace paper_`v'=paper_`v'* reg_gdp_usd
+}
+
+* Step 2: Calculate total values by region-year
+foreach v in finrx finpx nwgxa  nwgxd {
+    gen double abs_`v' = abs(`v')
+    bys region2 year: egen total_`v' = total(`v')         // Raw regional sum
+    bys region2 year: egen total_abs_`v' = total(abs_`v') // For proportional adjustment
+}
+
+* Step 3: Compute the net total (e.g. tgxrx - tgmpx) vs paper values
+foreach v in finrx finpx nwgxa nwgxd {
+    gen double totnet_`v' = (paper_`v'- total_abs_`v')
+}
+
+* Step 4: Allocate adjustments proportionally for tgxrx and tgmpx
+foreach v in finrx finpx nwgxa nwgxd {
+    gen prop_`v' = abs_`v' / total_abs_`v'    // Share in regional total
+    gen adjust_`v' = prop_`v' * totnet_`v' // Adjustment share
+    replace `v' = `v' + adjust_`v' if !missing(region2) & year<=2022
+}
+drop corecountry reg_gdp_usd paper_* abs_* adjust_* prop_*  total_* totnet_* region2 coreterritory
+
+/*
+// Make sure that they add-up 0
+
+* Step 1: Calculate total values by region-year
+foreach v in finrx finpx nwgxa nwgxd {
+    gen double abs_`v' = abs(`v')
+    bys year: egen total_`v' = total(`v')         // Raw regional sum
+    bys year: egen total_abs_`v' = total(abs_`v') // For proportional adjustment
+}
+
+* Step 2: Compute the net total which half is the ideal point to be reach in each variable
+gen double totnet_nnfin = (total_abs_finrx + total_abs_finpx)/2 
+gen double totnet_nwnxa = (total_abs_nwgxa + total_abs_nwgxd)/2 
+
+* Step 3: Allocate adjustments proportionally for  variables
+foreach v in finrx finpx nwgxa nwgxd {
+    gen double prop_`v'   = abs_`v' / total_abs_`v'  
+	replace total_abs_`v' = total_abs_`v' - totnet_nnfin if inlist("`v'", "finrx", "finpx")
+	replace total_abs_`v' = total_abs_`v' - totnet_nwnxa if inlist("`v'", "nwgxa", "nwgxd")
+	gen double adjust_`v' =.
+    replace    adjust_`v' = prop_`v' * total_abs_`v' // Adjustment share
+    replace    `v'        = `v' - adjust_`v' 
+}
+drop  abs_* adjust_* prop_*  total_* totnet_* 
+*/
+
+* Recalculate net values
+replace nnfin = finrx - finpx
+replace nwnxa = nwgxa - nwgxd
+
+* Recalculate the shares of the GDP
+foreach v in finrx finpx nwgxa nwgxd nnfin nwnxa{
+	replace `v'=`v'/ gdpusd	
+}
+
+
 * Correction for ensuring that the nnfin match wiht the paper.
 foreach v in         fdinx ptfnx comnx taxnx {
 *            pinnx =             comnx taxnx
-	replace `v' = nnfin*coef_`v' if year>=1970 & !mi(coef_`v') // New nnfin 
+	replace `v' = nnfin*coef_`v' if year>=1970  & !mi(coef_`v')  & year<=2022 //New nnfin 
 }
 
 replace pinnx = cond(missing(fdinx), 0, fdinx) + cond(missing(ptfnx), 0, ptfnx) if year>=1970 
@@ -474,7 +575,7 @@ replace flcin = cond(missing(pinnx), 0, pinnx) + cond(missing(comnx), 0, comnx) 
 //------------------------------------------------------------------------------
 
 *replace nnfin = pinnx if mi(nnfin)
-drop ratio* tot* gdpusd corecountry gdp currency level_src level_year growth_src index exrate_usd flag* neg* coreterritory country
+drop ratio* tot* gdpusd gdp currency level_src level_year growth_src index exrate_usd flag* neg*  country
 
 // Remove useless variables
 drop cap?? cag?? nsmnp
@@ -485,4 +586,22 @@ generate double nninc = gdpro - confc + cond(missing(nnfin), 0, nnfin)
 generate double ndpro = gdpro - confc
 generate double gninc = gdpro + cond(missing(nnfin), 0, nnfin)
 
+label data "generated by adjust-series.do"
 save "$work_data/sna-series-adjusted.dta", replace
+
+/*
+* checking adding to zero: 
+*replace gdp_usd= round(gdp_usd,  0.0000000000000000001) 
+foreach var in tgmcx tgmmx tgxcx tgxmx {
+	*replace `var' = round(`var', 0.0000000000000000001)
+	replace `var' = `var'*gdp_usd
+}
+
+collapse (sum) finrx finpx nwgxa nwgxd gdpusd, by( year)    //
+gen double nnfin = finrx - finpx
+gen double nwnxa = nwgxa - nwgxd
+
+foreach var in tbnnx tgnnx tsnnx scinx{
+	replace `var' = `var'/gdp_usd
+	replace `var' = round(`var',5)
+}

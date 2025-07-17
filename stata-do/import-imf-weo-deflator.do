@@ -1,5 +1,5 @@
 import delimited "$imf_data/world-economic-outlook/WEO-$pastyear.csv", ///
-	clear delimiter(",") varnames(1) encoding("utf8")
+	clear varnames(1) encoding("utf8") // delimiter(",") 
 
 cap dropmiss, obs force
 cap dropmiss, obs
@@ -30,7 +30,7 @@ replace country = "São Tomé and Príncipe" if country == "So Tom and Prncipe"
 replace country = "Côte d'Ivoire"         if country == "C�te d'Ivoire"
 replace country = "São Tomé and Príncipe" if country == "S�o Tom� and Pr�ncipe"
 replace country = "Swaziland"             if country == "Eswatini"
-replace country = "Turkey" 				  if country == "Trkiye"
+replace country = "Turkey" 				  if country == "T¸rkiye"
 
 countrycode country, generate(iso) from("imf weo")
 drop country

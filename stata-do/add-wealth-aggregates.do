@@ -29,10 +29,11 @@ foreach var in nwnxa nwgxd nwgxa {
 // merge 1:1 iso year using "$wid_dir/Country-Updates/Netherlands/2022_11/NL_WealthAggregates_WID_tomerge", update nogen
 
 ds iso year valuemnninc999i, not
+/*
 foreach l in `r(varlist)' {
 	replace `l' = . if inrange(year, 1990, 1994) & iso == "RU"
 }
-
+*/
 
 foreach x in `r(varlist)' {
 	generate valuem`x'999i = `x'*valuemnninc999i if !missing(valuemnninc999i) & !missing(`x')

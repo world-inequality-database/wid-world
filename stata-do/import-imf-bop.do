@@ -48,65 +48,63 @@ drop if missing(gdp)
 tempfile gdp
 save "`gdp'"
 
-		// -------------------------------------------------------------------------- //
-		// 					GDP WID for missing countries
-		// 
-		// -------------------------------------------------------------------------- //
-	u "$work_data/retropolate-gdp.dta", clear
-	merge 1:1 iso year using "$work_data/USS-exchange-rates.dta", nogen keepusing(exrate_usd) keep(master matched)
-	merge 1:1 iso year using "$work_data/price-index.dta", nogen keep(master matched)
-	gen gdp_idx = gdp*index
-		gen gdp_wid = gdp_idx/exrate_usd
-	tempfile gdpwid
-	save "`gdpwid'"
+// -------------------------------------------------------------------------- //
+// 					GDP WID for missing countries 
+// -------------------------------------------------------------------------- //
+u "$work_data/retropolate-gdp.dta", clear
+merge 1:1 iso year using "$work_data/USS-exchange-rates.dta", nogen keepusing(exrate_usd) keep(master matched)
+merge 1:1 iso year using "$work_data/price-index.dta", nogen keep(master matched)
+gen gdp_idx = gdp*index
+gen gdp_wid = gdp_idx/exrate_usd
+tempfile gdpwid
+save "`gdpwid'"
 
 // -------------------------------------------------------------------------- //
 // Import IMF BOP
 // -------------------------------------------------------------------------- //
+*import delimited "$input_data_dir/imf-data/balance-of-payments/BOP_01-31-2024 15-49-55-97.csv", clear encoding(utf8)
+use "$wid_dir/Country-Updates/National_Accounts/imf-data/BOP-treated-$pastyear.dta", clear
 
-import delimited "$input_data_dir/imf-data/balance-of-payments/BOP_01-31-2024 15-49-55-97.csv", clear encoding(utf8)
-
-kountry countrycode, from(imfn) to(iso2c)
-
-rename _ISO2C_ iso
-rename timeperiod year
-
-replace iso = "TV" if countryname == "Tuvalu"
-replace iso = "CW" if countryname == "Curaçao, Kingdom of the Netherlands"
-replace iso = "KS" if countryname == "Kosovo, Rep. of"
-replace iso = "RS" if countryname == "Serbia, Rep. of"
-replace iso = "SX" if countryname == "Sint Maarten, Kingdom of the Netherlands"
-replace iso = "SS" if countryname == "South Sudan, Rep. of"
-replace iso = "TC" if countryname == "Turks and Caicos Islands"
-replace iso = "PS" if countryname == "West Bank and Gaza"
-replace iso = "AD" if countryname == "Andorra, Principality of"
-drop if missing(iso)
-
+// Trasnlate series codes into WID-fivelets
 generate widcode = ""
-replace widcode = "nnfin"     if indicatorcode == "BIP_BP6_USD"
-replace widcode = "finrx"     if indicatorcode == "BXIP_BP6_USD"
-replace widcode = "finpx"     if indicatorcode == "BMIP_BP6_USD"
-replace widcode = "comrx"     if indicatorcode == "BXIPCE_BP6_USD"
-replace widcode = "compx"     if indicatorcode == "BMIPCE_BP6_USD"
-replace widcode = "pinrx"     if indicatorcode == "BXIPI_BP6_USD"
-replace widcode = "pinpx"     if indicatorcode == "BMIPI_BP6_USD"
-replace widcode = "fdirx"     if indicatorcode == "BXIPID_BP6_USD"
-replace widcode = "fdipx"     if indicatorcode == "BMIPID_BP6_USD"
-replace widcode = "ptfrx"     if indicatorcode == "BXIPIP_BP6_USD"
-replace widcode = "ptfpx"     if indicatorcode == "BMIPIP_BP6_USD"
-replace widcode = "ptfrx_eq"  if indicatorcode == "BXIPIPE_BP6_USD"
-replace widcode = "ptfpx_eq"  if indicatorcode == "BMIPIPE_BP6_USD"
-replace widcode = "ptfrx_deb" if indicatorcode == "BXIPIPI_BP6_USD"
-replace widcode = "ptfpx_deb" if indicatorcode == "BMIPIPI_BP6_USD"
-replace widcode = "ptfrx_oth" if indicatorcode == "BXIPIO_BP6_USD"
-replace widcode = "ptfpx_oth" if indicatorcode == "BMIPIO_BP6_USD"
-replace widcode = "ptfrx_res" if indicatorcode == "BXIPIR_BP6_USD"
-replace widcode = "fsubx"     if indicatorcode == "BXIPO_BP6_USD"
-replace widcode = "ftaxx"     if indicatorcode == "BMIPO_BP6_USD"
+* net foreign income (Primary incope - EARNED INCOME)
+replace widcode = "nnfin"     if code2=="NETCD_T" & code3=="IN1"   //  Before 2025 "BIP_BP6_USD"
+* Foreign income 
+replace widcode = "finrx"     if code2=="CD_T" & code3=="IN1"      // Before 2025 "BXIP_BP6_USD"
+replace widcode = "finpx"     if code2=="DB_T" & code3=="IN1"      // Before 2025 "BMIP_BP6_USD"
+* Compensations to employees (REMUNERATION OF EMPLOYEES)
+replace widcode = "comrx"     if code2=="CD_T" & code3=="D1"       // Before 2025 "BXIPCE_BP6_USD"*
+replace widcode = "compx"     if code2=="DB_T" & code3=="D1"       // Before 2025 "BMIPCE_BP6_USD"
+
+* Property income
+replace widcode = "pinrx"     if code2=="CD_T" & code3=="_T_F_D4P" // Before 2025 "BXIPI_BP6_USD"
+replace widcode = "pinpx"     if code2=="DB_T" & code3=="_T_F_D4P" // Before 2025 "BMIPI_BP6_USD"
+* Foreign direct investment income
+replace widcode = "fdirx"     if code2=="CD_T" & code3=="D_F_D4P"  // Before 2025 "BXIPID_BP6_USD"
+replace widcode = "fdipx"     if code2=="DB_T" & code3=="D_F_D4P"  // Before 2025 "BMIPID_BP6_USD"
+* Portafolio Investment
+replace widcode = "ptfrx"     if code2=="CD_T" & code3=="P_F_D4P"  // Before 2025 "BXIPIP_BP6_USD"
+replace widcode = "ptfpx"     if code2=="DB_T" & code3=="P_F_D4P"  // Before 2025 "BMIPIP_BP6_USD"
+replace widcode = "ptfrx_eq"  if code2=="CD_T" & code3=="P_F5_D4S" // Before 2025 "BXIPIPE_BP6_USD"
+replace widcode = "ptfpx_eq"  if code2=="DB_T" & code3=="P_F5_D4S" // Before 2025 "BMIPIPE_BP6_USD"
+replace widcode = "ptfrx_deb" if code2=="CD_T" & code3=="P_F3_D41" // Before 2025 "BXIPIPI_BP6_USD"
+replace widcode = "ptfpx_deb" if code2=="DB_T" & code3=="P_F3_D41" // Before 2025 "BMIPIPI_BP6_USD"
+replace widcode = "ptfrx_oth" if code2=="CD_T" & code3=="O_F_D4P"  // "O_D41" // Before 2025 "BXIPIO_BP6_USD"
+replace widcode = "ptfpx_oth" if code2=="DB_T" & code3=="O_F_D4P"  // "O_D41" // Before 2025 "BMIPIO_BP6_USD"
+replace widcode = "ptfrx_res" if code2=="CD_T" & code3=="R_F_D4P"  // "R_F_D41" // Before 2025 "BXIPIR_BP6_USD"
+* Taxes and subidies (Other incomes)
+replace widcode = "fsubx"     if  code2=="CD_T" & code3=="D4O"     // "D3" // Before 2025 "BXIPO_BP6_USD"
+replace widcode = "ftaxx"     if  code2=="DB_T" & code3=="D4O"     // "D2" // Before 2025 "BMIPO_BP6_USD"
 
 drop if widcode == ""
 
+* Trasnform countrynames in WID iso codes
+countrycode country, generate(iso) from("imf data")
+drop if iso == "CWX" 
+
 keep iso year widcode value
+drop if mi(value)
+collapse (sum) value, by(iso year widcode)
 greshape wide value, i(iso year) j(widcode) string
 renvars value*, predrop(5)
 

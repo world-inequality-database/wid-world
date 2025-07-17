@@ -33,13 +33,16 @@ replace countryname = "Vietnam" if countryname == "Viet Nam"
 countrycode countryname, generate(iso) from("wb")
 
 // Add currency from the metadata
+replace countryname="Viet Nam" if countryname=="Vietnam"  // The metadata has Viet_Nam
 merge n:1 countryname using "$work_data/wb-metadata.dta", ///
 	keep(master match) assert(match using) nogenerate
+replace countryname = "Vietnam" if countryname == "Viet Nam"
 
 // Identify currencies
-replace currency = "turkmenistan manat" if currency == "New Turkmen manat"
-replace currency = "u.s. dollar" if currency == "Liberian dollar"
+replace currency = "turkmenistan manat" if currency    == "New Turkmen manat"
+replace currency = "u.s. dollar"        if currency    == "Liberian dollar"
 currencycode currency, generate(currency_iso) iso2c(iso) from("wb")
+
 drop currency
 rename currency_iso currency
 

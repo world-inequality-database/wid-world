@@ -5,8 +5,8 @@
 clear all 
 
 // -------------------------------------------------------------------------- //
-import excel "$input_data_dir/ewn-data/EWN-dataset_12-2023.xlsx", sheet("Dataset") clear firstrow case(lower)
-
+import excel "$input_data_dir/ewn-data/EWN-database-$pastyear.xlsx", sheet("Dataset") clear firstrow case(lower)
+assert $pastyear == 2024 // If this assertion fails change the name of the import file and the replace the assertion value for $past year
 rename gdpus gdp
 
 ren totalassetsexclgold nwgxa_lm 

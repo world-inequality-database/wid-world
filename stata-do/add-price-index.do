@@ -26,10 +26,10 @@ recast double value
 preserve
 	sort iso year 
 	* Keep the last year available in the NP2025 dataset
-	keep if year==2023
+	keep if year==2022
 
 	*Generate the number of duplicates needed
-	local n_dup =  ($pastyear - 2023) // $pastyear
+	local n_dup =  ($pastyear - 2022) // $pastyear
 	
 	
 	if `n_dup'!=0 {  // Loop for filling missing recent years

@@ -1,15 +1,19 @@
-import delimited "$current_account/BOP_05-13-2024 14-41-48-35.csv", clear
+*import delimited "$current_account/BOP_05-13-2024 14-41-48-35.csv", clear
+use "$wid_dir/Country-Updates/National_Accounts/imf-data/BOP-treated-$pastyear.dta", clear
 
 //Keep Current accounts variables 
-keep if inlist(indicatorcode, "BXISOPT_BP6_USD", "BMISOPT_BP6_USD") 
+* Note: Before they were "BXISOPT_BP6_USD", "BMISOPT_BP6_USD") 
+keep if code3=="D752_S1W"
+keep if inlist(code2, "DB_T","CD_T")
 
 //Rename the variables
-replace indicatorname = "remittances_credit" if indicatorcode == "BXISOPT_BP6_USD"
-replace indicatorname = "remittances_debit" if indicatorcode == "BMISOPT_BP6_USD"
+replace indicator = "remittances_credit" if code3=="D752_S1W" & code2 == "CD_T"
+replace indicator = "remittances_debit"  if code3=="D752_S1W" & code2 == "DB_T"
+drop bop* code*
 
-collapse (sum) value, by(countryname countrycode indicatorname timeperiod)
-ren timeperiod year
-greshape wide v, i(countryname countrycode year) j(indicatorname) 
+collapse (sum) value, by(country indicator year)
+
+greshape wide v, i(country year) j(indicator) 
 
 renpfix value
 
@@ -31,21 +35,10 @@ replace remittances_debit = remittances_debit - remittances_credit if negremitta
 replace remittances_credit = 0 if negremittances_credit == 1
 drop aux 
 
-kountry countrycode, from(imfn) to(iso2c)
-ren _ISO2C_ iso 
-
-replace iso="AD" if countryname=="Andorra, Principality of"
-replace iso="SS" if countryname=="South Sudan, Rep. of"
-replace iso="TC" if countryname=="Turks and Caicos Islands"
-replace iso="TV" if countryname=="Tuvalu"
-replace iso="RS" if countryname=="Serbia, Rep. of"
-replace iso="KV" if countryname=="Kosovo, Rep. of"
-replace iso="CW" if countryname=="Curaçao, Kingdom of the Netherlands"
-replace iso="SX" if countryname=="Sint Maarten, Kingdom of the Netherlands"
-replace iso="PS" if countryname=="West Bank and Gaza"
-
+countrycode country, generate(iso) from("imf data")
+drop if iso == "CWX" 
 drop if mi(iso)
-drop countrycode
+*drop countrycode
 
 fillin iso year
 //Netherlands Antilles split

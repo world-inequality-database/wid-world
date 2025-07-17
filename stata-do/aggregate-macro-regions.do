@@ -8,50 +8,58 @@
 // in order to calculate estimates for the well-defined regions and world estimates.
 
 // --------------- 0.  Index -------------------------------------------------//
-// 	1. Get regions decomposition (obsolet)
-//       1.1 Get Regions definitions
-//  2. Prepare data for calculations
-//        2.1  Store PPP and exchange rates as extra variables
-//        2.2 Get Macro Variables to be aggregated
-//        2.3 Get historical series from NievasPiketty2025 to be aggregated
-//        2.4 Generate constant, current and XR comparable values
-// 3. Generate Regional Aggregations
-//        3.1  Call the region definitions
-//        3.2  Calculation: Population 1800-$pastyear
-//        3.2  Calculation: Macro variables 1800-1970(releying on NP2025) & 1970-$pastyear
-//            3.2.1 Expansion of the macro variables to the sub-regions OL and OK (not included in NP2025)
-// 4. Generate World Aggregations
-// 5. Generate currency values, price indexes and xrates .
-//        5.1 Generate W and Y of the regional variables
-//        5.2 Use mnninc values for estimating regional price indexes and XRate
-//        5.3 Retain only MER USD values of regions 
-//        5.4 Extend PPP before 1970
-// 6. Final Formating and export
+// 	1. Get Macroeconomic data 
+// 		1.1  Store PPP and exchange rates as extra variables
+// 		1.2 Get Macro Variables to be aggregated 
+// 		1.3 Generate constant, current and XR comparable values
+//  2. Generate Regional Aggregations
+//      2.1  Call the region definition
+//		2.2  Calculation: Population 1800-$pastyear
+// 		2.3  Calculation: Macro variables 1970-$pastyear
+// 			2.3.1 Expansion of the macro variables to the subregions OL and OK
+//  3. Generate World Aggregations
+//  4. Generate currency values, price indexes and xrates
+// 		4.1 Generate W and Y of the regional variables
+//		4.2 Use mnninc values for estimating regional price indexes and XR
+// 		4.3 Retain only MER USD values of regions
+//  5. Merge Historical regions from Nievas & Piketty (2025)
+//  	5.1 Calculate missing conf  
+//      5.2. Bring wealth to product ratios (y)
+//      5.3. Generate constant $pastyear monetary values
+//      5.4. Calculate wealth to income ratios (w)
+// 		5.5. Extend USD exchange rate to regions
+// 		5.6. Complete -PPP regions
+//      5.7. Complete Price index for regions -PPP  
+//      5.8.  Complete intclu 
+//      5.9. Exclusion checks
+//  6. Merge Historical countries from Nievas & Piketty (2025)
+//  7. Final Formating and export
+//      7.1. Pile countries 
+//      7.2. Add regions
+//      7.3.  Save
+//  8. Create metadata
 //------------------------------------------------------------------------------
 
 clear all
 tempfile regions_npopul
-save `regions_npopul', emptyok
+save    `regions_npopul', emptyok
 
 tempfile regions_rest
-save `regions_rest', emptyok
+save    `regions_rest', emptyok
+
+tempfile regions_confc
+save    `regions_confc', emptyok
 
 // -------------------------------------------------------------------------- //
-* 	1. Get regions decomposition
+* 	1. Get Macroeconomic data 
 // -------------------------------------------------------------------------- //
 
-// --------- 1.1 Get Regions definitions ------------------------------------ // 
-// No longer Necessary
-
-// -------------------------------------------------------------------------- //
-* 	2. Prepare data for calculations
-// -------------------------------------------------------------------------- //
-
-// --------- 2.1  Store PPP and exchange rates as extra variables ----------- //
+// --------- 1.1  Store PPP and exchange rates as extra variables ----------- //
 
 use "$work_data/add-wealth-aggregates-output.dta", clear
 
 keep if substr(widcode, 1, 3) == "xlc"
+
 keep if year == $pastyear
 keep iso widcode value
 duplicates drop iso widcode, force
@@ -72,35 +80,72 @@ tempfile pppexc
 save "`pppexc'"
 
 
-// --------- 2.2 Get Macro Variables to be aggregated ----------------------- //
+// --------- 1.2 Get Macro Variables to be aggregated ----------------------- //
 
 * Call Data
 use "$work_data/add-wealth-aggregates-output.dta", clear
 
-* Keep desired variables
+// Keep desired variables
 keep if p == "pall"
-keep if (substr(widcode, 1, 6) == "npopul" & inlist(substr(widcode, 10, 1), "i", "f", "m")) ///		
-	   | widcode == "mnninc999i" ///
-	   | widcode == "mndpro999i" ///
-	   | widcode == "mgdpro999i" ///
-	   | widcode == "mnweal999i" ///
-	   | widcode == "mpweal999i" ///
-	   | widcode == "mgweal999i" ///
-	   | widcode == "mhweal999i" ///
-	   | inlist(substr(widcode, 1, 6), "mnnfin", "mfinrx", "mfinpx", "mcomnx", "mpinnx", "mnwnxa", "mnwgxa", "mnwgxd") ///
-	   | inlist(substr(widcode, 1, 6), "mcomhn", "mfkpin", "mconfc", "mcomrx", "mcompx", "mpinrx", "mpinpx", "mfdinx") ///
-	   | inlist(substr(widcode, 1, 6), "mfdirx", "mfdipx", "mptfnx", "mptfrx", "mptfpx", "mflcin", "mflcir", "mflcip") /// 
-	   | inlist(substr(widcode, 1, 6), "mncanx", "mtbnnx", "mcomnx", "mopinx", "mscinx", "mtbxrx", "mtbmpx", "mopirx") /// 
-	   | inlist(substr(widcode, 1, 6), "mopipx", "mscirx", "mscipx", "mfkarx", "mfkapx", "mfkanx", "mtgncx", "mtgxcx") /// 
-	   | inlist(substr(widcode, 1, 6), "mtaxnx", "mfsubx", "mftaxx", "mtgnmx", "mtgxmx", "mtgmmx", "mtgmcx") /// 
-	   | inlist(substr(widcode, 1, 6), "mtgmpx", "mtgnnx", "mtgxrx", "mtsmpx", "mtsnnx", "mtsxrx") ///
-	   | inlist(substr(widcode, 1, 6), "mexpgo", "mgpsge", "mdefge", "mpolge", "mecoge", "menvge", "mhouge", "mheage") ///
-	   | inlist(substr(widcode, 1, 6), "mrecge", "meduge", "medpge", "medsge", "medtge", "msopge", "mspige", "msacge") ///
-	   | inlist(substr(widcode, 1, 6), "msakge", "mrevgo", "mpitgr", "mcitgr", "mscogr", "mpwtgr", "mintgr", "mottgr") /// 
-	   | inlist(substr(widcode, 1, 6), "mntrgr", "mpsugo", "mretgo") ///  
-	   | inlist(substr(widcode, 1, 6), "xlcusx", "xlcusp", "xlceux", "xlceup", "xlcyux", "xlcyup") /// 
-	   | inlist(substr(widcode, 1, 6), "inyixx") // , "intlcu","xrerus") ///
-//     | (substr(widcode, 1, 1) == "m")
+gen     flag= 0
+* Keep populations
+replace flag= 1 if  (substr(widcode, 1, 6) == "npopul" & inlist(substr(widcode, 10, 1), "i", "f", "m"))
+* keep wealth aggregates		
+replace flag= 1 if  inlist(widcode, "mnninc999i", "mndpro999i", "mgdpro999i", "mnweal999i", "mpweal999i") ///
+					| inlist(widcode, "mgweal999i", "mhweal999i") 
+				
+replace flag= 1	if (inlist(substr(widcode, 1, 6), "mnwnfa","mnwhou","mnwbus","mnwagr","mnwnxa","mnwgxd","mnwgxa","mnwboo") ///  "mnweal",
+				| inlist(substr(widcode, 1, 6), "mnwdka","mcwres","micwtoq","mgwass","mpwnfa","mpwhou","mpwbus","mpwagr") ///  ,"mpweal"
+				| inlist(substr(widcode, 1, 6), "mpwodk","mpwfin","mpwfiw","mpweqi","mpwpen","mpwdeb","miweal","mcwboo") ///  ,"mhweal"
+				| inlist(substr(widcode, 1, 6), "mcwnfa","mcwhou","mcwbus","mcwfin","mcwdeb","mcwdeq","mgwnfa","mgwhou") ///  ,"mgweal"
+				| inlist(substr(widcode, 1, 6), "mgwbus","mgwfin","mgwdeb"))  & year>=1980 //
+* Keep Macro variables
+replace flag= 1 if inlist(substr(widcode, 1, 6), "mnnfin", "mfinrx", "mfinpx", "mcomnx", "mpinnx", "mnwnxa", "mnwgxa", "mnwgxd") ///
+				 | inlist(substr(widcode, 1, 6), "mcomhn", "mfkpin", "mconfc", "mcomrx", "mcompx", "mpinrx", "mpinpx", "mfdinx") ///
+				 | inlist(substr(widcode, 1, 6), "mfdirx", "mfdipx", "mptfnx", "mptfrx", "mptfpx", "mflcin", "mflcir", "mflcip") /// 
+				 | inlist(substr(widcode, 1, 6), "mncanx", "mtbnnx", "mcomnx", "mopinx", "mscinx", "mtbxrx", "mtbmpx", "mopirx") /// 
+				 | inlist(substr(widcode, 1, 6), "mopipx", "mscirx", "mscipx", "mfkarx", "mfkapx", "mfkanx", "mtgncx", "mtgxcx") /// 
+				 | inlist(substr(widcode, 1, 6), "mtaxnx", "mfsubx", "mftaxx", "mtgnmx", "mtgxmx", "mtgmmx", "mtgmcx") /// 
+				 | inlist(substr(widcode, 1, 6), "mtgmpx", "mtgnnx", "mtgxrx", "mtsmpx", "mtsnnx", "mtsxrx") ///
+				 | inlist(substr(widcode, 1, 6), "mexpgo", "mgpsge", "mdefge", "mpolge", "mecoge", "menvge", "mhouge", "mheage") ///
+				 | inlist(substr(widcode, 1, 6), "mrecge", "meduge", "medpge", "medsge", "medtge", "msopge", "mspige", "msacge") ///
+				 | inlist(substr(widcode, 1, 6), "msakge", "mrevgo", "mpitgr", "mcitgr", "mscogr", "mpwtgr", "mintgr", "mottgr") /// 
+				 | inlist(substr(widcode, 1, 6), "mntrgr", "mpsugo", "mretgo")   
+
+replace flag= 1 if 	inlist(substr(widcode, 1, 6), "mfdixa", "mfdixd", "mfdixn", "mgninc", "mptdpx", "mptdrx", "mptdxa", "mptdxd") | ///
+					inlist(substr(widcode, 1, 6), "mptepx", "mpterx", "mptexa", "mptexd", "mptfrn", "mptfrp", "mptfrr", "mptfxa") | ///
+					inlist(substr(widcode, 1, 6), "mptfxd", "mptfxn", "mptrrx", "mptrxa", "mscgnx", "mscgpx", "mscgrx", "msconx") | ///
+					inlist(substr(widcode, 1, 6), "mscopx", "mscorx", "mscrnx", "mscrpx", "mscrrx", "mtsonx", "mtsopx", "mtsorx") | ///
+					inlist(substr(widcode, 1, 6), "mtstnx", "mtstpx", "mtstrx", "mtsvnx", "mtsvpx", "mtsvrx") // New set of variables  16/JUL/25
+
+			   
+* Keep exchange rates and indexes
+replace flag= 1 if inlist(substr(widcode, 1, 6), "xlcusx", "xlcusp", "xlceux", "xlceup", "xlcyux", "xlcyup") /// 
+				 | inlist(substr(widcode, 1, 6), "inyixx") // , "intlcu","xrerus") ///
+			//     | (substr(widcode, 1, 1) == "m")
+drop if flag==0
+drop flag
+
+preserve 
+// Generate list for calculating W and Y ratios
+	keep if  substr(widcode,1,1)=="m"
+	keep  widcode
+	duplicates drop
+	replace widcode=substr(widcode,2,10)
+	sort widcode
+	glevelsof widcode, local(agg_var)
+restore 
+
+
+// Retain price index and xrates MER and PPP for calculating 
+preserve
+	keep if year<1970
+	keep if  inlist(widcode,"inyixx999i", "xlcusx999i", "xlcusp999i", "xlceux999i", "xlceup999i", "xlcyux999i", "xlcyup999i")
+	keep iso year widcode value
+	reshape wide value, i(iso year) j(widcode) string
+	tempfile country_idx
+	save    `country_idx'
+restore
 
 
 * Formating
@@ -108,10 +153,7 @@ drop currency
 greshape wide value, i(iso year p) j(widcode) string
 renvars value*, pred(5)
 
-
-// --------- 2.3 Get historical series from NievasPiketty2025 to be aggregated //
-* compleating the Exchange rates:
-* Note: Given the values of the regions are expressed in USD in NP25, we can extend the exchange rates of US for all of them
+// ----->> Data in LCU Constant Prices
 preserve
 	keep if iso=="US" 
 	keep year xlcusx999i xlceux999i xlcyux999i 
@@ -123,60 +165,31 @@ preserve
 	keep if iso=="US" 
 	keep iso year inyixx999i xlcusp999i
 	rename (iso inyixx999i xlcusp999i) (region valueinyixx999i valuexlcusp999i)
+	
 	tempfile pppusa
 	save `pppusa'		
 restore
 
-preserve
-	* Call Data
-	use "$work_data/NievasPiketty2025_hist_regions.dta", clear
-
-	*Deep relevant observations
-	keep if inlist(iso, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ", "QM")
 	
-	*After 1970, retain only the new variables
-	drop if year >=1970 & !inlist(widcode, "mtgncx999i","mtgxcx999i", "mtgmcx999i","mtgnmx999i","mtgxmx999i", "mtgmmx999i","inyixx999i")
-
-	*Format
-	greshape wide value, i(iso year p) j(widcode) string
-	renvars value*, pred(5)
-
-	* Bring the xrate data of USD
-	merge m:1 year using "`xrateusd'", nogenerate update
-	assert !missing(xlcyux999i)
-	
-
-	*complete available variables on pppexc
-	foreach v in eu us yu {
-		gen double aux    = xlc`v'x999i if year == $pastyear
-		egen       exc`v' = mode(aux), by(iso)
-		drop aux
-	}
-	rename (excus exceu excyu) (excusd exceur exccny)
-	
-	tempfile hist_regions_np25
-	save   `hist_regions_np25' 
-restore
- 
-// ----->> Data in LCU Constant Prices
-	
-// --------- 2.4 Generate constant, current and XR comparable values -------- //
+// --------- 1.3 Generate constant, current and XR comparable values -------- //
 // Add PPP and exchange rates 
 merge n:1 iso using "`pppexc'", nogenerate 
 
-append using "`hist_regions_np25'"
+*append using "`hist_regions_np25'"
 
-//Make a copy of variable list for usingin in section 
-ds iso year p npopul*  ppp* exc* xlc* inyixx xrerus intlcu, not
+//Make a copy of variable list for using in section 2.3.1 Expansion of the macro 
+//variables to the subregions OL and OK
+ds iso year p npopul*  ppp* exc* xlc* inyixx , not    // xrerus intlcu
 local allvars `r(varlist)'
 
 // Calculate convert LCU constant values to PPP(USD, EUR, CNY) and MER (USD, EUR, CNY) values
-ds iso year p npopul*  ppp* exc* xlc* inyixx xrerus intlcu, not
+ds iso year p npopul*  ppp* exc* xlc* inyixx , not  // xrerus intlcu
 foreach v in `r(varlist)' {
 	foreach l of varlist ppp* exc* {
-		generate double `v'_`l' = `v'/`l' 
+		gen double `v'_`l' = `v'/`l' 
 	}
 }
+replace inyixx=round(inyixx,0.00000000000000000001)
 
 // ----->> Data in MER (USD, EUR, CNY) and PPP (USD, EUR, CNY) Constant Prices
 
@@ -190,57 +203,19 @@ foreach l in x p {
 // ----->> Data in MER (USD, EUR, CNY) and PPP (USD, EUR, CNY) Current Prices
 
 *drop mcitgr999i-mtaxnx999i pppeur-exccny inyixx999i xlc*
-drop mcitgr999i-mtsxrx999i pppeur-exccny inyixx999i  xlc* xrerus999i intlcu999i
+drop mcitgr999i-mtsxrx999i pppeur-exccny  xlc*   inyixx999i // xrerus999i intlcu999i
 
 tempfile countries
 save `countries'  
 
 
 // -------------------------------------------------------------------------- //
-* 	3. Generate Regional Aggregations
+* 	2. Generate Regional Aggregations
 // -------------------------------------------------------------------------- //
 
-// --------- 3.1  Call the region definition
-* We want to retain only the core countreis from pastyear-2023 and the residual 
-*      regions for historic years
-merge m:1 iso using "$work_data/import-core-country-codes-output.dta", //nogen keep(matched)
-keep if _merge==3 | (inlist(iso, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ", "QM"))
-drop titlename shortname TH corecountry _merge
-
-//------ Some corrections:
-/*
-* Note: some regions exist in 2 different region-groups so they create problems 
-*       for the aggregation. We will ensure that to keep only one of them.
-replace region2="" if region1=="QE" & region2=="QE" // Europe, both region(standard) & region(continental)
-replace region3="" if region1=="QL" & region3=="QL" // East Asia, both region(standard) & sub-region  
-replace region5="" if region3=="QM" & region5=="QM" // Eastern Europe, both sub-region & region (other)
- */
-* Adjustment necesary for calculating `region_rest'
-replace region2=iso if inlist(iso, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ","QM") //& year < 1970 
-
-* Russia / CentalAsia
-replace region1 ="XR" if iso=="OA"  //& year < 1970
-* East Asia
-replace region1 ="QL" if iso=="OB" //& year < 1970
-* Europe
-replace region1 ="QE" if iso=="OC" //& year < 1970
-replace region1 ="QE" if iso=="QM" //& year < 1970
-* Latin America
-replace region1 ="XL" if iso=="OD" //& year < 1970
-* MENA
-replace region1 ="XN" if iso=="OE" //& year < 1970
-* NAOC
-replace region1 ="XB" if iso=="OH" //& year < 1970
-* Sub-Saharan Africa
-replace region1 ="XF" if iso=="OJ" //& year < 1970
-* South / South-east Asia
-replace region1 ="XS" if iso=="OI" //& year < 1970
-
-
-
-*replace region6="OK" if region5=="OH" & region3=="QP"
-*replace region6="OL" if region5=="OH" & region2=="QF"
-//-----------------
+// --------- 2.1  Call the region definition
+merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogen keep(matched)
+drop titlename shortname TH corecountry 
 
 preserve
 	collapse (firstnm) region*, by(iso year)
@@ -264,11 +239,10 @@ preserve
 	
 	export excel "$wid_dir/wid-regions-list.xlsx", sheet("WID", replace) firstrow(variables)
 restore
-// --------- 3.2  Calculation: Population 1800-$pastyear
+// --------- 2.2  Calculation: Population 1800-$pastyear
 * The population data is available for all the core countries since 1800 
 foreach x of varlist region* {
 preserve
-	drop if inlist(iso, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ", "QM")
 	drop if missing(`x')
 	collapse (sum) npopul001f-npopul999m, by(year `x')
 	
@@ -280,11 +254,10 @@ preserve
 restore
 }
 
-// --------- 3.2  Calculation: Macro variables 1800-1970(releying on NP2025) & 1970-$pastyear
-* Before 1970, the macroecnomic data is incomplete so it is better to keep only 
-*      the 48 core territories and the residual regions
-drop if !missing(region2) & year<1970 & !inlist(iso, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ","QM")
-*drop if region3=="QM"  & year<1970  & iso!="QM"
+// --------- 2.3  Calculation: Macro variables 1970-$pastyear
+
+keep if year>=1970 
+
 foreach x of varlist region* {
 preserve
 	drop if missing(`x')
@@ -303,7 +276,7 @@ merge 1:1 region year using  "`regions_rest'", nogenerate
 gsort region year 
 
 
-// --------- 3.2.1 Expansion of the macro variables to the subregions OL and OK
+// --------- 2.3.1 Expansion of the macro variables to the subregions OL and OK
 * Following the simplifaction of the WID region in 2021, only OK(NorthAmerica) 
 *       and OL(Occeania) were retained as subregions of NAOC (OH). In order to 
 *       complete the data for these regions,  we used the ratio between the GDP
@@ -392,13 +365,13 @@ drop OH* ppp* exc*
 
 
 // -------------------------------------------------------------------------- //
-* 	4. Generate World Aggregations
+* 	3. Generate World Aggregations
 // -------------------------------------------------------------------------- //
 
 preserve
 	keep if inlist(region, "QE","XB","XF","XL","QL","XN","XR","XS") & year<1970
 	ds year region, not
-	collapse (sum) npopul001f-mnninc999i_nomyup, by(year)
+	collapse (sum) npopul001f-npopul999m, by(year) // mnninc999i_nomyup, by(year)
 	generate region = "WO"
 	
 	tempfile world_1800
@@ -414,13 +387,15 @@ preserve
 	use "`countries'", clear
 	* Keep only corecountries
 	merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogen keepusing(corecountry) 
+
 	* keep only core countries
 	keep if corecountry == 1 & year>=1970 //| (inlist(iso, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ", "QM") & year>=1970)
+	
 	* Calculate world sum for all the years and variables included
 	ds year iso p, not
 	collapse (sum) npopul001f-mnninc999i_nomyup, by(year)
 	generate region = "WO"
-	
+
 	tempfile world_1970
 	save `world_1970'
 restore
@@ -429,21 +404,24 @@ append using "`world_1800'"
 append using "`world_1970'"
 
 // -------------------------------------------------------------------------- //
-* 	5. Generate currency values, price indexes and xrates .
+* 	4. Generate currency values, price indexes and xrates .
 // -------------------------------------------------------------------------- //
 
-// --------- 5.1 Generate W and Y of the regional variables ----------------- //
+// --------- 4.1 Generate W and Y of the regional variables ----------------- //
 * Format
 renvars npopul001f-mnninc999i_nomyup, pref("value")
 
 * Calculate W values for the macro variables ( variables as shares of nninc)
-foreach v in ndpro999i gdpro999i nnfin999i finrx999i finpx999i comnx999i pinnx999i nwnxa999i nwgxa999i nwgxd999i comhn999i fkpin999i confc999i comrx999i compx999i pinrx999i pinpx999i fdinx999i fdirx999i fdipx999i ptfnx999i ptfrx999i ptfpx999i flcin999i flcir999i flcip999i ncanx999i tbnnx999i scinx999i tbxrx999i tbmpx999i scirx999i scipx999i  tgmpx999i tgnnx999i tgxrx999i tsmpx999i tsnnx999i tsxrx999i fkarx999i fkapx999i fkanx999i taxnx999i fsubx999i ftaxx999i expgo999i gpsge999i defge999i polge999i ecoge999i envge999i houge999i heage999i recge999i eduge999i edpge999i edsge999i edtge999i sopge999i spige999i sacge999i sakge999i revgo999i pitgr999i citgr999i scogr999i pwtgr999i intgr999i ottgr999i {
+foreach v of local agg_var {
 	gen double valuew`v'_excusd = valuem`v'_excusd/valuemnninc999i_excusd
 }
+drop  valuewnninc999i_excusd
+
 * Calculate y values for the macro variables ( variables as shares of gdpro)
-foreach v in ndpro999i nninc999i nnfin999i finrx999i finpx999i comnx999i pinnx999i nwnxa999i nwgxa999i nwgxd999i comhn999i fkpin999i confc999i comrx999i compx999i pinrx999i pinpx999i fdinx999i fdirx999i fdipx999i ptfnx999i ptfrx999i ptfpx999i flcin999i flcir999i flcip999i ncanx999i tbnnx999i scinx999i tbxrx999i tbmpx999i scirx999i scipx999i  tgmpx999i tgnnx999i tgxrx999i tsmpx999i tsnnx999i tsxrx999i  fkarx999i fkapx999i fkanx999i taxnx999i fsubx999i ftaxx999i expgo999i gpsge999i defge999i polge999i ecoge999i envge999i houge999i heage999i recge999i eduge999i edpge999i edsge999i edtge999i sopge999i spige999i sacge999i sakge999i revgo999i pitgr999i citgr999i scogr999i pwtgr999i intgr999i ottgr999i {
+foreach v of  local agg_var {
 	gen double valuey`v'_excusd = valuem`v'_excusd/valuemgdpro999i_excusd
 }
+drop  valueygdpro999i_excusd
 
 ** Formating
 duplicates tag year region, gen(dup)
@@ -457,8 +435,10 @@ greshape long value, i(year region) j(widcode) string
 
 assert value==0 if strpos(widcode, "npopul") & !inlist(substr(widcode,7,3),"014", "156", "991", "992", "997", "999") & year<1950
 drop            if strpos(widcode, "npopul") & !inlist(substr(widcode,7,3),"014", "156", "991", "992", "997", "999") & year<1950
+drop if year<1970 & substr(widcode,1,1) != "n" // Keep only npopul variables before 1970
 
-// --------- 5.2 Use mnninc values for estimating regional price indexes and XR //
+
+// --------- 4.2 Use mnninc values for estimating regional price indexes and XR //
 preserve
 	keep if strpos(widcode, "mnninc999i")
 	reshape wide value, i(year region) j(widcode) string
@@ -484,9 +464,9 @@ preserve
 	generate double valuexlcyux999i     = mnninc999i_nomusx/mnninc999i_nomyux 
 	
 	// Price index 
-	generate double valueinyixx999i      = mnninc999i_nomusx/mnninc999i_excusd 
-	*generate double valueinyixx999i_exc = mnninc999i_nomusp/mnninc999i_pppusd
-	*generate double valueinyixx999i     = mnninc999i_nomusp/mnninc999i_pppusd // former "_exc"
+	generate double valueinyixx999i     = mnninc999i_nomusx/mnninc999i_excusd 
+	generate double valueinyixx999i_ppp = mnninc999i_nomusp/mnninc999i_pppusd
+	*generate double valueinyixx999i    = mnninc999i_nomusp/mnninc999i_pppusd // former "_exc"
 	
 	*generate        valueinyusx999i = mnninc999i_nomusx/mnninc999i_excusd
 	*generate        valueinyusp999i = mnninc999i_nomusp/mnninc999i_pppusd
@@ -503,7 +483,7 @@ preserve
 restore
 
 
-// --------- 5.3 Retain only MER USD values of regions ---------------------- //
+// --------- 4.3 Retain only MER USD values of regions ---------------------- //
 // Note: Prior May 2025, the bydefault data of the regions was EUR PPP. Now the 
 //       data is presented, as all the other countries, in LCU in Constant prices, 
 //       wher the LCU is the USD.
@@ -511,14 +491,12 @@ restore
 drop if inlist(widcode, "mnninc999i_nomeup", "mnninc999i_nomeux", "mnninc999i_nomusp", "mnninc999i_nomusx", "mnninc999i_nomyup", "mnninc999i_nomyux")
 generate currency = upper(substr(widcode, -3, 3)) if !strpos(widcode, "npopul")
 generate type     = upper(substr(widcode, -6, 3)) if !strpos(widcode, "npopul")
-*replace type = "-MER" if type == "EXC"
+replace type = "-PPP" if type == "PPP"
 
-*replace region = region + type if !missing(type) & type == "-MER"
+replace region = region + type if !missing(type) & type == "-PPP"
 
 
-*We choose now to retain the exc
-drop if type=="PPP"
-*We choos to retain the USD
+*We choose to retain the USD
 drop if inlist(currency, "CNY", "EUR")
 drop type
 * Reformat variables names
@@ -527,23 +505,213 @@ replace widcode = substr(widcode, 1, 10)
 
 * Call ppp data
 append using "`ppp'"
+replace region = region + "-PPP" if inlist(widcode, "inyixx999i_ppp","xlceup999i","xlcusp999i","xlcyup999i") 
+replace widcode = "inyixx999i" if widcode == "inyixx999i_ppp"
+
+
+// --------- 4.4 Call intlcu for regions  ----------------------------------- //
+preserve
+	use  "$work_data/NievasPiketty2025_70.dta", clear
+	
+	* Deep relevant observations
+	keep if year>=1970
+	keep if widcode=="intlcu999i" 
+	keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE")
+	* Complete data for OK and OL
+	expand 2 if iso=="OH",gen(xpnd)
+	replace iso="OK" if xpnd==1
+	drop xpnd
+	
+	expand 2 if iso=="OH",gen(xpnd)
+	replace iso="OL" if xpnd==1
+	drop xpnd
+	
+	rename iso region
+
+	tempfile intlcu_70
+	save 	`intlcu_70'
+restore
+
+append using "`intlcu_70'"
+
+preserve
+	keep if widcode=="inyixx999i" & !strpos(region,"-PPP") & year==2023 // last year of Nievas piketty
+	keep  region value
+	rename value inyixx_23
+	tempfile  indx_xlc
+	save `indx_xlc'
+restore
 
 
 
-// --------- 5.4 Extend PPP before 1970 ------------------------------------- //
+tempfile full_post_1970
+save `full_post_1970'
+
+// -------------------------------------------------------------------------- //
+* 	5. Merge Historical Regions from Nievas & Piketty (2025)
+// -------------------------------------------------------------------------- //
+
+// --------- 5.1 Calculate missing conf  ------------------------------------ //
+use  "$work_data/NievasPiketty2025_hist.dta", clear
+drop if inlist(iso,"QE","QL","WO","XB","XF","XL","XN","XR","XS")
+keep if inlist(widcode,"yconfc999i","mgdpro999i")
+
+reshape wide value, i(iso year p) j(widcode) string
+replace valueyconfc999i = valueyconfc999i*valuemgdpro999i
+rename valueyconfc999i valuemconfc999i 
+
+merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogen keep(master match)
+drop titlename shortname TH corecountry region2 region3
+
+* Associate subregions with regions
+replace region1 ="XR" if iso=="OA"  
+replace region1 ="QL" if iso=="OB" 
+replace region1 ="QE" if iso=="OC" 
+replace region1 ="QE" if iso=="QM" 
+replace region1 ="XL" if iso=="OD" 
+replace region1 ="XN" if iso=="OE" 
+replace region1 ="XB" if iso=="OH" 
+replace region1 ="XF" if iso=="OJ" 
+replace region1 ="XS" if iso=="OI" 
+* Associate all core-terrtiories with the world
+gen region4="WO"
+
+** Add the confc by region
+foreach x of varlist region* {
+preserve
+	drop if missing(`x')
+	collapse (sum) valuemgdpro999i valuemconfc999i, by(year `x')
+	
+	rename `x' region
+	
+	tempfile `x'
+	append using `regions_confc'
+	save "`regions_confc'", replace
+restore
+}
+
+
+use "`regions_confc'", clear
+gen double yconfc999i = valuemconfc999i/valuemgdpro999i
+keep region year yconfc999i
+
+save `regions_confc', replace
+
+// --------- 5.2. Bring wealth to product ratios (y)  ----------------------- //
+use  "$work_data/NievasPiketty2025_hist.dta", clear
+
+* Deep relevant observations
+keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE")
+
+rename iso region
+fillin region year widcode p
+drop _fillin
+
+*Complete missing confc
+merge m:1 region year  using "`regions_confc'", nogenerate keep(master match)
+replace value= yconfc999i if widcode=="yconfc999i" & missing(value)
+drop yconfc999i
+
+
+* Generate observations for OK
+expand 2 if region=="OH", gen(xpnd)
+replace region="OK" if xpnd==1 & region=="OH"
+drop xpnd
+expand 2 if region=="OH", gen(xpnd)
+replace region="OL" if xpnd==1 & region=="OH"
+drop xpnd
+
+* Adjust the GD proportionally to the size od OK and OL in 1970
+merge m:1 region using "`ratioOKOL'", nogenerate
+
+replace value= value*exceur if widcode=="mgdpro999i" & inlist(region,"OK","OL")
+drop ppp* exc*
+
+* Rebase the price index to the $pastyear
+merge m:1 region using "`indx_xlc'", nogenerate
+replace value = value/inyixx_23 if widcode=="inyixx999i" 
+drop inyixx_23
+
+reshape wide value, i(region year p) j(widcode) string
+
+*Calculate mnninc999i and mndpro999i
+gen double valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) // ygdpro999i==1
+gen double valueyndpro999i= 1 - valueyconfc999i // ygdpro999i==1
+
+// --------- 5.3. Generate constant $pastyear monetary values  -------------- //
+replace valuemgdpro999i= valuemgdpro999i/ valueinyixx999i
+ds region year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlcusx999i valuexrerus999i, not
+foreach v in `r(varlist)' {
+ gen double `v'_m = `v' *  valuemgdpro999i
+}
+
+// --------- 5.4. Calculate wealth to income ratios (w) --------------------- //
+ds *_m valuemgdpro999i 
+foreach v of varlist `r(varlist)' {
+	 gen double `v'_w = `v' /  valueynninc999i_m
+}
+reshape long
+replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"_w")
+replace widcode = "m" + substr(widcode,2,9) if strpos(widcode,"_m")
+
+replace p ="pall" if missing(p)
+duplicates tag region year p widcode, gen(dup)
+drop if dup==1 & missing(value)
+drop dup
+
+append using "`full_post_1970'"
+duplicates tag region year p widcode, gen(dup)
+assert dup==0
+drop dup 
+
+// --------- 5.5. Extend USD exchange rate to regions ----------------------- //
+preserve
+	keep if inlist(widcode,"xlcusx999i","xlceux999i","xlcyux999i")
+	keep widcode region year value
+	
+	fillin region year widcode 
+	drop _fillin
+	merge m:1 year using "`xrateusd'", nogenerate
+	
+	replace value = xlcusx999i if widcode == "xlcusx999i"
+	replace value = xlceux999i if widcode == "xlceux999i"
+	replace value = xlcyux999i if widcode == "xlcyux999i"
+	
+	drop xlc*
+	keep if year<1970
+	gen new = 1
+	duplicates drop 
+	gen p="pall"
+	
+	tempfile xrate_pre70
+	save    `xrate_pre70'
+restore 
+
+append using "`xrate_pre70'"
+
+duplicates tag region year  p widcode, gen(dup)
+drop if dup==1 & new!=1
+
+duplicates tag region year p widcode, gen(dup2)
+assert dup2==0
+drop dup* new
+
+// --------- 5.5. Extend PPP before 1970 ------------------------------------- //
 preserve 
 	* Generate a ppp usd
-	keep if inlist(region, "XF", "XR", "QL", "XS", "WO", "QE", "XB", "XL", "XN") | ///
-	        inlist(region, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") | ///
-			inlist(region, "QM") | inlist(region, "OK", "OL")
+	gen type_v=substr(region,3,4)
+
+	keep if (type_v=="-PPP" & year>=1970) | (year<1970)
+	drop type_v
+	replace region = substr(region,1,2)
 	
 	keep if inlist(widcode,"inyixx999i", "xlcusp999i") // , "xlcyup999i")
 
-	reshape wide value, i(region year  currency) j(widcode) string
+	reshape wide value, i(region year p currency) j(widcode) string
 	append using "`pppusa'"
 	**PI home 2011
-		gen double localindex20210 = valueinyixx999i if year==$pastyear
-		egen localindex2021        = mode(localindex20210), by(region)
+	gen double localindex20210 = valueinyixx999i if year==$pastyear
+	egen localindex2021        = mode(localindex20210), by(region)
 	
 	foreach c in us { // yu { 
 		**PPP home 2011
@@ -576,298 +744,229 @@ preserve
 	 gen double valuexlcyup999i= valuexlcusp999i/ppp_cn
 	 gen double valuexlceup999i= valuexlcusp999i/ppp_ea
 	 
-	 drop ppp_* refyear valueinyixx999i ppp
+	 drop ppp_* refyear valueinyixx999i
 	 
 	 
-	reshape long value,i(region year)j(widcode) string   
+	reshape long value,i(region year p)j(widcode) string   
 	gen new=1
 	
-	
+	replace region= region+"-PPP"
+	replace p="pall"
 	tempfile ppp_complete
 	save`ppp_complete'
 restore
 
 
 append using "`ppp_complete'"
-duplicates tag region year widcode, gen(dup)
+duplicates tag region year p widcode, gen(dup)
 drop if dup==1 & new!=1
-
 drop dup new 
 
+// --------- 5.6. Complete -PPP regions ------------------------------------- //
+preserve 
+	keep if year==$pastyear
+	keep if widcode=="xlcusp999i"
+	rename value pppusd
+	replace region= substr(region,1,2)
+	drop currency p widcode year
+	
+	tempfile ppp_reg_pastyear
+	save `ppp_reg_pastyear'
+restore
 
-*replace region = region + "-MER" if inlist(widcode, "xlceux999i", "xlcusx999i", "xlcyux999i", "inyixx999i_exc") 
-*replace widcode = "inyixx999i" if widcode == "inyixx999i_exc"
+preserve
+	keep if year<1970
+	keep if substr(widcode,1,1)=="m"
+	merge m:1 region using "`ppp_reg_pastyear'", nogenerate
+	replace value = value/pppusd
+	replace region = region+"-PPP"
+	
+	drop pppusd
+	gen new=1
+	replace p="pall"
+	tempfile ppp_reg_pre70
+	save `ppp_reg_pre70'
+restore
 
-** Dropping non MER observations
+append using "`ppp_reg_pre70'"
 /*
-gen    region2 = substr(region,1,2)
-sort   region2   year widcode  region
-duplicates tag region2 year widcode, gen(dup3)
-drop           if dup3==1 & !strpos(region,"-MER")
-drop   region
-rename region2 region
+* Extend PPP rates to MER regions
+preserve
+	keep if inlist(widcode,"xlceup999i","xlcusp999i","xlcyup999i")
+	replace region=substr(region,1,2)
+	
+	tempfile copy_ppp
+	save `copy_ppp'
+restore
 */
-// -------------------------------------------------------------------------- //
-* 	6. Final Formating and export
-// -------------------------------------------------------------------------- //
 
+duplicates tag region year p widcode, gen(dup)
+drop if dup==1 & new!=1
+duplicates tag region year p widcode, gen(dup2)
+assert dup2==0
+drop dup* new
+
+// --------- 5.7. Complete Price index for regions -PPP  ------------------- //
+preserve
+	* retain relevant variables
+	keep if year<1970			
+	keep if inlist(widcode,"mnninc999i","inyixx999i","xlceup999i")
+	replace region=substr(region,1,2) if widcode=="xlceup999i"
+	*merge m:1 region using "`ppp_reg_pastyear'", nogen
+	* Generate current value:
+	*    This operation will generate valuemnninc999i_nomusp using the MER available values
+	reshape wide value, i(region year p currency /*pppusd*/) j(widcode) string
+	gen double valuemnninc999i_nomusp = (valuemnninc999i*valueinyixx999i)/ valuexlceup999i // pppusd
+	reshape long
+	*drop pppusd
+	gen     type_v = substr(region,4,.)
+	replace type_v = "MER" if missing(type_v)
+
+
+	keep if (widcode=="mnninc999i_nomusp" & type_v=="MER") | (widcode=="mnninc999i" & type_v=="PPP")
+	drop type_v
+	replace region=substr(region,1,2)
+
+	reshape wide value, i(region year p currency) j(widcode) string
+	
+	rename valuemnninc999i valuemnninc999i_pppusd
+
+	generate double valueinyixx999i_ppp = valuemnninc999i_nomusp/valuemnninc999i_pppusd
+
+	keep region year p currency valueinyixx999i_ppp
+
+	reshape long
+
+	replace widcode = "inyixx999i"
+	replace region = region + "-PPP"
+	drop currency
+	gen new=1
+	tempfile idx_regpp_pre70
+	save    `idx_regpp_pre70'
+restore
+
+
+
+append using "`idx_regpp_pre70'"
+*append  using "`copy_ppp'"
+
+duplicates tag region year p widcode, gen(dup)
+drop if dup==1 & new!=1
+duplicates tag region year p widcode, gen(dup2)
+assert dup2==0
+drop dup* new
+
+// --------- 5.8.  Complete intclu ------------------------------------------ //
+local n = 1+ ($pastyear - 2023)
+expand `n' if widcode=="intlcu999i" & year==2023, gen(xpnd)
+
+bysort region year widcode : gen year_plus = _n if xpnd==1
+replace year = year + year_plus -1 if xpnd==1
+drop xpnd year_plus
+
+// --------- 5.9. Exclusion checks  ----------------------------------------- //
 rename region iso
 keep iso year widcode value currency
 generate p = "pall"
 replace value = round(value, 1) if strpos(widcode, "npopul")
 
-*drop if !((substr(widcode, 1, 6) == "npopul" & inlist(substr(widcode, 10, 1), "i", "f", "m")) ///		
-	   | widcode == "mnninc999i" ///
-	   | widcode == "mndpro999i" ///
-	   | widcode == "mgdpro999i") ///
-	   & year<1970
+replace currency="USD" if substr(widcode,1,1)=="m" & missing(currency)
 
-* Drop null variables
-** Drop if is not a variable of NP2025 (+ is a monetary variable) + year<1970
-drop if (!inlist(substr(widcode,2,5), "confc","finpx","finrx","gdpro","ncanx","nnfin","nninc","nwgxa") & ///
-		 !inlist(substr(widcode,2,5), "nwgxd","nwnxa","scinx","scipx","scirx","tbmpx","tbnnx","tbxrx") & ///
-		 !inlist(substr(widcode,2,5), "tgmcx","tgmmx","tgmpx","tgncx","tgnmx","tgnnx","tgxcx","tgxmx") & ///
-		 !inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) ///
-		 & currency=="USD" & year<1970
-		 
-** Drop regions not appearing in NP2025 before 1970		 
-drop if (!inlist(iso,"WO", "QE", "XB", "XL", "XN", "XF", "XR", "QL", "QM") & ///
-		!inlist(iso, "XS","OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") & ///
-		!inlist(iso,"OK","OL")) & year<1970
-
-** 
-drop if inlist(widcode, "mtgncx999i"," mtgxcx999i", "mtgmcx999i","mtgnmx999i","mtgxmx999i", "mtgmmx999i") & ///
-		(!inlist(iso, "WO", "QE", "XB", "XL", "XN", "XF", "XR", "QL", "QM") & ///
-		 !inlist(iso, "XS", "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") & ///
-		 !inlist(iso, "OK", "OL"))
-		 
-*drop if ( !inlist(iso, "AE", "AR", "AU", "BD", "BR", "CA", "CD", "CI", "CL") ///
-		| !inlist(iso, "CN", "CO", "DE", "DK", "DZ", "EG", "ES", "ET", "FR") ///
-		| !inlist(iso, "GB", "ID", "IN", "IR", "IT", "JP", "KE", "KR", "MA") /// 
-		| !inlist(iso, "ML", "MM", "MX", "NE", "NG", "NL", "NO", "NZ", "OA") /// 
-		| !inlist(iso, "OB", "OC", "OD", "OE", "OH", "OI", "OJ", "PH", "PK") /// 
-		| !inlist(iso, "QE", "QM", "RU", "RW", "SA", "SD", "SE", "TH", "TR") ///
-		| !inlist(iso, "TW", "US", "VN", "WO", "QL", "XB", "XF", "XL", "XN") ///
-		| !inlist(iso, "XR", "XS", "ZA")) ///
-		& year<1970
+ ** Drop regions not appearing in NP2025 before 1970		 
+drop if  !inlist( substr(iso,1,2), "WO", "QE", "XB", "XL", "XN", "XF", "XR", "QL", "QM") & ///
+		 !inlist( substr(iso,1,2), "XS","OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") & ///
+		 !inlist( substr(iso,1,2), "OK","OL")
 		
+** Drop if is not a variable of NP2025  + year<1970 
+drop if ( !inlist(substr(widcode,2,5), "confc","finpx","finrx","gdpro","ncanx","nnfin","nninc","nwgxa")  ///
+		& !inlist(substr(widcode,2,5), "nwgxd","nwnxa","scinx","scipx","scirx","tbmpx","tbnnx","tbxrx")  ///
+		& !inlist(substr(widcode,2,5), "tgmcx","tgmmx","tgmpx","tgncx","tgnmx","tgnnx","tgxcx","tgxmx")  ///
+		& !inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro","popul","nyixx") ///
+		& !inlist(substr(widcode,2,5), "lcusx","lceux","lcyux","lcusp","lceup","lcyup","ntlcu")) & year<1970		
+		
+** Drop if is not a wealth variables + year<1980 
+drop if ( inlist(substr(widcode,2,5), "nweal", "pweal", "gweal", "hweal")  ///
+		| inlist(substr(widcode,2,5), "nwnfa","nwhou","nwbus","nwagr","nwboo") /// "nwnxa","nwgxd","nwgxa",
+		| inlist(substr(widcode,2,5), "nwdka","cwres","icwtoq","gwass","pwnfa","pwhou","pwbus","pwagr") ///
+		| inlist(substr(widcode,2,5), "pwodk","pwfin","pwfiw","pweqi","pwpen","pwdeb","iweal","cwboo") ///  
+		| inlist(substr(widcode,2,5), "cwnfa","cwhou","cwbus","cwfin","cwdeb","cwdeq","gwnfa","gwhou") /// 
+		| inlist(substr(widcode,2,5), "gwbus","gwfin","gwdeb")) & year<1980		
 
-	   
-drop if inlist(widcode, "mnweal999i", "mpweal999i", "mgweal999i", "mhweal999i") & year<1995
-
+gduplicates drop
+gen new=1
 tempfile regions
 save "`regions'"
 
+// -------------------------------------------------------------------------- //
+* 	6. Merge Historical Countries from Nievas & Piketty (2025)
+// -------------------------------------------------------------------------- //
 
+* Bring Wealth to product ratio (Y)
+use  "$work_data/NievasPiketty2025_hist.dta", clear
 
-//--------- Incorporating regions, improve later on (temporary) ----------------
+* Deep relevant observations
+keep if !inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"QL", "QM","WO","QE")
 
-//  INTLCU // & XRERUS 
-preserve
-	use "$work_data/NievasPiketty2025_hist_regions.dta", clear
-	keep if (inlist(iso, "XF", "XR", "QL", "XS", "WO", "QE", "XB", "XL", "XN") | ///
-			 inlist(iso, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") | ///
-			 inlist(iso, "QM")) 
-	keep if inlist(widcode, "intlcu999i")  //  "xrerus999i",
-	
-	expand 2 if iso=="OH", gen(xpnd)
-	replace iso="OK" if xpnd==1
-	expand 2 if iso=="OH", gen(xpnd2)
-	replace iso="OL" if xpnd2==1
-	drop xpnd*
-	
-	tempfile rerus
-	save`rerus'
-restore
-append using "`rerus'"	
+drop if widcode=="inyixx999i"
+reshape wide value, i(iso year p) j(widcode) string
+* calcualte nninc and ndpro
+gen double valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) // valueygdpro999i==1
+gen double valueyndpro999i= 1 - valueyconfc999i // valueygdpro999i==1
 
+merge 1:1 iso year using "`country_idx'", nogenerate keep(master match)
 
-//-------------------------Put values from Nievas Piketty 2025 -----------------
+* Calcualte LCU constant Prices $pastyear
+replace valuemgdpro999i= valuemgdpro999i/valueinyixx999i
 
-preserve 
-	* Monetary values
-	use "$work_data/NievasPiketty2025_hist_regions.dta", clear
-	keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE")
-	drop if widcode=="xrerus999i"
-	
-	expand 2 if iso=="OH", gen(xpnd)
-	replace iso="OK" if xpnd==1
-	expand 2 if iso=="OH", gen(xpnd2)
-	replace iso="OL" if xpnd2==1
-	drop xpnd*
-	rename iso region
-	merge m:1 region using "`ratioOKOL'", nogenerate
-	rename region iso
-	
-	replace  value = value * excusd if inlist(iso,"OK","OL") & (!inlist(widcode, "xlcusx999i", "xrerus999i", "intlcu999i", "inyixx999i"))
-	drop ppp* exc*
-	
-	tempfile monetary
-	save `monetary'
-restore
-preserve
-	* Shares of GDP
-	use "$work_data/NievasPiketty2025WBOP.dta", clear
-	keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE")
-	gen      widcode= "ytgnnx999i" if origin =="B1a" 
-	replace  widcode= "ytgxrx999i" if origin =="B1b" 
-	replace  widcode= "ytgmpx999i" if origin =="B1c" 
-	replace  widcode= "ytgncx999i" if origin =="B2a" 
-	replace  widcode= "ytgxcx999i" if origin =="B2b" 
-	replace  widcode= "ytgmcx999i" if origin =="B2c" 
-	replace  widcode= "ytgnmx999i" if origin =="B3a" 
-	replace  widcode= "ytgxmx999i" if origin =="B3b" 
-	replace  widcode= "ytgmmx999i" if origin =="B3c" 
-	replace  widcode= "ytsnnx999i" if origin =="C1a" 
-	replace  widcode= "ytsxrx999i" if origin =="C1b" 
-	replace  widcode= "ytsmpx999i" if origin =="C1c" 
-	replace  widcode= "ytbnnx999i" if origin =="C1d" 
-	replace  widcode= "ytbxrx999i" if origin =="C1e" 
-	replace  widcode= "ytbmpx999i" if origin =="C1f" 
-	replace  widcode= "ynnfin999i" if origin =="D1a" 
-	replace  widcode= "yfinrx999i" if origin =="D1b" 
-	replace  widcode= "yfinpx999i" if origin =="D1c" 
-	replace  widcode= "yscinx999i" if origin =="E1a" 
-	replace  widcode= "yscirx999i" if origin =="E1b" 
-	replace  widcode= "yscipx999i" if origin =="E1c" 
-	replace  widcode= "yncanx999i" if origin =="F1" 
-	replace  widcode= "ynwnxa999i" if origin =="G1a" 
-	replace  widcode= "ynwgxa999i" if origin =="G1b" 
-	replace  widcode= "ynwgxd999i" if origin =="G1c" 
-	*replace  widcode= "mgdpro999i" if origin =="I1a" 
-	*replace  widcode= "inyixx999i" if origin =="I1b" 
-	*replace  widcode= "xlcusx999i" if origin =="I1c" 
-	*replace  widcode= "intlcu999i" if origin =="I1d" 
-	*replace  widcode= "xrerus999i" if origin =="I1g" 
-	replace  widcode= "yconfc999i" if origin =="I2a" 
-	*replace  widcode= "npopul999i" if origin =="I3a" 
-	gen p="pall"
-	drop if missing(widcode)
-	drop origin concept
-	
-	expand 2 if iso=="OH", gen(xpnd)
-	replace iso="OK" if xpnd==1
-	expand 2 if iso=="OH", gen(xpnd2)
-	replace iso="OL" if xpnd2==1
-	drop xpnd*
-	
-	tempfile shares
-	save `shares'
-	
-restore
+* Generate aggregates
+ds iso year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlcusx999i valuexrerus999i, not
+foreach v in `r(varlist)' {
+	gen double `v'_m = `v' *  valuemgdpro999i
+}
 
-gen calculated=1
-append using "`monetary'"
-append using "`shares'"
+* generate  wealth to income ratios (W)
+ds *_m valuemgdpro999i 
+foreach v of varlist `r(varlist)' {
+	gen double `v'_w = `v' /  valueynninc999i_m
+}
+reshape long value, i(iso year p) j(widcode) string
+replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"_w")
+replace widcode = "m" + substr(widcode,2,9) if strpos(widcode,"_m")
+gen new=1
+tempfile countries_pre70
+save `countries_pre70'
 
+// -------------------------------------------------------------------------- //
+* 	7. Final Formating and export
+// -------------------------------------------------------------------------- //
+ 
+// --------- 7.1. Pile countries -------------------------------------------- //
+use "$work_data/add-wealth-aggregates-output.dta", clear
+append using  "`countries_pre70'"
 duplicates tag iso year widcode p, gen(dup)
-drop if dup==1 & calculated==1
+drop if new!=1 & dup==1
 duplicates tag iso year widcode p, gen(dup2)
 assert dup2==0
-drop dup* calculated
+drop dup* //new
 
-*/
-	
-/*
-drop if (inlist(iso, "XF", "XR", "XA", "XS", "WO", "QE", "XB", "XL", "XN") | inlist(iso, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") | inlist(iso, "QM")) & year < 1970 & !(substr(widcode, 1, 6) == "npopul")
-append using "$wid_dir/Country-Updates/WBOP_NP2025/NievasPiketty2025_hist_regionsonly.dta" 
-
-* Extract exchanges rates for the USD, from US, for applying it to the regions
-preserve
-	keep if year < 1970 & inlist(widcode,"xlceux999i","xlcyux999i")
-	keep if iso=="US"
-	drop iso
-	rename value xrate
-	
-	tempfile xrateus
-	save `xrateus'
-restore
-
-* Apply the exchange rates from USD
-preserve
-	keep if (inlist(iso, "XF", "XR", "XA", "XS", "WO", "QE", "XB", "XL", "XN") | inlist(iso, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") | inlist(iso, "QM", "DE")) & year < 1970 // we keep DE only as a guide
-	keep if inlist(widcode,"xlcusx999i","xlceux999i","xlcyux999i")
-	*generate missing observations for region's exchange rates
-	fillin iso year widcode 
-	drop if iso=="DE" | widcode== "xlcusx999i"
-	assert _fillin==1
-	
-	*Merge the exchange rates to all the variables
-	merge m:1 year widcode using "`xrateus'", nogenerate
-	replace value=xrate 
-	replace p="pall"
-	drop _fillin xrate
-	
-	tempfile regionsusd
-	save `regionsusd'
-restore
-
-preserve
-	keep if inlist(widcode,"inyixx999i")
-	keep if iso=="US"
-	drop iso
-	rename value index_us
-	
-	tempfile indexus
-	save `indexus'
-restore
-
-*preserve
-	keep if (inlist(iso, "XF", "XR", "XA", "XS", "WO", "QE", "XB", "XL", "XN") | inlist(iso, "OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") | inlist(iso, "QM", "US")) // ,"DE","CN")) 
-	keep if inlist(widcode, "inyixx999i","xlcusp999i") //, "xlceup999i","xlcyup999i" )
-	
-	*generate missing observations for region's exchange rates
-	*fillin iso year widcode 
-	*drop if iso=="DE" | widcode== "xlcusx999i"
-	*assert _fillin==1
-	replace p="pall"
-	*drop _fillin 
-	reshape wide value, i(iso year p currency) j(widcode) string
-	drop if iso=="US"
-	*Merge the exchange rates to all the variables
-	merge m:1 year using "`indexus'", nogenerate
-	sort iso year widcode p
-	
-	gen double pppus           = valuexlcusp999i          if year == 2021
-	gen double factor_refyear  = index_us/valueinyixx999i if year == 2021
-	egen       pppus2          = mode(pppus),          by(iso)
-	egen       factor_refyear2 = mode(factor_refyear), by(iso)
-	
-	drop    pppus factor_refyear
-	rename (pppus2 factor_refyear2) (pppus factor_refyear)
-	
-	gen ppp = ppp*index/index_us*factor_refyear
-	
-	replace valuexlcusp999i =  
-	
-	
-	tempfile regionsppp
-	save `regionsppp'
-restore
-
-*append using "`regionsusd'"
-append using "`regionsppp'"
-*/
-//---------------------------------------------------------------
-replace currency="US" if substr(widcode,1,1)=="m" & missing(currency)
-append using "$work_data/add-wealth-aggregates-output.dta"
-
+// --------- 7.2. Add regions ----------------------------------------------- //
+append using  "`regions'"
 duplicates tag iso year widcode p, gen(dup)
-*br if dup
-assert dup == 0
-drop dup
-/* */
+drop if new!=1 & dup==1
+duplicates tag iso year widcode p, gen(dup2)
+assert dup2==0
+drop dup* new
+
+
+// --------- 7.3.  Save ----------------------------------------------------- //
 compress
 
-//------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
 sort iso year widcode p
 label data "Generated by aggregate-macro-regions.do"
 save "$work_data/aggregate-regions-output.dta", replace
 
 // -------------------------------------------------------------------------- //
-* 7. Create metadata
+* 8. Create metadata
 // -------------------------------------------------------------------------- //
 
 use "`regions'", clear

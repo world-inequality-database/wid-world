@@ -26,7 +26,8 @@ merge n:1 countryname using "$work_data/wb-metadata.dta", ///
 
 // Identify currencies
 replace currency = "turkmenistan manat" if currency == "New Turkmen manat"
-replace currency = "u.s. dollar" if currency == "Liberian dollar"
+replace currency = "u.s. dollar"        if currency == "Liberian dollar"
+replace currency = "vietnamese dong"    if countryname=="Vietnam"
 
 currencycode currency, generate(currency_iso) iso2c(iso) from("wb")
 drop currency

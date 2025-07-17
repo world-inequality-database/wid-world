@@ -85,8 +85,8 @@ save "`unsna'"
 
 import delimited "$oecd_data/exchange-rates/ils-usd-$pastyear.csv", clear
 generate iso = "PS"
-rename time year
-rename value exch
+rename time_period year
+rename obs_value exch
 keep iso year exch
 tempfile exch
 save "`exch'"

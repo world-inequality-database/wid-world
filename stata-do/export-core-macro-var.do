@@ -104,11 +104,30 @@ drop if inlist(widcode, "aTH999992i", "aTH999999i", "mTH999i")
 replace p = "p0p100"
 replace value = round(value, 0.1)    if inlist(substr(widcode, 1, 1), "a", "t")
 replace value = round(value, 1)      if inlist(substr(widcode, 1, 1), "m", "n")
-replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s")
+replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s","y","w")
 drop if strpos(iso, "XX")
 drop if iso == "KV"
 drop if missing(year)
 keep iso year p widcode value 
+
+tempfile core_macro
+save `core-macro'
+
+
+// Prepare to export
+rename iso Alpha2
+rename p   perc
+order Alpha2 year perc widcode
+
+foreach onlet in a i m n p w y x {
+	preserve
+		keep if substr(widcode,1,1)="`onlet'"
+		export delim "$output_dir/$time/wid-data-$time-macro-var-$year_var_`onlet'.csv", delimiter(";") replace
+	restore
+	
+}
+
+
 
 /*
 preserve
@@ -151,12 +170,14 @@ preserve
 	export delim "$output_dir/$time/wid-data-$time-macro-var-2024NewNnfinFinrxFinpx.csv", delimiter(";") replace
 restore
 */
+/*
 preserve
 	rename iso Alpha2
 	rename p   perc
 	order Alpha2 year perc widcode
 	export delim "$output_dir/$time/wid-data-$time-macro-var-2024.csv", delimiter(";") replace
 restore
+/*
 
 /*
 preserve
@@ -172,6 +193,7 @@ restore
 //  Macro update Metadata
 //------------------------------------------------------------------------------
 /*
+u "`core-macro'", clear
 generate sixlet = substr(widcode, 1, 6)
 ds year p widcode value , not
 keep `r(varlist)'

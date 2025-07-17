@@ -67,6 +67,7 @@ replace tokeep = 0 if inlist(substr(widcode, 2, 5), "gninc", "wealg", "wealh", "
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "gwass", "cwtoq", "icwto")  // new variables unincluded variables
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "cwequ", "gwequ","hwequ","iwequ","pwequ")
 replace tokeep = 1 if widcode=="icwtoq999i"
+replace tokeep = 0 if inlist(widcode, "wlabsh999i","wcapsh999i")
 
 *replace tokeep = 0 if inlist(substr(widcode, 2, 5), "fdimp", "fdion", "fdiop", "fdior", "fdixn", "fkfiw", "nwoff")
 *replace tokeep = 0 if inlist(substr(widcode, 2, 5), "ptfor", "ptfxn", "ptfxn", "ptfhr", "ptfon", "ptfop", "comco")
@@ -90,12 +91,12 @@ replace tokeep = 1 if widcode=="icwtoq999i"
 // ptfor
 // ptfxn
 
-
+/*
 levelsof fivelet if inlist(substr(widcode, 1, 1), "s", "t", "o"), local(fivelet_2)
 foreach l in `fivelet_2' {
 	replace tokeep = 0 if fivelet == "`l'" 
 }
-
+*/
 
 keep if tokeep == 1
 drop if inlist(widcode, "aTH999992i", "aTH999999i", "mTH999i") 
@@ -111,7 +112,7 @@ drop if missing(year)
 keep iso year p widcode value 
 
 tempfile core_macro
-save `core-macro'
+save `core_macro'
 
 
 // Prepare to export
@@ -119,10 +120,10 @@ rename iso Alpha2
 rename p   perc
 order Alpha2 year perc widcode
 
-foreach onlet in a i m n p w y x {
+foreach onelet in a i m n p w y x {
 	preserve
-		keep if substr(widcode,1,1)="`onlet'"
-		export delim "$output_dir/$time/wid-data-$time-macro-var-$year_var_`onlet'.csv", delimiter(";") replace
+		keep if substr(widcode,1,1)=="`onelet'"
+		export delim "$output_dir/$time/wid-data-$time-macro-var-$year_var_`onelet'.csv", delimiter(";") replace
 	restore
 	
 }

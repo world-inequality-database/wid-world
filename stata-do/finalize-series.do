@@ -44,8 +44,10 @@ drop imputed_* toreplace toreplace2
 preserve
 	* Import Data
 	use "$wid_dir/Country-Updates/WBOP_NP2025/NievasPiketty2025WBOP.dta", clear
+	keep if year>=1970
 	* Generate Fivelets as defined in the Wid-Dictionary
-	gen  fivelet= "confc"  if origin =="I2a"
+	gen  fivelet= "gdp_usd"  if origin =="A1"
+	replace  fivelet= "confc"  if origin =="I2a"
 	
 	*Format for importing
 	drop if mi(fivelet)
@@ -67,6 +69,7 @@ preserve
 	
 restore
 
+
 merge 1:1 iso year using "$work_data/USS-exchange-rates.dta", nogen keepusing(exrate_usd) keep(master matched)
 
 gen gdpusd=(gdp_idx/exrate_usd)
@@ -79,8 +82,6 @@ merge 1:1 iso year using "`np2025'", nogen update replace
 * Step 1: Prepare data
 * keep corecountries after 1970
 merge 1:1 iso year using "$work_data/import-core-country-codes-year-output.dta", nogen keepusing(region2 corecountry)
-drop if corecountry!=1 & year>= 1970
-sort iso year 
 
 
 *calculate gdp of regions
@@ -88,11 +89,13 @@ bys year region2: egen reg_gdp_usd = total(gdpusd)
 
 * Bring regions from Paper
 merge m:1 region2 year using "`np2025_reg'", nogenerate keep(master match)
+sort iso year 
+
 
 * Calculate monetary values of the variables
 foreach v in confc {
-	replace `v'=`v'* gdpusd
-	replace paper_`v'=paper_`v'* reg_gdp_usd
+	replace `v'=`v'* gdpusd if  year>1970 & year<=2022 & corecountry==1
+	replace paper_`v'=paper_`v'* reg_gdp_usd if  year>1970 & year<=2022 & corecountry==1
 }
 
 * Step 2: Calculate total values by region-year
@@ -104,22 +107,22 @@ foreach v in confc  {
 
 * Step 3: Compute the net total (e.g. tgxrx - tgmpx) vs paper values
 foreach v in confc {
-    gen double totnet_`v' = (paper_`v'- total_abs_`v')
+    gen double totnet_`v' = (paper_`v'- total_abs_`v') if  year>1970 & year<=2022
 }
 
 * Step 4: Allocate adjustments proportionally for tgxrx and tgmpx
 foreach v in confc {
     gen prop_`v' = abs_`v' / total_abs_`v'    // Share in regional total
     gen adjust_`v' = prop_`v' * totnet_`v' // Adjustment share
-    replace `v' = `v' + adjust_`v' if !missing(region2) & year<=2022
+    replace `v' = `v' + adjust_`v' if !missing(region2) & year>1970 & year<=2022 & corecountry==1 
 }
-drop corecountry reg_gdp_usd paper_* abs_* adjust_* prop_*  total_* totnet_* region2
+drop  reg_gdp_usd paper_* abs_* adjust_* prop_*  total_* totnet_* region2
 
 
 foreach v in confc  {
-	replace `v'=`v'/gdpusd
+	replace `v'=`v'/gdpusd if  year>1970 & year<=2022 & corecountry==1 
 }
-drop gdpusd  
+drop gdpusd  corecountry
 
 
 //------------------------------------------------------------------------------

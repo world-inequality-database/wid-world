@@ -92,7 +92,7 @@ drop cfU
 carryforward T, replace
 
 // Loop over prefixes and create variables of the tree
-foreach prefix in a m w {
+foreach prefix in a m w y {
 	// Path
 	egen path`prefix' = concat(T U V W X Y), punct(".")
 	replace path`prefix' = subinstr(path`prefix', "*", "`prefix'", .)
@@ -217,7 +217,7 @@ drop cfU
 carryforward T, replace
 
 // Loop over prefixes and create variables of the tree
-foreach prefix in a m w {
+foreach prefix in a m w y {
 	// Path
 	egen path`prefix' = concat(T U V W), punct(".")
 	replace path`prefix' = subinstr(path`prefix', "*", "`prefix'", .)
@@ -417,6 +417,7 @@ replace name = "Personal carbon footprint - consumption part" if path == "lpfghg
 append using "`tree'"
 save "`tree'", replace
 
+drop if path == "|"
 duplicates drop path comp level category name, force
 
 order path comp level category name orphan rank

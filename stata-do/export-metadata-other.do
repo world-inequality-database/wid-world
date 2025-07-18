@@ -54,7 +54,7 @@ assert duplicate == 0
 drop duplicate
 
 // Check we don't miss any variable
-merge 1:1 fivelet using "`fivelet'", nogen 
+merge 1:1 fivelet using "`fivelet'", nogen keep(1 3)
 // assert(master match)
 
 sort fivelet

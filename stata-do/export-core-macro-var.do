@@ -116,14 +116,57 @@ save `core_macro'
 
 
 // Prepare to export
+//------------- wealth only available until 2023
+gen flag= 1	if  ( inlist(substr(widcode, 2, 5), "nwnfa","nwhou","nwbus","nwagr","nwboo") ///  "mnweal",
+				| inlist(substr(widcode, 2, 5), "nwdka","cwres","cwtoq","gwass","pwnfa","pwhou","pwbus","pwagr") ///  ,"mpweal"
+				| inlist(substr(widcode, 2, 5), "pwodk","pwfin","pwfiw","pweqi","pwpen","pwdeb","iweal","cwboo") ///  ,"mhweal"
+				| inlist(substr(widcode, 2, 5), "cwnfa","cwhou","cwbus","cwfin","cwdeb","cwdeq","gwnfa","gwhou") ///  ,"mgweal"
+				| inlist(substr(widcode, 2, 5), "gwbus","gwfin","gwdeb"))  & year==2024
+drop if  flag==1 & value==0
+drop flag
+
+
+//---------------- Temporary -----------------------
+gen region = 1 if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE")
+keep if region==1
+drop region
+gen      type = substr(iso,4,3)  
+replace  type = "MER"            if missing(type)
+replace   iso = substr(iso,1,2)	  
+
+reshape wide value, i(iso year widcode p) j(type) string
+
+replace valuePPP=valueMER if inlist(substr(widcode,1,1),"x","i") & missing(valuePPP)
+replace valueMER=valuePPP if inlist(substr(widcode,1,1),"x") & missing(valueMER)
+gen valueA = valuePPP
+
+reshape long value, i(iso year p widcode) j(type) string
+replace iso = iso + "-" + type if inlist(type,"MER","PPP")
+drop type
+
 rename iso Alpha2
 rename p   perc
 order Alpha2 year perc widcode
 
-foreach onelet in a i m n p w y x {
+foreach onelet in a i m n  w y x { //   p
 	preserve
 		keep if substr(widcode,1,1)=="`onelet'"
-		export delim "$output_dir/$time/wid-data-$time-macro-var-$year_var_`onelet'.csv", delimiter(";") replace
+		di "Exporting `onelet'..."
+		export delim "$output_dir/$time/wid-data-$time-macro-var-$year_var_`onelet'_regions.csv", delimiter(";") replace
+	restore
+}
+//--------------------------------------------------
+
+use "`core-macro'"
+
+rename iso Alpha2
+rename p   perc
+order Alpha2 year perc widcode
+
+foreach onelet in a i m n  w y x { //   p
+	preserve
+		keep if substr(widcode,1,1)=="`onelet'"
+*		export delim "$output_dir/$time/wid-data-$time-macro-var-$year_var_`onelet'.csv", delimiter(";") replace
 	restore
 	
 }
@@ -215,3 +258,4 @@ sort alpha2 alpha2 twolet threelet
 order alpha2 twolet threelet method source data_quality imputation extrapolation data_points
 export delim "$output_dir/$time/metadata/var-notes-$time-macro-var-2024.csv", delimiter(";") replace
 
+/*

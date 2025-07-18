@@ -9,7 +9,7 @@ use "$work_data/aggregate-regions-output.dta", clear
 
 *keep relevant observations
 drop if strpos(iso,"CN-")
-drop if strpos(iso,"-") &  inlist(substr(widcode,1,6), "inyixx",  "mgdpro")
+drop if strpos(iso,"-") &  inlist(substr(widcode,1,6), "inyixx",  "mgdpro","npopul")
 keep if inlist(substr(widcode,1,6), "inyixx", "xlcusp", "xlceup", "xlcyup", "xlcusx", "xlceux", "xlcyux", "mgdpro") | widcode=="npopul999i"
 replace iso= substr(iso,1,2)
 

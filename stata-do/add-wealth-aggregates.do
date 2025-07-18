@@ -169,14 +169,14 @@ duplicates tag iso year widcode p, gen(dup)
 drop if dup==1 & missing(wid) & (inlist(substr(widcode,2,5), "confc","finpx","finrx","gdpro","ncanx","nnfin","nninc","nwgxa") | ///
 							     inlist(substr(widcode,2,5), "nwgxd","nwnxa","scinx","scipx","scirx","tbmpx","tbnnx","tbxrx") | ///
 							     inlist(substr(widcode,2,5), "tgmcx","tgmmx","tgmpx","tgncx","tgnmx","tgnnx","tgxcx","tgxmx") | ///
-							     inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) & year<=2023 // Year of final data of NievasPiketty(2025)
+							     inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) & year<=2022 // Year of final data of NievasPiketty(2025)
 								 
 drop if dup==1 & wid==1 & (!inlist(substr(widcode,2,5), "confc","finpx","finrx","gdpro","ncanx","nnfin","nninc","nwgxa") & ///
 							!inlist(substr(widcode,2,5), "nwgxd","nwnxa","scinx","scipx","scirx","tbmpx","tbnnx","tbxrx") & ///
 							!inlist(substr(widcode,2,5), "tgmcx","tgmmx","tgmpx","tgncx","tgnmx","tgnnx","tgxcx","tgxmx") & ///
-							!inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) & year<=2023 // Year of final data of NievasPiketty(2025)
+							!inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) & year<=2022 // Year of final data of NievasPiketty(2025)
 							
-drop if dup==1 & wid==1 & year>2023
+drop if dup==1 & wid==1 & year>2022
 
 duplicates tag iso year widcode p, gen(dup2)
 

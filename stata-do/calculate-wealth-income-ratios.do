@@ -3,7 +3,7 @@
 // -------------------------------------------------------------------------- //
 
 // -------------------------------------------------------------------------- //
-// Wealth-income ratios
+// Wealth-income ratios (W)
 // -------------------------------------------------------------------------- //
 
 use "$work_data/complete-variables-output.dta", clear
@@ -29,6 +29,68 @@ generate p = "pall"
 
 tempfile ratios
 save "`ratios'"
+// -------------------------------------------------------------------------- //
+// Other variables-income/product ratios (W) for PPP vars
+// -------------------------------------------------------------------------- //
+*Note: During aggegate macro regions the W variables are calculated for the MER regions
+*      but not for the PPP ones, so this section completes the process
+
+use "$work_data/complete-variables-output.dta", clear
+*keep only regions PPP
+keep if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE")
+keep if strpos(iso, "-PPP")
+*Keep only relevant aggregates
+keep if substr(widcode,1,1)=="m"
+gen     flag=0
+replace flag = 1 if   inlist(substr(widcode,2,5),"citgr", "comhn", "comnx", "compx", "comrx", "confc", "cwboo", "cwbus", "cwdeb")  ///
+					| inlist(substr(widcode,2,5),"cwdeq", "cwfin", "cwhou", "cwnfa", "cwres", "defge", "ecoge", "edpge", "edsge")  ///
+					| inlist(substr(widcode,2,5),"edtge", "eduge", "envge", "expgo", "fdinx", "fdipx", "fdirx", "fdixa", "fdixd")  
+replace flag = 1 if   inlist(substr(widcode,2,5),"fdixn", "finpx", "finrx", "fkanx", "fkapx", "fkarx", "fkpin", "flcin", "flcip")  ///
+					| inlist(substr(widcode,2,5),"flcir", "fsubx", "ftaxx", "gdpro", "gpsge", "gwbus", "gwdeb", "gweal", "gwfin")  ///
+					| inlist(substr(widcode,2,5),"gwhou", "gwnfa", "heage", "houge", "hweal", "intgr", "iweal", "ncanx", "ndpro")  
+replace flag = 1 if   inlist(substr(widcode,2,5),"nnfin", "nninc", "ntlcu", "ntrgr", "nwagr", "nwboo", "nwbus", "nwdka", "nweal")  ///
+					| inlist(substr(widcode,2,5),"nwgxa", "nwgxd", "nwhou", "nwnfa", "nwnxa", "ottgr", "pinnx", "pinpx", "pinrx")  ///
+					| inlist(substr(widcode,2,5),"pitgr", "polge", "psugo", "ptdpx", "ptdrx", "ptdxa", "ptdxd", "ptepx", "pterx")  
+replace flag = 1 if   inlist(substr(widcode,2,5),"ptexa", "ptexd", "ptfnx", "ptfpx", "ptfrn", "ptfrp", "ptfrr", "ptfrx", "ptfxa")  ///
+					| inlist(substr(widcode,2,5),"ptfxd", "ptfxn", "ptrrx", "ptrxa", "pwagr", "pwbus", "pwdeb", "pweal", "pweqi")  ///
+					| inlist(substr(widcode,2,5),"pwfin", "pwfiw", "pwhou", "pwnfa", "pwodk", "pwpen", "pwtgr", "recge", "retgo")  
+replace flag = 1 if   inlist(substr(widcode,2,5),"revgo", "sacge", "sakge", "scgnx", "scgpx", "scgrx", "scinx", "scipx", "scirx")  ///
+					| inlist(substr(widcode,2,5),"scogr", "sconx", "scopx", "scorx", "scrnx", "scrpx", "scrrx", "sopge", "spige")  ///
+					| inlist(substr(widcode,2,5),"taxnx", "tbmpx", "tbnnx", "tbxrx", "tgmcx", "tgmmx", "tgmpx", "tgncx", "tgnmx")  
+replace flag = 1 if   inlist(substr(widcode,2,5),"tgnnx", "tgxcx", "tgxmx", "tgxrx", "tsmpx", "tsnnx", "tsonx", "tsopx", "tsorx")  ///
+					| inlist(substr(widcode,2,5),"tstnx", "tstpx", "tstrx", "tsvnx", "tsvpx", "tsvrx", "tsxrx")  
+keep if flag==1
+drop flag
+
+* Separete the nninc for W and the gdpro for Y
+preserve          
+	drop currency p
+	keep if inlist(widcode,"mnninc999i","mgdpro999i") 
+
+	reshape wide value, i(iso year) j (widcode) string
+	rename (valuemnninc999i valuemgdpro999i)(valuew valuey)
+	
+	
+	tempfile denominators
+	save `denominators'
+restore
+merge m:1 iso year using "`denominators'", nogen
+
+* Calculate ratios
+replace valuey=value/valuey // for Y
+replace valuew=value/valuew // for W
+drop value
+
+* Format
+reshape long value, i(iso year widcode p currency) j(ratio) string
+replace widcode= ratio +substr(widcode,2,.)
+drop ratio 
+drop  if inlist(widcode,"wnninc999i","ygdpro999i") // ilogical values
+
+gen full_ppp=1
+
+tempfile full_ppp
+save `full_ppp'
 
 // -------------------------------------------------------------------------- //
 // Labor/capital share
@@ -55,6 +117,11 @@ save "`shares'"
 use "$work_data/complete-variables-output.dta", clear
 append using "`ratios'"
 append using "`shares'"
+append using "`full_ppp'"
+
+duplicates tag iso year p widcode, gen(dup)
+drop if full_ppp==1 & dup==1
+drop full_ppp dup
 
 drop if missing(value)
 duplicates drop iso year p widcode, force

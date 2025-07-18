@@ -18,6 +18,7 @@
 // 		2.3  Calculation: Macro variables 1970-$pastyear
 // 			2.3.1 Expansion of the macro variables to the subregions OL and OK
 //  3. Generate World Aggregations
+// 		3.1 Calculate WO
 //  4. Generate currency values, price indexes and xrates
 // 		4.1 Generate W and Y of the regional variables
 //		4.2 Use mnninc values for estimating regional price indexes and XR
@@ -31,7 +32,8 @@
 // 		5.6. Complete -PPP regions
 //      5.7. Complete Price index for regions -PPP  
 //      5.8.  Complete intclu 
-//      5.9. Exclusion checks
+// 		5.9.  Extend Population to PPP
+//      5.10. Exclusion checks
 //  6. Merge Historical countries from Nievas & Piketty (2025)
 //  7. Final Formating and export
 //      7.1. Pile countries 
@@ -367,7 +369,7 @@ drop OH* ppp* exc*
 // -------------------------------------------------------------------------- //
 * 	3. Generate World Aggregations
 // -------------------------------------------------------------------------- //
-
+//------- 3.1 Calculate WO
 preserve
 	keep if inlist(region, "QE","XB","XF","XL","QL","XN","XR","XS") & year<1970
 	ds year region, not
@@ -402,7 +404,7 @@ restore
 
 append using "`world_1800'"
 append using "`world_1970'"
-
+ 
 // -------------------------------------------------------------------------- //
 * 	4. Generate currency values, price indexes and xrates .
 // -------------------------------------------------------------------------- //
@@ -483,7 +485,7 @@ preserve
 restore
 
 
-// --------- 4.3 Retain only MER USD values of regions ---------------------- //
+// --------- 4.3 Define PPP and  MER USD values of regions ---------------------- //
 // Note: Prior May 2025, the bydefault data of the regions was EUR PPP. Now the 
 //       data is presented, as all the other countries, in LCU in Constant prices, 
 //       wher the LCU is the USD.
@@ -646,7 +648,7 @@ foreach v in `r(varlist)' {
 }
 
 // --------- 5.4. Calculate wealth to income ratios (w) --------------------- //
-ds *_m valuemgdpro999i 
+ds *_m  valuemgdpro999i 
 foreach v of varlist `r(varlist)' {
 	 gen double `v'_w = `v' /  valueynninc999i_m
 }
@@ -864,7 +866,12 @@ bysort region year widcode : gen year_plus = _n if xpnd==1
 replace year = year + year_plus -1 if xpnd==1
 drop xpnd year_plus
 
-// --------- 5.9. Exclusion checks  ----------------------------------------- //
+// --------- 5.9.  Extend Population to PPP --------------------------------- //
+expand 2 if substr(widcode,1,1)=="n", gen(xpnd)
+replace region=region+"-PPP" if xpnd==1
+drop xpnd
+
+// --------- 5.10. Exclusion checks  ----------------------------------------- //
 rename region iso
 keep iso year widcode value currency
 generate p = "pall"
@@ -957,6 +964,7 @@ duplicates tag iso year widcode p, gen(dup2)
 assert dup2==0
 drop dup* new
 
+drop if widcode=="wnninc999i" // ilogical value
 
 // --------- 7.3.  Save ----------------------------------------------------- //
 compress

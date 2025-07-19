@@ -11,6 +11,7 @@
 //      2. Import Regions percapita data
 //      3. Import Regions Adult data
 //      4. Import World estimates
+// 		5. Extend Regions to -PPP
 // B. Merge Historical Series 
 //      1.  Merge Data
 //      2. Save
@@ -276,6 +277,17 @@ duplicates drop iso year widcode p, force
 
 // drop if iso == "OH" // other North America & Oceania
 
+// --------- 5. Extend Regions to -PPP
+*Note: Extending the historical shares to the pp regions allow to be able to 
+//      calculate averages and thresholds also homogenize-all-distributions.do
+gen region=1 if inlist(iso,"WA", "WB", "WC", "WD", "WD", "WG", "WH", "WI", "WJ") | ///
+				inlist(iso,"OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") | ///
+				inlist(iso,"OK", "OL" ,"WO","QM","WE")
+expand 2 if region==1, gen(xpnd)
+replace iso = iso + "-PPP" if xpnd==1
+drop xpnd region
+
+
 tempfile completehistorical
 save `completehistorical'
 
@@ -303,7 +315,15 @@ replace iso = "QF" if iso == "WH"
 replace iso = "XS" if iso == "WI" 
 replace iso = "XF" if iso == "WJ" 
 *replace iso = "QM" if iso == "OK"
-
+replace iso = "QE-PPP" if iso == "WC-PPP"
+replace iso = "XR-PPP" if iso == "WA-PPP"
+replace iso = "QL-PPP" if iso == "WB-PPP"
+replace iso = "XL-PPP" if iso == "WD-PPP"
+replace iso = "XN-PPP" if iso == "WE-PPP" 
+replace iso = "QP-PPP" if iso == "WG-PPP"
+replace iso = "QF-PPP" if iso == "WH-PPP" 
+replace iso = "XS-PPP" if iso == "WI-PPP" 
+replace iso = "XF-PPP" if iso == "WJ-PPP" 
 
 
 // Matching the historical series

@@ -41,15 +41,13 @@ export delim "$output_dir/$time/wid-data-$time-core-macro.csv", delimiter(";") r
 clear all 
 **
 use "$work_data/merge-historical-aggregates.dta", clear
-*use "/Users/manuelestebanarias/Documents/merge-historical-aggregates (5).dta", clear
-*use "merge-historical-aggregates-2.dta", clear
+*use "/Users/rowaidamoshrif/Downloads/merge-historical-aggregates (22).dta", clear
 keep if (substr(widcode, 1, 1) == "m" | substr(widcode, 1, 1) == "w" | substr(widcode, 1, 1) == "y")
 generate fivelet = substr(widcode, 2, 5)
 levelsof fivelet, local(fivelet)
 **
 use "$work_data/merge-historical-aggregates.dta", clear
-*use "/Users/manuelestebanarias/Documents/merge-historical-aggregates (5).dta", clear
-*use "merge-historical-aggregates-2.dta", clear
+*use "/Users/rowaidamoshrif/Downloads/merge-historical-aggregates (22).dta", clear
 
 generate fivelet = substr(widcode, 2, 5)
 generate tokeep = 0
@@ -59,6 +57,7 @@ foreach l in `fivelet' {
 }
 replace tokeep = 1 if inlist(substr(widcode, 1, 6), "npopul")
 replace tokeep = 1 if inlist(substr(widcode, 2, 5), "nyixx", "ntlcu", "rerus", "lceux", "lceup", "lcyux", "lcyup", "lcusx", "lcusp")
+*replace tokeep = 1 if inlist(substr(widcode, 1, 6), "npopul", "intlcu")
 replace tokeep = 0 if inlist(substr(widcode, 1, 1), "s", "t", "o")
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "fdimp", "fdion", "fdiop", "fdior",           "fkfiw", "nwoff")
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "ptfor",           "ptfhr", "ptfon", "ptfop", "ptfop", "comco")
@@ -69,27 +68,7 @@ replace tokeep = 0 if inlist(substr(widcode, 2, 5), "cwequ", "gwequ","hwequ","iw
 replace tokeep = 1 if widcode=="icwtoq999i"
 replace tokeep = 0 if inlist(widcode, "wlabsh999i","wcapsh999i")
 
-*replace tokeep = 0 if inlist(substr(widcode, 2, 5), "fdimp", "fdion", "fdiop", "fdior", "fdixn", "fkfiw", "nwoff")
-*replace tokeep = 0 if inlist(substr(widcode, 2, 5), "ptfor", "ptfxn", "ptfxn", "ptfhr", "ptfon", "ptfop", "comco")
-*replace tokeep = 0 if inlist(substr(widcode, 2, 5), "tgmpx", "tgxrx", "tgnnx", "tsmpx", "tsxrx", "tsnnx", "scogr")
-*replace tokeep = 0 if inlist(substr(widcode, 2, 5), "scgpx", "scgrx", "scgnx", "sconx", "scopx", "scorx")
-*replace tokeep = 0 if inlist(substr(widcode, 2, 5), "scinx", "scipx", "scirx", "scrnx", "scrpx", "scrrx")
-*replace tokeep = 0 if inlist(substr(widcode, 2, 5),  "scinx", "scipx", "scirx")
-
-// replace tokeep = 0 if inlist(substr(widcode, 2, 5), "", "")
-*fivelet
-// fdimp
-// fdion
-// fdiop
-// fdior
-// fdixn
-// fkfiw
-// nwoff
-// ptfhr
-// ptfon
-// ptfop
-// ptfor
-// ptfxn
+replace tokeep = 0 if inlist(substr(fivelet, 1, 2), "gw")
 
 /*
 levelsof fivelet if inlist(substr(widcode, 1, 1), "s", "t", "o"), local(fivelet_2)
@@ -99,7 +78,7 @@ foreach l in `fivelet_2' {
 */
 
 keep if tokeep == 1
-drop if inlist(widcode, "aTH999992i", "aTH999999i", "mTH999i") 
+drop if inlist(widcode, "aTH999992i", "aTH999999i", "mTH999i",, "wicwtoq999i", "micwtoq999i")) 
 
 
 replace p = "p0p100"
@@ -172,48 +151,6 @@ foreach onelet in a i m n  w y x { //   p
 }
 
 
-
-/*
-preserve
-	keep if strpos(widcode,"npopul014") | strpos(widcode,"npopul156")
-	drop if inlist(iso,"OK","OL","OO","OP","OQ")
-	rename iso Alpha2
-	rename p   perc
-	order Alpha2 year perc widcode
-	export delim "$output_dir/$time/wid-data-$time-macro-var-2024npopul014and156.csv", delimiter(";") replace
-restore
-preserve
-	keep if inlist(iso,"OK","OL","OO","OP","OQ")
-	rename iso Alpha2
-	rename p   perc
-	order Alpha2 year perc widcode
-	export delim "$output_dir/$time/wid-data-$time-macro-var-2024NewRegions.csv", delimiter(";") replace
-restore
-preserve
-	gen tokeep=0
-	replace tokeep=1 if inlist(substr(widcode, 2, 5), "nnfin", "tsvrx","tsvpx","tsvnx","tstrx")
-	replace tokeep=1 if inlist(substr(widcode, 2, 5),"tstpx","tstnx","tsorx","tsopx","tsonx")
-	replace tokeep=1 if inlist(substr(widcode, 2, 5),"finrx", "finpx", "fsubx", "ftaxx", "taxnx")
-	keep if tokeep==1
-	drop tokeep
-	rename iso Alpha2
-	rename p   perc
-	order Alpha2 year perc widcode
-	export delim "$output_dir/$time/wid-data-$time-macro-var-2024NewnnfinTradeServices.csv", delimiter(";") replace
-restore
- */
-/*
-preserve
-	gen tokeep=0
-	replace tokeep=1 if inlist(substr(widcode, 2, 5), "nnfin", "finrx","finpx")
-	keep if tokeep==1
-	drop tokeep
-	rename iso Alpha2
-	rename p   perc
-	order Alpha2 year perc widcode
-	export delim "$output_dir/$time/wid-data-$time-macro-var-2024NewNnfinFinrxFinpx.csv", delimiter(";") replace
-restore
-*/
 /*
 preserve
 	rename iso Alpha2
@@ -223,16 +160,6 @@ preserve
 restore
 /*
 
-/*
-preserve
-
-	keep if inlist(iso,"OK","OL") | (widcode=="xlcusp999i" | widcode=="xlceup999i" | widcode=="xlcyup999i")
-	rename iso Alpha2
-	rename p   perc
-	order Alpha2 year perc widcode
-	export delim "$output_dir/$time/wid-data-$time-macro-var-2024_OKOL_ppp.csv", delimiter(";") replace
-restore
-*/
 //------------------------------------------------------------------------------
 //  Macro update Metadata
 //------------------------------------------------------------------------------

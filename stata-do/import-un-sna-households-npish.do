@@ -4,6 +4,7 @@
 
 // Separetely fetch compensation of employees and mixed income
 // from valued-added tables to use as a fall back
+
 use "$input_data_dir/un-sna/401.dta", clear
 
 cap renvars countryorarea subgroup / country_or_area sub_group
@@ -56,6 +57,74 @@ replace widcode = "con" if item == "Final consumption expenditure"
 
 append using "`va'"
 
+
+*tempfile updated_data
+*save `updated_data'
+
+/*
+//---------------------- 2023 fixed tables  ----------------------------------
+* Note: In 2023 some observations just disappeared from the dataset , this section
+*       allows to recover this observations
+
+use "$wid_dir/Country-Updates/National_Accounts/UN-SNA-detailed2023/401.dta", clear
+
+cap renvars countryorarea subgroup / country_or_area sub_group
+cap ren sna_system snasystem
+tostring series snasystem, replace
+
+merge n:1 country_or_area year series currency using "$work_data/un-sna-current-gdp.dta", keep(match) nogenerate
+replace value = value/current_gdp
+
+generate widcode = ""
+
+replace widcode = "com_va" if item == "Compensation of employees" & sub_group == "II.1.1 Generation of income account - Uses"
+replace widcode = "gmx_va" if item == "MIXED INCOME, GROSS" & sub_group == "II.1.1 Generation of income account - Uses"
+generate sector = "hn"
+
+tempfile va_old
+save "`va_old'", replace
+
+use "$wid_dir/Country-Updates/National_Accounts/UN-SNA-detailed2023/406.dta", clear
+generate sector = "ho"
+append using "$wid_dir/Country-Updates/National_Accounts/UN-SNA-detailed2023/407.dta"
+replace sector = "np" if missing(sector)
+append using "$wid_dir/Country-Updates/National_Accounts/UN-SNA-detailed2023/409.dta"
+replace sector = "hn" if missing(sector)
+
+merge n:1 country_or_area year series currency using "$work_data/un-sna-current-gdp.dta", keep(match) nogenerate
+replace value = value/current_gdp
+drop current_gdp
+
+
+generate widcode = ""
+
+replace widcode = "prg" if item == "BALANCE OF PRIMARY INCOMES"
+replace widcode = "cfc" if item == "Less: Consumption of fixed capital"
+
+replace widcode = "com" if item == "Compensation of employees" & sub_group == "II.1.2 Allocation of primary income account - Resources"
+
+replace widcode = "prp_recv" if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Resources"
+replace widcode = "prp_paid" if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Uses"
+
+replace widcode = "gsr" if item == "OPERATING SURPLUS, GROSS"
+replace widcode = "gmx" if item == "MIXED INCOME, GROSS"
+
+replace widcode = "tiw" if item == "Current taxes on income, wealth, etc." & sub_group == "II.2 Secondary distribution of income account - Uses"
+replace widcode = "ssc_recv" if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Resources"
+replace widcode = "ssc_paid" if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Uses"
+replace widcode = "ssb_recv" if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Resources"
+replace widcode = "ssb_paid" if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Uses"
+
+replace widcode = "con" if item == "Final consumption expenditure"
+append using "`va_old'"
+
+keep if inlist(country_or_area, "Honduras")
+ 
+merge 1:1 country_or_area sna93_table_code sub_group item sna93_item_code year series sna_system widcode using "`updated_data'", nogen update replace 
+
+//------------------------------------------------------------------------------
+
+*/
 drop if missing(widcode)
 foreach v of varlist footnote* {
 	egen tmp = mode(`v'), by(country_or_area series sector widcode)

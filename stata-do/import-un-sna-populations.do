@@ -1,11 +1,27 @@
-/****Import UN Systmem of National Accounts series.***/
+//----------------------------------------------------------------------------//
+/****.      Import UN Systmem of National Accounts series.                  ***/
+//----------------------------------------------------------------------------//
 
+* Old series
+import delimited "$un_data/populations/sna/unsd_snaAma-2023.csv", ///
+	clear delimiter(",") encoding("utf8") 
+cap rename countryarea countryorarea
+cap drop unit
+rename population population2
+
+tempfile old_data
+save `old_data'
+
+* Updated series
 *Import from https://github.com/WIDworld/wid-world/tree/master/data-input/un-data/populations/sna
 import delimited "$un_data/populations/sna/unsd_snaAma-$pastyear.csv", ///
 	clear delimiter(",") encoding("utf8") 
 cap rename countryarea countryorarea
 cap drop unit
 
+merge 1:1 countryorarea year using "`old_data'", nogenerate
+replace population=population2 if population=="..." & population2!="..."
+drop population2
 
 
 // Identify countries ------------------------------------------------------- //

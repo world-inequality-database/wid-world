@@ -1,4 +1,4 @@
-import excel "$wb_data/metadata/wb-metadata-$pastyear.xlsx", ///
+import excel "$wb_data/metadata/wb-metadata-$year.xlsx", ///
 	sheet("Country - Metadata") clear firstrow case(lower)
 	
 rename currencyunit currency

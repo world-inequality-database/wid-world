@@ -52,6 +52,7 @@ merge 1:1 iso year using "$work_data/NP2025WBOP-gdp.dta", ///
 	nogenerate update assert(using master match) keepusing(gdp*)
 sort iso year
 
+
 // 2. Adjust specific countries ------------------------------------------------
 /* Note: this is not necessary anymore given that NievasPiketty(2025)
 // from WDI, somehow the 1970 year of NZ is missing in the file	

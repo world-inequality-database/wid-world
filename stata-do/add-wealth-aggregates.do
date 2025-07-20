@@ -29,10 +29,11 @@ foreach var in nwnxa nwgxd nwgxa {
 // merge 1:1 iso year using "$wid_dir/Country-Updates/Netherlands/2022_11/NL_WealthAggregates_WID_tomerge", update nogen
 
 ds iso year valuemnninc999i, not
+/*
 foreach l in `r(varlist)' {
 	replace `l' = . if inrange(year, 1990, 1994) & iso == "RU"
 }
-
+*/
 
 foreach x in `r(varlist)' {
 	generate valuem`x'999i = `x'*valuemnninc999i if !missing(valuemnninc999i) & !missing(`x')
@@ -168,14 +169,14 @@ duplicates tag iso year widcode p, gen(dup)
 drop if dup==1 & missing(wid) & (inlist(substr(widcode,2,5), "confc","finpx","finrx","gdpro","ncanx","nnfin","nninc","nwgxa") | ///
 							     inlist(substr(widcode,2,5), "nwgxd","nwnxa","scinx","scipx","scirx","tbmpx","tbnnx","tbxrx") | ///
 							     inlist(substr(widcode,2,5), "tgmcx","tgmmx","tgmpx","tgncx","tgnmx","tgnnx","tgxcx","tgxmx") | ///
-							     inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) & year<=2023 // Year of final data of NievasPiketty(2025)
+							     inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) & year<=2022 // Year of final data of NievasPiketty(2025)
 								 
 drop if dup==1 & wid==1 & (!inlist(substr(widcode,2,5), "confc","finpx","finrx","gdpro","ncanx","nnfin","nninc","nwgxa") & ///
 							!inlist(substr(widcode,2,5), "nwgxd","nwnxa","scinx","scipx","scirx","tbmpx","tbnnx","tbxrx") & ///
 							!inlist(substr(widcode,2,5), "tgmcx","tgmmx","tgmpx","tgncx","tgnmx","tgnnx","tgxcx","tgxmx") & ///
-							!inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) & year<=2023 // Year of final data of NievasPiketty(2025)
+							!inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) & year<=2022 // Year of final data of NievasPiketty(2025)
 							
-drop if dup==1 & wid==1 & year>2023
+drop if dup==1 & wid==1 & year>2022
 
 duplicates tag iso year widcode p, gen(dup2)
 

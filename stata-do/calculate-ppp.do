@@ -13,7 +13,8 @@
 //         3.2. Add Eurozone deflator from Eurostat
 //         3.3. Keep only the US index
 // 4. Calculate the PPP for all the years
-// 5. Compile and export
+// 5. Generate Metadata
+// 6. Export
 //------------------------------------------------------------------------------
 
 
@@ -233,7 +234,7 @@ import delimited "$eurostat_data/deflator/namq_10_gdp_1_Data-$pastyear.csv", ///
 	encoding("utf8") clear varnames(1) // 2021Q1 is included - it used to be $pastyear
 cap renvars obs_value time_period / value time
 
-drop if na_item != "B1GQ" // "Gross domestic product at market prices"
+drop if na_item != "Gross domestic product at market prices" // before  "B1GQ"
 destring value, ignore(":") replace
 split time, parse("Q")
 replace time1 = subinstr(time1, "-", "", .)
@@ -289,29 +290,30 @@ drop index index_us factor_refyear
 drop if missing(ppp)
 
 *replace ppp = ppp/1e5 if iso == "VE"
-
+//------- 5. Generate Metadata ------------------------------------------------------------
 preserve
-drop if ppp_method == "" & ppp_src == ""
-replace ppp_method = ppp_method + "."
-keep iso ppp_method ppp_src
-rename ppp_method method
-rename ppp_src source
-foreach sixlet in xlcusp xlceup xlcyup {
-	generate sixlet = "`sixlet'"
-	tempfile `sixlet'
-	save "``sixlet''"
-	drop sixlet
-}
+	drop if ppp_method == "" & ppp_src == ""
+	replace ppp_method = ppp_method + "."
+	keep iso ppp_method ppp_src
+	rename ppp_method method
+	rename ppp_src source
+	foreach sixlet in xlcusp xlceup xlcyup {
+		generate sixlet = "`sixlet'"
+		tempfile `sixlet'
+		save "``sixlet''"
+		drop sixlet
+	}
 
-//------- 5. Compile and export ------------------------------------------------
-use "`xlcusp'", clear
-append using "`xlceup'"
-append using "`xlcyup'"
-drop if iso == "EA" // Drop Euro area
+	
+	use "`xlcusp'", clear
+	append using "`xlceup'"
+	append using "`xlcyup'"
+	drop if iso == "EA" // Drop Euro area
 
-save "$work_data/ppp-metadata.dta", replace
+	save "$work_data/ppp-metadata.dta", replace
 restore
 
+//------- 6. Export ------------------------------------------------------------
 drop ppp_method ppp_src
 sort iso year
 

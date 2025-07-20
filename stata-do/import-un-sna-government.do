@@ -20,8 +20,38 @@ replace widcode = "ptxgo_va" if sub_group == "II.1.1 Generation of income accoun
 replace widcode = "tpigo_va" if sub_group == "II.1.1 Generation of income account - Uses" & item == "Taxes on production and imports"
 replace widcode = "spigo_va" if sub_group == "II.1.1 Generation of income account - Uses" & item == "Less: Subsidies"
 
+gen old_data=0
 tempfile va
 save "`va'"
+
+//---------------------- 2023 fixed tables  ----------------------------------
+* Note: In 2023 some observations just disappeared from the dataset , this section
+*       allows to recover this observations
+use "$wid_dir/Country-Updates/National_Accounts/UN-SNA-detailed2023/401.dta", clear
+cap renvars countryorarea subgroup / country_or_area sub_group
+cap ren sna_system snasystem
+tostring series snasystem, replace
+*Missing contries
+keep if inlist(country_or_area,"Tonga", "Brazil")
+
+merge n:1 country_or_area year series currency using "$work_data/un-sna-current-gdp.dta", keep(match) nogenerate
+replace value = value/current_gdp
+drop current_gdp
+
+generate widcode = ""
+
+replace widcode = "ptxgo_va" if sub_group == "II.1.1 Generation of income account - Uses" & item == "Taxes on production and imports, less Subsidies"
+replace widcode = "tpigo_va" if sub_group == "II.1.1 Generation of income account - Uses" & item == "Taxes on production and imports"
+replace widcode = "spigo_va" if sub_group == "II.1.1 Generation of income account - Uses" & item == "Less: Subsidies"
+
+
+gen  old_data=1
+
+merge 1:1 country_or_area sna93_table_code sub_group item sna93_item_code year series sna_system widcode using "`va'", nogen update replace
+tempfile va_miss
+save "`va_miss'"
+//------------------------------------------------------------------------------
+
 
 // Separately import COFOG
 use "$input_data_dir/un-sna/301.dta", clear
@@ -46,6 +76,7 @@ replace widcode = "othgo" if item == "Plus: (Other functions)"
 
 tempfile func
 save "`func'"
+
 
 // Import from government sector account
 use "$input_data_dir/un-sna/405.dta", clear
@@ -83,8 +114,68 @@ replace widcode = "indgo" if item == "Individual consumption expenditure"
 replace widcode = "colgo" if item == "Collective consumption expenditure"
 replace widcode = "comgo" if item == "Compensation of employees"
 
+gen  old_data=0
+ 
+tempfile sec
+save "`sec'"
+ 
+//--------------------- 2023 fixed tables ----------------------------------------
+* Note: In 2023 some observations just disappeared from the dataset , this section
+*       allows to recover this observations
+use "$input_data_dir/un-sna/405.dta", clear
+*Missing contries
+keep if inlist(country_or_area,"Brazil","Costa Rica") 
+
+merge n:1 country_or_area year series currency using "$work_data/un-sna-current-gdp.dta", keep(match) nogenerate
+replace value = value/current_gdp
+drop current_gdp
+
+generate widcode = ""
+
+replace widcode = "prggo" if item == "BALANCE OF PRIMARY INCOMES"
+replace widcode = "cfcgo" if item == "Less: Consumption of fixed capital"
+
+replace widcode = "ptxgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on production and imports, less Subsidies"
+
+replace widcode = "tpigo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on production and imports"
+replace widcode = "tprgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on products"
+replace widcode = "otpgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Other taxes on production"
+
+replace widcode = "spigo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Less: Subsidies"
+replace widcode = "sprgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Subsidies on products"
+replace widcode = "ospgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Other subsidies on production"
+
+replace widcode = "prpgo_recv" if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Resources"
+replace widcode = "prpgo_paid" if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Uses"
+
+replace widcode = "gsrgo" if item == "OPERATING SURPLUS, GROSS"
+
+replace widcode = "tiwgo" if item == "Current taxes on income, wealth, etc." & sub_group == "II.2 Secondary distribution of income account - Resources"
+replace widcode = "sscgo" if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Resources"
+replace widcode = "ssbgo" if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Uses"
+
+replace widcode = "congo" if item == "Final consumption expenditure"
+replace widcode = "indgo" if item == "Individual consumption expenditure"
+replace widcode = "colgo" if item == "Collective consumption expenditure"
+replace widcode = "comgo" if item == "Compensation of employees"
+
+gen  old_data=1
+
+merge 1:1 country_or_area sna93_table_code sub_group item sna93_item_code year series sna_system widcode using "`sec'", nogen update replace
+//------------------------------------------------------------------------------
+
+
 append using "`func'"
-append using "`va'"
+*append using "`va'"
+append using "`func'"
+
+append using "`va_miss'"
+*append using "`sec_miss'"
+
+duplicates tag country_or_area year series  widcode, gen(dup)
+drop if dup!=0 & old_data==1
+
+drop dup* old_data
 
 drop if missing(widcode)
 foreach v of varlist footnote* {
@@ -138,5 +229,6 @@ generate savgo = saggo - cfcgo
 // (Greenland is the only very large discrepancy)
 replace othgo = 0 if missing(othgo) & !missing(gpsgo)
 enforce (congo = gpsgo + defgo + polgo + ecogo + envgo + hougo + heago + recgo + edugo + sopgo + othgo), fixed(congo) replace
-	
+
+label data "generated by import-un-sna-goverment.do"
 save "$work_data/un-sna-general-government.dta", replace

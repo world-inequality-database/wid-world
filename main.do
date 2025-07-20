@@ -53,11 +53,6 @@ do "~/Documents/GitHub/wid-world/stata-do/setup.do"
 // // Calculate o- variables
  do "$do_dir/calculate-average-over.do"
 */
-// -------------------------------------------------------------------------- //
-// Import Macroeconomic Researchers  data
-// -------------------------------------------------------------------------- //
-// Import the WBoP data from Nievas & Piketty (2025) paper
-do "$do_dir/import-nievaspiketty2025.do" 
 
 // -------------------------------------------------------------------------- //
 // Add data from researchers
@@ -70,7 +65,12 @@ do "$do_dir/add-researchers-data.do"
 // changed: to be eventually integrated to the above files
 do "$do_dir/correct-widcodes.do"
 
-*
+// -------------------------------------------------------------------------- //
+// Import Macroeconomic Researchers data
+// -------------------------------------------------------------------------- //
+// Import the WBoP data from Nievas & Piketty (2025) paper
+do "$do_dir/import-nievaspiketty2025.do" 
+
 
 // -------------------------------------------------------------------------- //
 // Import external GDP data
@@ -215,7 +215,7 @@ do "$do_dir/import-un-sna68-households-npish.do"
 do "$do_dir/import-un-sna68-corporations.do"
 do "$do_dir/combine-un-sna68.do"
 
-// Import data from UN SNA online
+// Import data from UN SNA online 
 do "$do_dir/import-un-sna-gdp.do"
 do "$do_dir/import-un-sna-national-income.do"
 do "$do_dir/import-un-sna-corporations.do"
@@ -226,6 +226,9 @@ do "$do_dir/combine-un-sna-online.do"
 // Import data from OECD
 do "$do_dir/import-oecd-data.do"
 
+// ImportWTOTradeMerchandise
+do "$do_dir/import-wto-trademerchandise.do"
+
 // Import data from other sources
 do "$do_dir/import-imf-bop.do"
 //do "$do_dir/import-imf-dottrade.do"
@@ -234,6 +237,7 @@ do "$do_dir/importing-gravity-trade.do"
 do "$do_dir/imfbop-trade-gravity.do"
 do "$do_dir/imfbop-remittances.do"
 do "$do_dir/currentaccount.do"
+do "$do_dir/commodities-decomposition.do"
 do "$do_dir/import-income-researchers.do"
 do "$do_dir/reformat-wid-data.do"
 
@@ -287,7 +291,7 @@ do "$do_dir/add-populations.do"
 // Add wealth macro aggregates
 do "$do_dir/add-wealth-aggregates.do"
 
-// Aggregate by regions
+// Aggregate by regions & Merge Historical series (NP2025)
 do "$do_dir/aggregate-macro-regions.do" 
 
 // Generate the real exchange rate

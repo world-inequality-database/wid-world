@@ -224,6 +224,45 @@ drop if missing(gdp)
 duplicates tag year iso gdp currency, gen(dup)
 assert dup == 0
 drop dup 
+
+//---- Correction: Fitting residual contries into NP2025 residual regions --//
+
+//-->> GDP Values in  Constant Prices LCU
+ 
+* Call Price index and exchange rate of countries
+merge 1:1 iso year using "$work_data/USS-exchange-rates.dta", nogen keepusing(exrate_usd) keep(master matched)
+merge 1:1 iso year using "$work_data/price-index.dta", nogen keep(master matched)
+* Call data of Nievas&Piketty(2025) for residual regions
+merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogen keepusing(corecountry region2)
+merge m:1 region2 year using "$work_data/NP2025WBOP-gdp-reg.dta", nogen  keepusing(gdp_usd_np)
+drop if missing(iso)
+sort iso year
+
+* Convert GDP 
+gen double gdp_usd =(gdp*index)/exrate_usd
+ //-->> GDP values in Current Prices USD (as in NP2025)
+ 
+* Caculate residual regions with local data
+bys year region2: egen reg_gdp_usd = total(gdp_usd) 
+replace reg_gdp_usd=. if missing(region2) // Core countries are aggregated as a region
+
+* Calculate the diference between local and NP2025 agregattes
+gen double totnet = (reg_gdp_usd- gdp_usd_np) if year>=1970 & year<=2022
+
+* Generate shares of this difference according to each country gdp
+gen double prop_c  = gdp_usd / reg_gdp_usd
+gen double adjustment= prop_c*totnet 
+* Apply corrections to local gdp
+gen double gdp_usd_corrected= gdp_usd - adjustment
+
+* Recalculate GDp in LCU constant $pastyear prices
+gen double gdp_lcu_constat_corr= (gdp_usd_corrected/index)*exrate_usd
+
+* Input new values in the dataset
+replace gdp = gdp_lcu_constat_corr if !missing(region2) & year>= 1970 & year<=2022
+
+//------------------------------------------------------------------------------
+keep year iso gdp currency level_src level_year growth_src
 save "$work_data/retropolate-gdp.dta", replace
 
 

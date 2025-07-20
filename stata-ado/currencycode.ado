@@ -465,6 +465,7 @@ program currencycode, nclass
 			replace `generate' = "EUR" if (`iso2c' == "IT") & (`curr' == "euro")
 			replace `generate' = "EUR" if (`iso2c' == "EE") & (`curr' == "euro")
 			replace `generate' = "EUR" if (`iso2c' == "PT") & (`curr' == "euro")
+			replace `generate' = "EUR" if (`iso2c' == "HR") & (`curr' == "euro")
 			replace `generate' = "FJD" if (`iso2c' == "FJ") & (`curr' == "fijian dollar")
 			replace `generate' = "GBP" if (`iso2c' == "GB") & (`curr' == "pound sterling")
 			replace `generate' = "GBP" if (`iso2c' == "IM") & (`curr' == "pound sterling")

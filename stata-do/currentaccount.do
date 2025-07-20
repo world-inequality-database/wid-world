@@ -9,72 +9,66 @@ global SSEA `" "AF" "BD" "BN" "BT" "ID" "IN" "KH" "LA" "LK" "MM" "MV" "MY" "NP" 
 
 
 
-import delimited "$current_account/BOP_05-13-2024 14-41-48-35.csv", clear
+*import delimited "$current_account/BOP_05-13-2024 14-41-48-35.csv", clear
+use "$wid_dir/Country-Updates/National_Accounts/imf-data/BOP-treated-$pastyear.dta", clear
 
 //Keep Current accounts variables 
 
-keep if inlist(indicatorcode, "BXIPCE_BP6_USD", "BMIPCE_BP6_USD", "BMCA_BP6_USD", "BXCA_BP6_USD") | ///
-inlist(indicatorcode, "BXIPO_BP6_USD", "BMIPO_BP6_USD", "BXIS_BP6_USD", "BMIS_BP6_USD") | ///     
-		inlist(indicatorcode, "BOP_BP6_USD","BMGS_BP6_USD", "BXGS_BP6_USD", "BKA_CD_BP6_USD", "BKA_DB_BP6_USD", "BKT_CD_BP6_USD", "BKT_DB_BP6_USD") | /// 
-		inlist(indicatorcode, "BXISG_BP6_USD", "BXISOPT_BP6_USD", "BXISOOT_BP6_USD", "BMISG_BP6_USD", "BMISOPT_BP6_USD", "BMISOOT_BP6_USD" )
+keep if inlist(code3, "GS", "D1", "D4O", "IN2", "D9", "EO_AFR","NNADISP") | ///
+		inlist(code3,"IN2_S13", "D752_S1W", "IN22_S1W") 
+keep if inlist(code2,"CD_T","DB_T") | (code2=="NETCD_T" & code3=="EO_AFR")
 		
-*Current Account, Primary Income, Compensation of Employees, Credit, US Dollars BXIPCE_BP6_USD 
-*Current Account, Primary Income, Compensation of Employees, Debit, US Dollars BMIPCE_BP6_USD
-
-
-*Current Account, Total, Debit, US Dollars	BMCA_BP6_USD
-*Current Account, Total, Credit, US Dollars	BXCA_BP6_USD
-
-
-*Current Account, Primary Income, Other Primary Income, Credit, US Dollars	BXIPO_BP6_USD
-*Current Account, Primary Income, Other Primary Income, Debit, US Dollars	BMIPO_BP6_USD
-
-*Current Account, Secondary Income, Credit, US Dollars	BXIS_BP6_USD
-*Current Account, Secondary Income, Debit, US Dollars	BMIS_BP6_USD
-
-*Current Account, Secondary Income, Financial Corporations, Nonfinancial Corporations, Households, and NPISHs, Credit, US Dollars BXISOPT_BP6_USD
-*Current Account, Secondary Income, Financial Corporations, Nonfinancial Corporations, Households, and NPISHs, Other Current Transfers, Credit, US Dollars BXISOOT_BP6_USD
-*Current Account, Secondary Income, General Government, Credit, US Dollars BXISG_BP6_USD
-
-*Net Errors and Omissions, US Dollars	BOP_BP6_USD
-*Supplementary Items, Errors and Omissions (with Fund Record), US Dollars	BOPFR_BP6_USD
-
-*BMGS_BP6_USD Current Account, Goods and Services, Debit, US Dollars
-*BXGS_BP6_USD Current Account, Goods and Services, Credit, US Dollars
-*BGS_BP6_USD Current Account, Goods and Services, Net, US Dollars
+*Current Account, Primary Income, Compensation of Employees, Credit, US Dollars             CD_T.D1,       before:BXIPCE_BP6_USD 
+*Current Account, Primary Income, Compensation of Employees, Debit,  US Dollars             DB_T.D1,       before:BMIPCE_BP6_USD
+*Current Account, Total, Debit,  US Dollars	                                                                      BMCA_BP6_USD
+*Current Account, Total, Credit, US Dollars													                      BXCA_BP6_USD
+*Current Account, Primary Income, Other Primary Income, Credit, US Dollars					CD_T.D4O,      before:BXIPO_BP6_USD
+*Current Account, Primary Income, Other Primary Income, Debit,  US Dollars  				DB_T.D4O,      before:BMIPO_BP6_USD
+*Current Account, Secondary Income, Credit, US Dollars										CD_T.IN2,      before:BXIS_BP6_USD
+*Current Account, Secondary Income, Debit, US Dollars										DB_T.IN2,      before:BMIS_BP6_USD
+*Current Account, Secondary Income, Financial Corporations, Nonfinancial Corporations,
+*                 Households, and NPISHs, Credit, US Dollars                                CD_T.D752_S1W, before:BXISOPT_BP6_USD  
+*Current Account, Secondary Income, Financial Corporations, Nonfinancial Corporations, 
+*                 Households, and NPISHs, Other Current Transfers, Credit, US Dollars       CD_T.IN22_S1W, before:BXISOOT_BP6_USD
+*Current Account, Secondary Income, General Government, Credit, US Dollars                  CD_T.IN2_S13,  before:BXISG_BP6_USD
+*Net Errors and Omissions, US Dollars	                                                                          BOP_BP6_USD
+*Supplementary Items, Errors and Omissions (with Fund Record), US Dollars	                NETCD_T.EO_AFR,before:BOPFR_BP6_USD
+*Current Account, Goods and Services, Debit, US Dollars                                     CD_T.GS,       before:BMGS_BP6_USD
+*Current Account, Goods and Services, Credit, US Dollars   									DB_T.GS,       before:BXGS_BP6_USD
+*Current Account, Goods and Services, Net, US Dollars 															  BGS_BP6_USD
 
 
 //Rename the variables
-replace indicatorname = "trade_credit" if indicatorcode == "BXGS_BP6_USD"
-replace indicatorname = "trade_debit" if indicatorcode == "BMGS_BP6_USD"
-replace indicatorname = "compemp_debit" if indicatorcode == "BMIPCE_BP6_USD"
-replace indicatorname = "compemp_credit" if indicatorcode == "BXIPCE_BP6_USD"
-*replace indicatorname = "total_debit" if indicatorcode == "BMCA_BP6_USD"
-*replace indicatorname = "total_credit" if indicatorcode == "BXCA_BP6_USD"
-replace indicatorname = "otherpinc_credit" if indicatorcode == "BXIPO_BP6_USD"
-replace indicatorname = "otherpinc_debit" if indicatorcode == "BMIPO_BP6_USD"
-replace indicatorname = "secinc_credit" if indicatorcode == "BXIS_BP6_USD"
-replace indicatorname = "foreignaid_credit" if indicatorcode == "BXISG_BP6_USD"
-replace indicatorname = "remittances_credit" if indicatorcode == "BXISOPT_BP6_USD"
-replace indicatorname = "othtrans_credit" if indicatorcode == "BXISOOT_BP6_USD"
-replace indicatorname = "secinc_debit" if indicatorcode == "BMIS_BP6_USD"
-replace indicatorname = "foreignaid_debit" if indicatorcode == "BMISG_BP6_USD"
-replace indicatorname = "remittances_debit" if indicatorcode == "BMISOPT_BP6_USD"
-replace indicatorname = "othtrans_debit" if indicatorcode == "BMISOOT_BP6_USD"
-replace indicatorname = "errors_net" if indicatorcode == "BOP_BP6_USD"
-replace indicatorname = "capital_credit" if indicatorcode == "BKA_CD_BP6_USD" | indicatorcode == "BKT_CD_BP6_USD"
-replace indicatorname = "capital_debit" if indicatorcode == "BKA_DB_BP6_USD" | indicatorcode == "BKT_DB_BP6_USD"
-collapse (sum) value, by(countryname countrycode indicatorname timeperiod)
+replace indicator = "trade_credit"       if code2=="CD_T"    & code3=="GS"       // "BXGS_BP6_USD"
+replace indicator = "trade_debit"        if code2=="DB_T"    & code3=="GS"       // "BMGS_BP6_USD"
+replace indicator = "compemp_debit"      if code2=="DB_T"    & code3=="D1"       // "BMIPCE_BP6_USD"
+replace indicator = "compemp_credit"     if code2=="CD_T"    & code3=="D1"       // "BXIPCE_BP6_USD"
+*replace indicator = "total_debit"        if indicatorcode == "BMCA_BP6_USD"
+*replace indicator = "total_credit"       if indicatorcode == "BXCA_BP6_USD"
+replace indicator = "otherpinc_credit"   if code2=="CD_T"    & code3=="D4O"      //"BXIPO_BP6_USD"
+replace indicator = "otherpinc_debit"    if code2=="DB_T"    & code3=="D4O"      // "BMIPO_BP6_USD"
+replace indicator = "secinc_credit"      if code2=="CD_T"    & code3=="IN2"      // "BXIS_BP6_USD"
+replace indicator = "foreignaid_credit"  if code2=="CD_T"    & code3=="IN2_S13"  // "BXISG_BP6_USD"
+replace indicator = "remittances_credit" if code2=="CD_T"    & code3=="D752_S1W" // "BXISOPT_BP6_USD"
+replace indicator = "othtrans_credit"    if code2=="CD_T"    & code3=="IN22_S1W" // "BXISOOT_BP6_USD"
+replace indicator = "secinc_debit"       if code2=="DB_T"    & code3=="IN2"      // "BMIS_BP6_USD"
+replace indicator = "foreignaid_debit"   if code2=="DB_T"    & code3=="IN2_S13"  // "BMISG_BP6_USD"
+replace indicator = "remittances_debit"  if code2=="DB_T"    & code3=="D752_S1W" // "BMISOPT_BP6_USD"
+replace indicator = "othtrans_debit"     if code2=="DB_T"    & code3=="IN22_S1W" // "BMISOOT_BP6_USD"
+replace indicator = "errors_net"         if code2=="NETCD_T" & code3=="EO_AFR"   // "BOP_BP6_USD"
+replace indicator = "capital_credit"     if code2=="CD_T"    & inlist(code3,"D9","NNADISP")  // "BKA_CD_BP6_USD" | "BKT_CD_BP6_USD"
+replace indicator = "capital_debit"      if code2=="DB_T"    & inlist(code3,"D9","NNADISP")  // "BKA_DB_BP6_USD" | "BKT_DB_BP6_USD"
+collapse (sum) value, by(country indicator year)
 
-ren timeperiod year
-drop if countryname == "Australia" & missing(v) & (indicatorname == "capital_credit" | indicatorname == "capital_debit")
+drop if country == "Australia" & missing(v) & (indicator == "capital_credit" | indicator == "capital_debit")
+
 
 tempfile ca 
-sa `ca'
+save `ca'
 
 // trade in services 
-import delimited "$current_account/BOP_01-10-2025 14-28-14-86.csv", clear
-
+*import delimited "$current_account/BOP_01-10-2025 14-28-14-86.csv", clear
+use "$wid_dir/Country-Updates/National_Accounts/imf-data/BOP-treated-$pastyear.dta", clear
 /*
 Export of services
       Export of transport services
@@ -103,7 +97,7 @@ Current Account, Goods and Services, Services, Manufacturing Services on Physica
 Current Account, Goods and Services, Services, Net, US Dollars																			BS_BP6_USD
 Current Account, Goods and Services, Services, Personal, Cultural, and Recreational Services, Credit, US Dollars						BXSOPCR_BP6_USD
 Current Account, Goods and Services, Services, Personal, Cultural, and Recreational Services, Debit, US Dollars							BMSOPCR_BP6_USD
-Current Account, Goods and Services, Services, Other Services, Credit, US Dollars														BXSO_BP6_USD
+Current Account, Goods and Services, Services, Other Services, Credit, US Dollars											  CD_T.SPX 	BXSO_BP6_USD
 Current Account, Goods and Services, Services, Transport, Freight, Credit, US Dollars													BXSTRFR_BP6_USD
 Current Account, Goods and Services, Services, Travel, Business, Credit, US Dollars														BXSTVB_BP6_USD
 Current Account, Goods and Services, Services, Telecommunications, Computer, and Information Services, Credit, US Dollars				BXSOTCM_BP6_USD
@@ -116,9 +110,9 @@ Current Account, Goods and Services, Services, Travel, Personal, Debit, US Dolla
 Current Account, Goods and Services, Services, Other Business Services, Credit, US Dollars												BXSOOB_BP6_USD
 Current Account, Goods and Services, Services, Maintenance and Repair Services nie, Credit, US Dollars									BXSR_BP6_USD
 Current Account, Goods and Services, Services, Transport, Passenger, Debit, US Dollars													BMSTRPA_BP6_USD
-Current Account, Goods and Services, Services, Other Services, Debit, US Dollars														BMSO_BP6_USD
-Current Account, Goods and Services, Services, Transport, Debit, US Dollars																BMSTR_BP6_USD
-Current Account, Goods and Services, Services, Travel, Credit, US Dollars																BXSTV_BP6_USD
+Current Account, Goods and Services, Services, Other Services, Debit, US Dollars											  DB_T.SPX  BMSO_BP6_USD
+Current Account, Goods and Services, Services, Transport, Debit, US Dollars													  DB_T.SC   BMSTR_BP6_USD
+Current Account, Goods and Services, Services, Travel, Credit, US Dollars													  CD_T.SD 	BXSTV_BP6_USD
 Current Account, Goods and Services, Services, Transport, Passenger, Credit, US Dollars													BXSTRPA_BP6_USD
 Current Account, Goods and Services, Services, Travel, Business, Debit, US Dollars														BMSTVB_BP6_USD
 Current Account, Goods and Services, Services, Travel, Personal, Credit, US Dollars														BXSTVP_BP6_USD
@@ -128,51 +122,52 @@ Current Account, Goods and Services, Services, Charges for the Use of Intellectu
 Current Account, Goods and Services, Services: Transport Other (Including postal and courier), Debit, US Dollars						BMSTROPC_BP6_USD
 	  
 */
-drop if inlist(indicatorcode, "BXS_BP6_USD", "BMS_BP6_USD", "BS_BP6_USD")
+*drop if inlist(indicatorcode, "BXS_BP6_USD", "BMS_BP6_USD", "BS_BP6_USD")
 
-replace indicatorname = "travel_credit" if indicatorcode == "BXSTV_BP6_USD"
-replace indicatorname = "travel_debit" if indicatorcode == "BMSTV_BP6_USD"
-	replace indicatorname = "travel_pers_debit" if indicatorcode == "BMSTVP_BP6_USD"
-	replace indicatorname = "travel_pers_credit" if indicatorcode == "BXSTVP_BP6_USD"
-	replace indicatorname = "travel_bus_debit" if indicatorcode == "BMSTVB_BP6_USD"
-	replace indicatorname = "travel_bus_credit" if indicatorcode == "BXSTVB_BP6_USD"
+replace indicator = "travel_credit"        if code2=="CD_T" & code3=="SD"   // "BXSTV_BP6_USD"
+replace indicator = "travel_debit"         if code2=="DB_T" & code3=="SD"   //  "BMSTV_BP6_USD"
+replace indicator = "travel_pers_debit"    if code2=="DB_T" & code3=="SDB" // "BMSTVP_BP6_USD"
+replace indicator = "travel_pers_credit"   if code2=="CD_T" & code3=="SDB" // "BXSTVP_BP6_USD"
+replace indicator = "travel_bus_debit"     if code2=="DB_T" & code3=="SJ"   // "BMSTVB_BP6_USD"
+replace indicator = "travel_bus_credit"    if code2=="CD_T" & code3=="SJ"   // "BXSTVB_BP6_USD"
 
-replace indicatorname = "trans_credit" if indicatorcode == "BXSTR_BP6_USD"
-replace indicatorname = "trans_debit" if indicatorcode == "BMSTR_BP6_USD" 
-	replace indicatorname = "trans_fr_credit" if indicatorcode == "BXSTRFR_BP6_USD" | indicatorcode == "BXSTROPC_BP6_USD"
-	replace indicatorname = "trans_fr_debit" if indicatorcode == "BMSTRFR_BP6_USD" | indicatorcode == "BMSTROPC_BP6_USD"
-	replace indicatorname = "trans_pass_credit" if indicatorcode == "BXSTRPA_BP6_USD"
-	replace indicatorname = "trans_pass_debit" if indicatorcode == "BMSTRPA_BP6_USD"
+replace indicator = "trans_credit"         if code2=="CD_T" & code3=="SC"   // "BXSTR_BP6_USD"
+replace indicator = "trans_debit"          if code2=="DB_T" & code3=="SC"   // "BMSTR_BP6_USD" 
+replace indicator = "trans_fr_credit"      if code2=="CD_T" & inlist(code3,"SCC2","SCB") // "BXSTRFR_BP6_USD", "BXSTROPC_BP6_USD" 
+replace indicator = "trans_fr_debit"       if code2=="DB_T" & inlist(code3,"SCC2","SCB") // "BMSTRFR_BP6_USD", "BMSTROPC_BP6_USD"
+replace indicator = "trans_pass_credit"    if code2=="CD_T" & code3=="SCA"  // "BXSTRPA_BP6_USD"
+replace indicator = "trans_pass_debit"     if code2=="DB_T" & code3=="SCA"  // "BMSTRPA_BP6_USD"
 
-replace indicatorname = "otherservices_credit" if inlist(indicatorcode, "BXSO_BP6_USD", "BXSM_BP6_USD", "BXSR_BP6_USD")
-replace indicatorname = "otherservices_debit" if inlist(indicatorcode, "BMSO_BP6_USD", "BMSM_BP6_USD", "BMSR_BP6_USD") 
+replace indicator = "otherservices_credit" if code2=="CD_T" & inlist(code3,"SPX","SB","SA") // "BXSO_BP6_USD", "BXSM_BP6_USD", "BXSR_BP6_USD"
+replace indicator = "otherservices_debit"  if code2=="DB_T" & inlist(code3,"SPX","SB","SA") // "BMSO_BP6_USD", "BMSM_BP6_USD", "BMSR_BP6_USD") 
 
-drop if !inlist(indicatorname, "services_credit", "services_debit", "travel_credit", "travel_debit", "travel_pers_debit", "travel_pers_credit", "travel_bus_debit", "travel_bus_credit") & !inlist(indicatorname, "trans_credit", "trans_debit", "trans_fr_credit", "trans_fr_debit", "trans_pass_credit", "trans_pass_debit", "otherservices_credit", "otherservices_debit") 
+drop if !inlist(indicator, "services_credit", "services_debit", "travel_credit", "travel_debit", "travel_pers_debit", "travel_pers_credit", "travel_bus_debit", "travel_bus_credit") & !inlist(indicator, "trans_credit", "trans_debit", "trans_fr_credit", "trans_fr_debit", "trans_pass_credit", "trans_pass_debit", "otherservices_credit", "otherservices_debit") 
 
-collapse (sum) value, by(countryname countrycode indicatorname timeperiod)
-ren timeperiod year
+collapse (sum) value, by(country indicator year)
 
 tempfile trserv
 sa `trserv'
 
 // trade in goods 
-import delimited "$current_account/BOP_01-13-2025 16-52-44-31.csv", clear 
-
+*import delimited "$current_account/BOP_01-13-2025 16-52-44-31.csv", clear 
+use "$wid_dir/Country-Updates/National_Accounts/imf-data/BOP-treated-$pastyear.dta", clear
 // Current Account, Goods and Services, Goods, Debit, US Dollars	BMG_BP6_USD
 // Current Account, Goods and Services, Goods, Credit, US Dollars	BXG_BP6_USD
 
-keep if inlist(indicatorcode, "BMG_BP6_USD", "BXG_BP6_USD")
+keep if code3=="G"
+keep if inlist(code2,"CD_T","DB_T")
 
-replace indicatorname = "goods_credit" if indicatorcode == "BXG_BP6_USD"
-replace indicatorname = "goods_debit" if indicatorcode == "BMG_BP6_USD"
+replace indicator = "goods_credit" if code2=="CD_T" & code3=="G" // "BXG_BP6_USD"
+replace indicator = "goods_debit"  if code2=="DB_T" & code3=="G" //"BMG_BP6_USD"
 
-collapse (sum) value, by(countryname countrycode indicatorname timeperiod)
-ren timeperiod year
+collapse (sum) value, by(country indicator year)
+
+
 
 // appending
 append using `ca' `trserv'
 
-greshape wide v, i(countryname countrycode year) j(indicatorname) 
+greshape wide value, i(country year) j(indicator) 
 
 renpfix value
 
@@ -290,21 +285,12 @@ replace secinc_debit = secinc_debit - secinc_credit if negsecinc_credit == 1
 replace secinc_credit = 0 if negsecinc_credit == 1
 drop aux 
 
-kountry countrycode, from(imfn) to(iso2c)
-ren _ISO2C_ iso 
-
-replace iso="AD" if countryname=="Andorra, Principality of"
-replace iso="SS" if countryname=="South Sudan, Rep. of"
-replace iso="TC" if countryname=="Turks and Caicos Islands"
-replace iso="TV" if countryname=="Tuvalu"
-replace iso="RS" if countryname=="Serbia, Rep. of"
-replace iso="KV" if countryname=="Kosovo, Rep. of"
-replace iso="CW" if countryname=="Curaçao, Kingdom of the Netherlands"
-replace iso="SX" if countryname=="Sint Maarten, Kingdom of the Netherlands"
-replace iso="PS" if countryname=="West Bank and Gaza"
-
+*kountry countrycode, from(imfn) to(iso2c)
+*ren _ISO2C_ iso 
+countrycode country, generate(iso) from("imf data")
+drop if iso == "CWX" 
 drop if mi(iso)
-drop countrycode
+drop country
 
 fillin iso year
 //Netherlands Antilles split
@@ -341,8 +327,10 @@ merge 1:1 iso year using "$work_data/retropolate-gdp.dta", nogenerate keepusing(
 merge 1:1 iso year using "$work_data/USS-exchange-rates.dta", nogen keepusing(exrate_usd) keep(master matched)
 merge 1:1 iso year using "$work_data/price-index.dta", nogen keep(master matched)
 
-gen gdp_idx = gdp*index
-	gen gdp_usd = gdp_idx/exrate_usd
+gen double gdp_idx = gdp*index
+//gen double gdp_xrate = gdp/exrate_usd
+gen double gdp_usd = gdp_idx/exrate_usd
+
 drop gdp 	
 sort iso year 
 keep if inrange(year, 1970, $pastyear )
@@ -401,9 +389,9 @@ replace GEO = "Northern Europe" if iso == "GG" & "`level'" == "undet"
 replace GEO = "Northern Europe" if iso == "JE" & "`level'" == "undet"
 replace GEO = "Northern Europe" if iso == "IM" & "`level'" == "undet"
 
-replace GEO = "Asia" if inlist(iso, "AE", "TW") & "`level'" == "un"
-replace GEO = "Americas" if inlist(iso, "CW", "SX", "BQ") & "`level'" == "un"
-replace GEO = "Europe" if inlist(iso, "KS", "ME", "GG", "JE", "IM") & "`level'" == "un"
+replace GEO = "Asia"            if inlist(iso, "AE", "TW") & "`level'" == "un"
+replace GEO = "Americas"        if inlist(iso, "CW", "SX", "BQ") & "`level'" == "un"
+replace GEO = "Europe"          if inlist(iso, "KS", "ME", "GG", "JE", "IM") & "`level'" == "un"
 ren GEO geo`level'
 drop NAMES_STD 
 }
@@ -636,7 +624,7 @@ gen tradebalance = exports - imports
 ren (goods_credit goods_debit net_goods) (tgxrx tgmpx tgnnx)
 ren (service_credit service_debit net_service) (tsxrx tsmpx tsnnx)
 
-keep iso year exports imports tradebalance otherpinc_credit otherpinc_debit net_otherpinc secinc_credit secinc_debit net_secinc capital_credit capital_debit net_capital tgxrx tgmpx tgnnx tsxrx tsmpx tsnnx foreignaid_credit remittances_credit othtrans_credit foreignaid_debit remittances_debit othtrans_debi net_foreignaid net_remittances net_othtrans gdp_us travel_credit travel_debit trans_credit trans_debit travel_pers_credit travel_bus_credit travel_pers_debit travel_bus_debit trans_fr_credit trans_pass_credit trans_fr_debit trans_pass_debit net_travel_pers net_travel_bus net_trans_fr net_trans_pass net_otherservices net_travel net_trans otherservices_credit otherservices_debit gdp_idx
+keep iso year exports imports tradebalance otherpinc_credit otherpinc_debit net_otherpinc secinc_credit secinc_debit net_secinc capital_credit capital_debit net_capital tgxrx tgmpx tgnnx tsxrx tsmpx tsnnx foreignaid_credit remittances_credit othtrans_credit foreignaid_debit remittances_debit othtrans_debi net_foreignaid net_remittances net_othtrans gdp_us travel_credit travel_debit trans_credit trans_debit travel_pers_credit travel_bus_credit travel_pers_debit travel_bus_debit trans_fr_credit trans_pass_credit trans_fr_debit trans_pass_debit net_travel_pers net_travel_bus net_trans_fr net_trans_pass net_otherservices net_travel net_trans otherservices_credit otherservices_debit gdp_idx //gdp_xrate
 
 foreach v in exports imports tradebalance otherpinc_credit otherpinc_debit net_otherpinc secinc_credit secinc_debit net_secinc capital_credit capital_debit net_capital tgxrx tgmpx tgnnx tsxrx tsmpx tsnnx foreignaid_credit remittances_credit othtrans_credit foreignaid_debit remittances_debit othtrans_debi net_foreignaid net_remittances net_othtrans travel_credit travel_debit trans_credit trans_debit travel_pers_credit travel_bus_credit travel_pers_debit travel_bus_debit trans_fr_credit trans_pass_credit trans_fr_debit trans_pass_debit net_travel_pers net_travel_bus net_trans_fr net_trans_pass net_otherservices net_travel net_trans otherservices_credit otherservices_debit {
 	replace `v' = `v'/gdp_us
@@ -667,29 +655,29 @@ ren net_capital 		fkanx
 ren travel_credit		tsvrx 
 ren travel_debit		tsvpx 
 ren net_travel			tsvnx 
-	ren travel_pers_credit	tvprx 
-	ren travel_pers_debit	tvppx 
-	ren net_travel_pers		tvpnx 
-	ren travel_bus_credit	tvbrx 
-	ren travel_bus_debit	tvbpx 
-	ren net_travel_bus		tvbnx 
+ren travel_pers_credit	tvprx 
+ren travel_pers_debit	tvppx 
+ren net_travel_pers		tvpnx 
+ren travel_bus_credit	tvbrx 
+ren travel_bus_debit	tvbpx 
+ren net_travel_bus		tvbnx 
 
 ren trans_credit		tstrx 
 ren trans_debit			tstpx 
 ren net_trans			tstnx 
-	ren trans_fr_credit		ttfrx 
-	ren trans_fr_debit		ttfpx 
-	ren net_trans_fr		ttfnx 
-	ren trans_pass_credit	ttprx 
-	ren trans_pass_debit	ttppx 
-	ren net_trans_pass		ttpnx 
+ren trans_fr_credit		ttfrx 
+ren trans_fr_debit		ttfpx 
+ren net_trans_fr		ttfnx 
+ren trans_pass_credit	ttprx 
+ren trans_pass_debit	ttppx 
+ren net_trans_pass		ttpnx 
 
 ren otherservices_credit tsorx 
 ren otherservices_debit  tsopx 
 ren net_otherservices	 tsonx 
                   
 drop otherpinc_credit otherpinc_debit net_otherpinc
-
+/*
 enforce (tbxrx = tgxrx + tsxrx) ///
 		(tbmpx = tgmpx + tsmpx) ///
 		(tbnnx = tgnnx + tsnnx) ///
@@ -707,20 +695,8 @@ enforce (tbxrx = tgxrx + tsxrx) ///
 		(scinx = scirx - scipx) /// 
 		(tsnnx = tsvnx + tstnx + tsonx) /// 
 		(tsnnx = tsxrx - tsmpx), fixed(tgxrx tgmpx tsxrx tsmpx) replace force
-
-/* checking adding to zero
-foreach var in tbxrx tgxrx tsxrx tbmpx tgmpx tsmpx {
-	replace `var' = `var'*gdp_usd
-}
-collapse (sum) tbxrx tgxrx tsxrx tbmpx tgmpx tsmpx gdp_usd, by(year)
-gen tbnnx = tbxrx - tbmpx
-gen tgnnx = tgxrx - tgmpx
-gen tsnnx = tsxrx - tsmpx
-
-foreach var in tbnnx tgnnx tsnnx {
-	replace `var' = `var'/gdp_usd
-}
 */
+
 
 * Replacing the good accounts by the ones galculated in IMFBoP gravity do-file
 drop tgxrx tgmpx tgnnx
@@ -728,19 +704,35 @@ merge 1:1 iso year using "$work_data/imfbop-tradegoods-gravity.dta", nogenerate
 gen net_goods = goods_credit - goods_debit
 rename (goods_credit goods_debit net_goods) (tgxrx tgmpx tgnnx)
 
+recast double gdp_usd
+
+* Calibration	
+enforce (tbxrx = tgxrx + tsxrx) ///
+		(tbmpx = tgmpx + tsmpx) ///
+		(tbnnx = tgnnx + tsnnx) ///
+		(tbnnx = tbxrx - tbmpx) ///
+		(tgnnx = tgxrx - tgmpx) ///
+		(tsvnx = tsvrx - tsvpx) ///
+		(tstnx = tstrx - tstpx) ///		
+		(tsonx = tsorx - tsopx) ///		
+		(tsxrx = tsvrx + tstrx + tsorx) ///
+		(tsmpx = tsvpx + tstpx + tsopx) ///
+		(scgnx = scgrx - scgpx) ///
+		(scrnx = scrrx - scrpx) ///
+		(sconx = scorx - scopx) /// 
+		(scinx = scgnx + scrnx + sconx) /// 
+		(scinx = scirx - scipx) /// 
+		(tsnnx = tsvnx + tstnx + tsonx) /// 
+		(tsnnx = tsxrx - tsmpx), fixed(tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx) replace force
+
 //--------  Import data from Nievas Piketty 2025 ---------------------------- //
 preserve
 	* Import Data
 	use "$work_data/NievasPiketty2025WBOP.dta", clear
-	drop if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso, "QL","QM","WO","QE")
-	
+	 keep if year<=2022
 	* Generate Fivelets as defined in the Wid-Dictionary
 	gen      fivelet= "tgxrx"  if origin =="B1b"
 	replace  fivelet= "tgmpx"  if origin =="B1c"
-	replace  fivelet= "tgxcx"  if origin =="B2b"
-	replace  fivelet= "tgmcx"  if origin =="B2c"
-	replace  fivelet= "tgxmx"  if origin =="B3b" 
-	replace  fivelet= "tgmmx"  if origin =="B3c"
 	replace  fivelet= "tsxrx"  if origin =="C1b"
 	replace  fivelet= "tsmpx"  if origin =="C1c"
 	replace  fivelet= "tbxrx"  if origin =="C1e"
@@ -754,34 +746,115 @@ preserve
 	reshape wide value, i(iso year) j(fivelet) string
 	rename value* *
 	
-	* Calculate net values
-	gen double tgnnx = tgxrx - tgmpx
-	gen double tgncx = tgxcx - tgmcx
-	gen double tgnmx = tgxmx - tgmmx
-	gen double tsnnx = tsxrx - tsmpx
-	gen double tbnnx = tbxrx - tbmpx
-	gen double scinx = scirx - scipx
-	
-	ds year iso, not
 	tempfile np2025
 	save `np2025'
+	
+	* Copy the subregional agregates
+	keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso, "QL","QM","WO","QE")
+	renvars scipx-tsxrx, prefix(paper_)
+	rename iso region2
+	tempfile np2025_reg
+	save `np2025_reg'
 restore
 
 *merge NP2025
 merge 1:1 iso year using "`np2025'", update replace nogenerate
 
+order iso year gdp_idx gdp_usd
 
-// Second calibration
+
+
+// Adjust countries in residual regions to fitin in the residual regions of NP2025
+* Step 1: Call region defintions
+merge 1:1 iso year using "$work_data/import-core-country-codes-year-output.dta", nogen keepusing(region2 corecountry)
+drop if corecountry!=1  & year>= 1970
+sort iso year 
+
+ *calculate gdp of regions
+bys year region2: egen reg_gdp_usd = total(gdp_usd) 
+replace reg_gdp_usd=round(reg_gdp_usd,1)
+replace reg_gdp_usd=. if missing(region2)
+
+* Bring regions from Paper
+merge m:1 region2 year using "`np2025_reg'", nogenerate keep(master match)
+
+* Step 2: Calculate monetary values of the variables
+foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx {
+	replace `v'=`v'* gdp_usd
+	replace paper_`v'=paper_`v'* reg_gdp_usd
+}
+
+* Step 3: Calculate total values by region-year
+foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx {
+    gen double abs_`v' = abs(`v')
+    bys region2 year: egen total_`v' = total(`v')         // Raw regional sum
+    bys region2 year: egen total_abs_`v' = total(abs_`v') // For proportional adjustment
+}
+
+* Step 4: Compute the net total (e.g. tgxrx - tgmpx) vs paper values
+foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx {
+    gen double totnet_`v' = (paper_`v'- total_abs_`v')
+}
+
+* Step 5: Allocate adjustments proportionally for tgxrx and tgmpx
+foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx{
+    gen double prop_`v'   = abs_`v' / total_abs_`v'  // Share in regional total
+    gen double adjust_`v' = prop_`v' * totnet_`v'    // Adjustment share
+    replace    `v'        = `v' + adjust_`v' if !missing(region2) & year>=1970 & year<=2022 
+}
+drop corecountry paper_* abs_* adjust_* prop_*  total_* totnet_* reg_gdp_usd
+
+/*
+
+// Make sure that they add-up 0
+
+* Step 1: Calculate total values by region-year
+foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx {
+    gen double abs_`v' = abs(`v')
+    bys year: egen total_`v' = total(`v')         // Raw regional sum
+    bys year: egen total_abs_`v' = total(abs_`v') // For proportional adjustment
+}
+
+* Step 2: Compute the net total which half is the ideal point to be reach in each variable
+gen double totnet_tgnnx = (total_abs_tgxrx + total_abs_tgmpx)/2 
+gen double totnet_tsnnx = (total_abs_tsxrx + total_abs_tsmpx)/2 
+gen double totnet_tbnnx = (total_abs_tbxrx + total_abs_tbmpx)/2 
+gen double totnet_scinx = (total_abs_scirx + total_abs_scipx)/2 
+
+
+* Step 3: Allocate adjustments proportionally for variables
+foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx{
+    gen double prop_`v'   = abs_`v' / total_abs_`v'  
+	replace total_abs_`v' = total_abs_`v' - totnet_tgnnx if inlist("`v'", "tgxrx", "tgmpx")
+	replace total_abs_`v' = total_abs_`v' - totnet_tsnnx if inlist("`v'", "tsxrx", "tsmpx")
+	replace total_abs_`v' = total_abs_`v' - totnet_tbnnx if inlist("`v'", "tbxrx", "tbmpx") 
+	replace total_abs_`v' = total_abs_`v' - totnet_scinx if inlist("`v'", "scirx", "scipx")
+	gen double adjust_`v' =.
+    replace    adjust_`v' = prop_`v' * total_abs_`v' // Adjustment share
+    replace    `v'        = `v' - adjust_`v' if year>=1970 & year<=2023
+}
+drop  abs_* adjust_* prop_*  total_* totnet_*
+*/
+* Recalculate net values
+replace tgnnx = tgxrx - tgmpx
+replace tsnnx = tsxrx - tsmpx
+replace tbnnx = tbxrx - tbmpx
+replace scinx = scirx - scipx
+
+* Recalcualte the shares of the GDP
+foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx tbnnx tgnnx tsnnx scinx {
+	replace `v'=`v'/ gdp_usd	
+} 
+drop region2 // gdp_xrate
+
+//--------------------------------------------------------------------------- //
+
+* Calibration	
 enforce (tbxrx = tgxrx + tsxrx) ///
-		(tbmpx = tgmpx + tsmpx) ///	
+		(tbmpx = tgmpx + tsmpx) ///
 		(tbnnx = tgnnx + tsnnx) ///
-		(tgxrx = tgxcx + tgxmx) /// New from NievasPiketty2025
-		(tgmpx = tgmcx + tgmmx) /// New from NievasPiketty2025
-		(tgnnx = tgncx + tgnmx) /// New from NievasPiketty2025
 		(tbnnx = tbxrx - tbmpx) ///
 		(tgnnx = tgxrx - tgmpx) ///
-		(tgncx = tgxcx - tgmcx) /// New from NievasPiketty2025
-	    (tgnmx = tgxmx - tgmmx) /// New from NievasPiketty2025
 		(tsvnx = tsvrx - tsvpx) ///
 		(tstnx = tstrx - tstpx) ///		
 		(tsonx = tsorx - tsopx) ///		
@@ -793,11 +866,66 @@ enforce (tbxrx = tgxrx + tsxrx) ///
 		(scinx = scgnx + scrnx + sconx) /// 
 		(scinx = scirx - scipx) /// 
 		(tsnnx = tsvnx + tstnx + tsonx) /// 
-		(tsnnx = tsxrx - tsmpx), fixed( scipx  tbmpx  tgmcx  tgmpx  tgxmx  tsmpx  tgnnx  tgnmx  tbnnx scirx  tbxrx  tgmmx  tgxcx  tgxrx  tsxrx  tgncx  tsnnx  scinx) replace force
+		(tsnnx = tsxrx - tsmpx), fixed(tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx) replace force
 
-//---------------------------------------------------------------------------- //
+/*
+* checking adding to zero: Option 1
+*replace gdp_usd= round(gdp_usd,  0.0000000000000000001) 
+foreach var in tbxrx tgxrx tsxrx tbmpx tgmpx tsmpx scirx scipx {
+	*replace `var' = round(`var', 0.0000000000000000001)
+	replace `var' = `var'*gdp_usd
+}
+
+collapse (sum) tbxrx tgxrx tsxrx tbmpx tgmpx tsmpx scirx scipx gdp_usd, by( year)
+gen double tbnnx2 = tbxrx - tbmpx
+gen double tgnnx2 = tgxrx - tgmpx
+gen double tsnnx2 = tsxrx - tsmpx
+gen double scinx2 = scirx - scipx
+
+foreach var in tbnnx tgnnx tsnnx scinx{
+	replace `var' = `var'/gdp_usd
+	replace `var' = round(`var',5)
+}
+
+
+
+* checking adding to zero: Option 2
+foreach var in tbxrx tgxrx tsxrx tbmpx tgmpx tsmpx scirx scipx {
+	replace `var' = `var'*gdp_usd
+}
+replace region2=iso if missing(region2)
+collapse (sum) tbxrx tgxrx tsxrx tbmpx tgmpx tsmpx scirx scipx gdp_usd, by( year region2)
+gen double tbnnx = tbxrx - tbmpx
+gen double tgnnx = tgxrx - tgmpx
+gen double tsnnx = tsxrx - tsmpx
+gen double scinx = scirx - scipx
+
+foreach var in  tbxrx tgxrx tsxrx tbmpx tgmpx tsmpx scirx scipx  tbnnx tgnnx tsnnx scinx{
+	replace `var' = `var'/gdp_usd
+	*replace `var' = round(`var',5)
+}
+
+
+* checking adding to zero : Option 3
+merge 1:1 iso year using "$work_data/retropolate-gdp.dta", nogenerate keepusing(gdp) keep(master matched)
+merge 1:1 iso year using "$work_data/USS-exchange-rates.dta", nogen keepusing(exrate_usd) keep(master matched)
+*merge 1:1 iso year using "$work_data/price-index.dta", nogen keep(master matched)
+
+gen double gdp_xrate = gdp/exrate_usd
+
+foreach var in tbxrx tgxrx tsxrx tbmpx tgmpx tsmpx scirx scipx gdp_xrate {
+	replace `var' = `var'*gdp_xrate
+}
+collapse (sum) tbxrx tgxrx tsxrx tbmpx tgmpx tsmpx scirx scipx gdp_usd, by( year)
+gen double tbnnx = tbxrx - tbmpx
+gen double tgnnx = tgxrx - tgmpx
+gen double tsnnx = tsxrx - tsmpx
+gen double scinx = scirx - scipx
+*/
 
 *drop gdp_us
+
+label data "Generated by currentaccount.do"
 save "$work_data/bop_currentacc_complete.dta", replace
 
 drop gdp* tvprx tvppx tvpnx tvbrx tvbpx tvbnx ttfrx ttfpx ttfnx ttppx ttprx ttpnx 

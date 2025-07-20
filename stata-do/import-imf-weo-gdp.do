@@ -1,5 +1,5 @@
 import delimited "$imf_data/world-economic-outlook/WEO-$pastyear.csv", ///
-	clear delimiter(",") varnames(1) encoding("utf8")
+	clear varnames(1) encoding("utf8") //    delimiter(",") 
 
 cap dropmiss, obs force
 cap dropmiss, obs
@@ -20,10 +20,9 @@ drop iso weocountrycode subjectdescriptor units ///
 	scale countryseriesspecificnotes
 replace country = "Côte d'Ivoire"         if country == "C�te d'Ivoire"
 replace country = "São Tomé and Príncipe" if country == "S�o Tom� and Pr�ncipe"
-replace country="Côte d'Ivoire"         if (country == "Cte d'Ivoire" | country == "CÙte d'Ivoire")
-replace country="São Tomé and Príncipe" if (country == "So Tom and Prncipe" | country == "S„o TomÈ and PrÌncipe")
-replace country="Turkey" 				if country == "Trkiye"
-
+replace country="Côte d'Ivoire"           if (country == "Cte d'Ivoire" | country == "CÙte d'Ivoire")
+replace country="São Tomé and Príncipe"   if (country == "So Tom and Prncipe" | country == "S„o TomÈ and PrÌncipe")
+replace country="Turkey" 				  if country == "T¸rkiye"
 replace country = "Swaziland"             if country == "Eswatini"
 
 
@@ -35,8 +34,8 @@ reshape long value, i(iso weosubjectcode) j(year)
 reshape wide value, i(iso year) j(weosubjectcode) string
 
 // Zimbabwe: IMF moved to RTGS dollars unlike other databases: convert back to USD
-replace valueNGDP = valueNGDP/valuePPPEX if iso == "ZW"
-
+*replace valueNGDP = valueNGDP/valuePPPEX if iso == "ZW"
+drop if iso== "ZW"
 // keeping VEN PPP
 preserve
 	keep if iso == "VE"

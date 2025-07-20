@@ -14,8 +14,6 @@ use "$work_data/merge-historical-main.dta", clear
 *drop if strpos(iso, "-")
 drop if iso=="XX"
 
-
-
 keep if inlist(widcode, "ahweal992i", "anninc992i")
 keep if p == "p0p100"
 drop p currency
@@ -111,7 +109,7 @@ drop mcount
 * keep 127 gperc
 sort iso year widcode p
 bys iso year widcode: generate nb = _N 
-gen dash = 1 if strpos(iso, "-") > 0 
+gen dash = 1 if strpos(iso, "CN-") > 0 | strpos(iso, "US-") > 0 | strpos(iso, "DE-") > 0 
 groups iso widcode nb if dash != 1 & year >= 1980 
 drop if nb<100 
 drop nb dash
@@ -399,7 +397,6 @@ tempfile full
 save "`full'"
 save "$work_data/world-full-distributions-pretax_posttax_wealth.dta", replace
 
-
 // ------- 7. Export the distributions to data to CSV --------------------------
 replace value = round(value, 0.1)    if inlist(substr(widcode, 1, 1), "a", "t")
 replace value = round(value, 1)      if inlist(substr(widcode, 1, 1), "m", "n")
@@ -408,9 +405,23 @@ replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s")
 drop if missing(value)
 keep iso year p widcode value 
 
+//---------------- Temporary -----------------------
+gen region = 1 if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE")
+
+gen      type = substr(iso,4,3)             if region==1
+replace  type = "MER"                       if region==1 & missing(type)
+replace   iso = substr(iso,1,2)+ "-" + type if region==1
+
+expand 2 if region==1 & type=="PPP", gen(xpnd)
+replace iso = substr(iso,1,2) if xpnd==1
+drop region type xpnd
+//--------------------------------------------------
+
+
 rename iso Alpha2
 rename p   perc
 order Alpha2 year perc widcode
+
 
 //------------- 7.1 Generating pretax income data .csv
 preserve
@@ -445,6 +456,19 @@ restore
 
 use "$work_data/merge-historical-main.dta", clear
 drop if iso=="XX"
+
+//---------------- Temporary -----------------------
+gen region = 1 if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE")
+
+gen      type = substr(iso,4,3)             if region==1
+replace  type = "MER"                       if region==1 & missing(type)
+replace   iso = substr(iso,1,2)+ "-" + type if region==1
+
+expand 2 if region==1 & type=="PPP", gen(xpnd)
+replace iso = substr(iso,1,2) if xpnd==1
+drop region type xpnd
+//--------------------------------------------------
+
 //-------- 8.1  Generating the population data CSV 
 preserve
 	// Extract relevant observations
@@ -499,6 +523,8 @@ preserve
 restore
 
 //----------- 8.5 Save output data 
+use "$work_data/merge-historical-main.dta", clear
+drop if iso=="XX"
 
 drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j", "ahweal992j", "shweal992j", "thweal992j", "adiinc992j", "sdiinc992j", "tdiinc992j")
 merge 1:1 iso year widcode p using "$work_data/world-full-distributions-pretax_posttax_wealth.dta" //"`full'"

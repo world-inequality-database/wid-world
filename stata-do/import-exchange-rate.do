@@ -118,11 +118,19 @@ save "`merged'"
 // *************** PART B.2 : `merged' --> `xrate'   ***************************
 keep if year == $pastyear
 
-replace lcu_to_usd = 87.6462      if (currency == "YUN") // source: mataf.net, April 2021
-replace lcu_to_usd = 1355.14	  if (currency == "YER") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
-replace lcu_to_usd = 380127.65	  if (currency == "IRR") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
-replace lcu_to_usd = 2289.92	  if (currency == "SSP") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
-assert $pastyear == 2023
+*replace lcu_to_usd = 87.6462   if (currency == "YUN") // source: mataf.net, April 2021
+replace lcu_to_usd = 76.7601    if (currency == "YUN") // source: mataf.net, June 2025
+
+*replace lcu_to_usd = 1355.14   if (currency == "YER") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
+replace lcu_to_usd = 1355.116   if (currency == "YER") & $pastyear == 2024 // taken from IMF Data Exchange Rates
+
+*replace lcu_to_usd = 380127.65 if (currency == "IRR") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
+replace lcu_to_usd = 42000      if (currency == "IRR") & $pastyear == 2024 // taken from IMF Data Exchange Rates
+
+*replace lcu_to_usd = 2289.92   if (currency == "SSP") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
+replace lcu_to_usd = 2163.104   if (currency == "SSP") & $pastyear == 2024 // taken from IMF Data Exchange Rates
+
+assert $pastyear == 2024
 
 // Generate exchange rates with euro and yuan
 rename lcu_to_usd valuexlcusx999i
@@ -243,7 +251,26 @@ sa `exratesu', replace
 // *************** PART G : usd-exchange-rate-$year --> `exratesu' *************
 // Complete the missing exchange rates using UN SNA data
 
+* Note: From 2025 update, some observations from SS and ME are missing so we call 
+*       them from previous versions, here, "-2024" can be retained.
+import delimited "$un_data/sna-main/exchange-rate/usd-exchange-rate-2024.csv", clear 
+keep if (countryarea=="South Sudan" & year<2008) | (countryarea=="Montenegro" & year<1990)
+drop if unit=="..."
+
+gen old=1
+tempfile missing
+save `missing'
+
 import delimited "$un_data/sna-main/exchange-rate/usd-exchange-rate-$year.csv", clear 
+
+append using "`missing'"
+
+
+duplicates tag countryarea year, gen(dup)
+drop if dup!=0 & old!=1 & unit=="..."
+duplicates tag countryarea year, gen(dup2)
+assert dup2==0
+drop dup* old
 
 ren (countryarea amaexchangerate imfbasedexchangerate) (country amaxrt imfxrt)
 
@@ -601,7 +628,8 @@ egen value2 = mean(valuexlcusx999i), by(year currency)
 replace valuexlcusx999i = value2 if missing(valuexlcusx999i)
 drop value2 _fillin
 
-// *************** PART D.4 :  + `merged' **************************************
+
+// *************** PART Main.4 :  + `merged' **************************************
 
 merge 1:1 iso currency year using "`merged'", update noreplace keepusing(lcu_to_usd) nogenerate
 replace valuexlcusx999i = lcu_to_usd if missing(valuexlcusx999i)
@@ -739,6 +767,38 @@ replace valuexlcusx999i = xrate_iq_usd if iso == "IQ" & year < 2003
 drop xrate_iq_usd 
 */
 
+* ------- Compleating YUN ------------------------------------------------------
+sort iso year 
+gen currency3=currency
+replace currency3="YUN" if inlist(iso,"RS","MK")
+egen value3 = mean(valuexlcusx999i), by(year currency3)
+bysort iso (year): gen double for_value3=value3[_n+1]
+
+gen double value4 = (value3 - for_value3) / for_value3 if iso=="YU"
+
+gsort iso -year 
+by iso: gen value5 = sum(value4) if !mi(value4)
+
+gen value6 = valuexlcusx999i if year==$pastyear
+egen value7=mean(value6), by(iso)
+
+gen double value8=value7*(1+value5)
+replace value8=value3 if value5<-1
+
+* data we are sure about from mataf.net, last observation fo each year
+/*
+replace value8=80.0274 if currency=="YUN" & year==2015
+replace value8=83.8404 if currency=="YUN" & year==2016
+replace value8=73.8245 if currency=="YUN" & year==2017
+replace value8=76.2598 if currency=="YUN" & year==2018
+replace value8=78.2429 if currency=="YUN" & year==2019
+replace value8=71.7148 if currency=="YUN" & year==2020
+replace value8=77.3620 if currency=="YUN" & year==2021
+replace value8=89.1162 if currency=="YUN" & year==2022
+*/
+replace valuexlcusx999i = value8 if missing(valuexlcusx999i) & iso=="YU"
+drop value3-value8 currency3
+* ------- Compleating YUN ------------------------------------------------------
 
 // *************** PART Main.8 : + xratetwdusd' ********************************
 

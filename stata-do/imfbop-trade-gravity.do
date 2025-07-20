@@ -1,18 +1,21 @@
-// trade in goods 
-import delimited "$current_account/BOP_01-13-2025 16-52-44-31.csv", clear 
+use "$wid_dir/Country-Updates/National_Accounts/imf-data/BOP-treated-$pastyear.dta", clear
 
-// Current Account, Goods and Services, Goods, Debit, US Dollars	BMG_BP6_USD
-// Current Account, Goods and Services, Goods, Credit, US Dollars	BXG_BP6_USD
+// Current Account, Goods and Services, Goods, Debit, US Dollars	BMG_BP6_USD, now CD_T.G
 
-keep if inlist(indicatorcode, "BMG_BP6_USD", "BXG_BP6_USD")
+// Current Account, Goods and Services, Goods, Credit, US Dollars	BXG_BP6_USD, now DB_T.G
 
-replace indicatorname = "goods_credit" if indicatorcode == "BXG_BP6_USD"
-replace indicatorname = "goods_debit" if indicatorcode == "BMG_BP6_USD"
+keep if code3 == "G" 
+keep if inlist(code2, "DB_T","CD_T") 
 
-collapse (sum) value, by(countryname countrycode indicatorname timeperiod)
-ren timeperiod year
+replace   indicator = "goods_credit" if code3 == "G" & code2=="CD_T"  
+replace  indicator = "goods_debit"   if code3 == "G" & code2=="DB_T" 
 
-greshape wide v, i(countryname countrycode year) j(indicatorname) 
+drop bop* code*
+
+collapse (sum) value, by(country indicator year)
+
+
+greshape wide v, i(country year) j(indicator) 
 
 renpfix value
 
@@ -34,9 +37,11 @@ replace goods_debit = goods_debit - goods_credit if neggoods_credit == 1
 replace goods_credit = 0 if neggoods_credit == 1
 drop aux 
 
-kountry countrycode, from(imfn) to(iso2c)
-ren _ISO2C_ iso 
-
+*kountry countrycode, from(imfn) to(iso2c)
+*ren _ISO2C_ iso 
+countrycode country, generate(iso) from("imf data")
+drop if iso == "CWX" 
+/*
 replace iso="AD" if countryname=="Andorra, Principality of"
 replace iso="SS" if countryname=="South Sudan, Rep. of"
 replace iso="TC" if countryname=="Turks and Caicos Islands"
@@ -46,9 +51,9 @@ replace iso="KV" if countryname=="Kosovo, Rep. of"
 replace iso="CW" if countryname=="Curaçao, Kingdom of the Netherlands"
 replace iso="SX" if countryname=="Sint Maarten, Kingdom of the Netherlands"
 replace iso="PS" if countryname=="West Bank and Gaza"
-
+*/
 drop if mi(iso)
-drop countrycode
+drop country
 
 fillin iso year
 

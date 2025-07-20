@@ -44,11 +44,16 @@ merge 1:1 iso year using "$work_data/bop_currentacc.dta", nogenerate
 egen double ncanx = rowtotal(tbnnx   scinx          pinnx comnx taxnx)
 replace     ncanx =          tbnnx + scinx + nnfin                    if year <1970
 
+// Decompositon of merchandise trade
+merge 1:1 iso year using "$work_data/commodities-decomposition.dta", nogenerate
+// GDP final data
 merge 1:1 iso year using "$work_data/retropolate-gdp.dta", nogenerate keep(match) keepusing(gdp currency)
 
 // Merging Public Finance data
 merge 1:1 iso year using "`public_finance'", nogenerate
 
+
+// GDP Ratios and Convertion to monetary values
 ds iso year gdp currency, not
 local varlist = r(varlist)
 foreach v of varlist `varlist' {
@@ -62,7 +67,7 @@ renvars  `varlist', prefix(value)
 foreach v of local varlist {
 	rename y`v' valuey`v' 
 }
-drop valueycoef_* valuey_merge*
+drop valueycoef_* //valuey_merge*
 
 greshape long value, i(iso year currency) j(widcode) string
 drop if missing(value)
@@ -88,12 +93,7 @@ foreach v in ndpro999i gdpro999i nnfin999i finrx999i finpx999i comnx999i pinnx99
 }
 
 
-/*
-// Percentage to the GDP
-foreach v in ndpro999i nninc999i nnfin999i finrx999i finpx999i comnx999i pinnx999i nwnxa999i nwgxa999i nwgxd999i comhn999i fkpin999i confc999i comrx999i compx999i pinrx999i pinpx999i fdinx999i fdirx999i fdipx999i ptfnx999i ptfrx999i ptfpx999i flcin999i flcir999i flcip999i ncanx999i tbnnx999i scinx999i tgxcx999i tgmcx999i tgncx999i tgxmx999i tgmmx999i tgnmx999i tbxrx999i tbmpx999i tgxrx999i tgmpx999i tgnnx999i tsxrx999i tsmpx999i tsnnx999i scirx999i scipx999i fkarx999i fkapx999i fkanx999i taxnx999i fsubx999i ftaxx999i expgo999i gpsge999i defge999i polge999i ecoge999i envge999i houge999i heage999i recge999i eduge999i edpge999i edsge999i edtge999i sopge999i spige999i sacge999i sakge999i revgo999i pitgr999i citgr999i scogr999i pwtgr999i intgr999i ottgr999i {
-	gen double valuey`v' = valuem`v'/valuemgdpro999i
-}
-*/
+
 // dropping original foreign portfolio 
 drop valuemptfon999i valuemptfop999i valuemptfor999i
 

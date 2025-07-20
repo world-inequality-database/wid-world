@@ -122,7 +122,7 @@ drop titlename shortname TH corecountry
 
 foreach z in i w d {
 
-	foreach y in MER {
+	foreach y in MER PPP {
 	
 		foreach v of varlist a`z' `z'tot  {
 			gen `v'_`y' = `v'/`y'
@@ -144,8 +144,7 @@ foreach z in i w d {
 
 					collapse (mean) a`z'_`y' [pw=pop], by(year bracket)
 
-					*generate iso = "`x'-`y'"
-					generate iso = "`r'"
+					generate iso = "`r'-`y'"
 					levelsof iso  
 					
 					rename bracket p  
@@ -164,6 +163,7 @@ foreach z in i w d {
 	}
 
 use "`combined'", clear
+
 bys iso year p (aw): replace aw = aw[1]
 bys iso year p (ai): replace ai = ai[1]
 bys iso year p (ad): replace ad = ad[1]
@@ -274,7 +274,7 @@ drop if (p == "p0p50" | p == "p50p90") & substr(widcode,1,1) == "t"
 drop if year == . | value == .
 *drop p4
 
-*replace iso = iso+"-"+upper(x) if x=="MER"
+replace iso = iso+"-"+upper(x) if x=="PPP"
 *drop if x=="PPP"
 drop x
 
@@ -284,8 +284,8 @@ save `final'
 
 use "$work_data/clean-up-output.dta", clear
 
-drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") & (substr(iso, 1, 1) == "X" | substr(iso, 1, 1) == "Q") & iso != "QA"
-drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") & strpos(iso, "-MER")
+drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") & ((inlist(substr(iso, 1, 1), "X", "O") & iso!="OM") | inlist(iso, "QL","QM","WO","QE"))
+drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") & strpos(iso, "-PPP")
 drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") & iso == "WO"
 append using "`final'"
 

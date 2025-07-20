@@ -2,12 +2,12 @@
 // Retropolate series
 // -------------------------------------------------------------------------- //
 
-use "$work_data/un-sna86-full.dta", clear
-append using "$work_data/un-sna-full.dta"
-append using "$work_data/oecd-full.dta"
-append using "$work_data/imf-foreign-income.dta"
-append using "$work_data/wid-luis-data.dta"
-append using "$work_data/sna-wid.dta"
+use "$work_data/un-sna86-full.dta", clear // series 1-5
+append using "$work_data/un-sna-full.dta" // series 10-60, 100-600, 1000,1100
+append using "$work_data/oecd-full.dta" // series 10000-20000
+append using "$work_data/imf-foreign-income.dta" // series 6000
+append using "$work_data/wid-luis-data.dta" // series 300000
+append using "$work_data/sna-wid.dta" // series 150-350
 
 drop footnote*
 drop gdpro
@@ -15,7 +15,7 @@ drop gdpro
 // Correct aberrant values
 replace confc = . if confc <= 0
 replace confc = (.0572331473231 + .0691586434841)/2 /// Use neighboring years because of aberrant value
-	if iso == "AE" & inlist(series, 1, 10) & year == 1974
+				  if iso == "AE" & inlist(series, 1, 10) & year == 1974
 replace confc = . if iso == "LS" & series > 1
 replace confc = . if iso == "LS" & inrange(year, 1966, 1971)
 replace confc = . if iso == "ID" & year == 1961
@@ -70,12 +70,18 @@ greshape long value, i(iso year series) j(widcode) string
 glevelsof series, local(series_list)
 greshape wide value, i(iso year widcode) j(series)
 
+// Dropping anomalic data
+replace value1100=. if iso=="PK" & widcode=="comnx"  & year< 2004 // 6000 are available and 100 dont match well
+replace value1100=. if iso=="PK" & widcode=="comrx"  & year< 2003 // 6000 are available and 100 dont match well
+replace value1100=. if iso=="PK" & widcode=="compx"  & year< 2004 // 6000 are available and 100 dont match well
+
 // Rectangularize panel
 fillin iso year widcode
 drop _fillin
 
-generate series = .
-generate value = .
+generate        series = .
+generate double value = .
+
 
 foreach s of numlist `series_list' {
 	gegen adj = mean(value - value`s'), by(iso widcode)
@@ -83,20 +89,115 @@ foreach s of numlist `series_list' {
 	
 	replace value = value - adj
 	replace series = `s' if !missing(value`s')
-	replace value = value`s' if !missing(value`s')
+	replace value = value`s' if !missing(value`s') 
 	
 	drop adj
 }
+
+
 // adjusting some negative values
 // CHECK THIS FURTHER LATER
 foreach wx in comrx compx comnx pinrx pinpx fdirx ptfrx fdipx ptfpx nnfin pinnx finrx finpx flcir flcip flcin fsubx ftaxx taxnx { 
-	replace value = value6000 if (widcode == "`wx'" & value < 0 & (value6000 > 0 & !missing(value6000)))
+	replace value = value6000 if (widcode == "`wx'" & value < 0 & (value6000 > 0 & !missing(value6000))) 
 	replace value = value6000 if (widcode == "`wx'" & value > 0 & (value6000 < 0 & !missing(value6000)))
+	
 	foreach i in 1100 1000 600 400 350 300 200 150 100 40 30 20 10 3 2 1 {
-		replace value = value`i' if (widcode == "`wx'" & value < 0 & (value`i' > 0 & !missing(value`i')) & missing(value6000))
-		replace value = value`i' if (widcode == "`wx'" & value > 0 & (value`i' < 0 & !missing(value`i')) & missing(value6000))
-	}
+		replace value = value`i' if (widcode == "`wx'" & value < 0 & (value`i' > 0 & !missing(value`i')) & missing(value6000)) 
+		replace value = value`i' if (widcode == "`wx'" & value > 0 & (value`i' < 0 & !missing(value`i')) & missing(value6000))   
+	} 
 }
+
+/*
+ For verify atypic avalues:
+bysort iso widcode (year): gen dif=abs((value -value[_n+1])/value[_n+1])
+egen mean=mean(dif), by (iso widcode)
+egen sd=sd(dif), by (iso widcode)
+
+gen atypical = (dif > mean + 3*sd) if !missing(dif)
+gen much= (dif -(mean + 3*sd)) if !missing(dif)
+
+*/
+
+//----------------
+/*
+gen double calc_growthA = .
+gen double calc_growthB = .
+gen double calc_value  = .
+
+*calculate the yearly growth rates for each of the series
+foreach s of  numlist  `series_list' {
+	bysort iso widcode (year): gen double growth_`s'A = (value`s'-value`s'[_n + 1])/value`s'[_n + 1]
+	bysort iso widcode (year): gen double growth_`s'B = (value`s'-value`s'[_n - 1])/value`s'[_n - 1]
+}
+
+*Pile the growth available in order  until filling the series
+foreach s of  numlist  `series_list' {
+	egen tot_`s'= total(value`s'), by(iso widcode)
+	replace calc_growthA = growth_`s'A if !missing(growth_`s'A) 
+	replace calc_growthB = growth_`s'B if !missing(growth_`s'B) 
+	replace series      = `s'        if !missing(value`s')
+	* Retain the data of the "last"(higher number) series as baseline
+	replace calc_value  = value`s'   if tot_`s'!=0 //if !missing(value`s')  
+}
+drop tot_*  growth_*
+
+* Mark the first and the last year available in the "last" series availability
+egen aux1= first(year) if !missing(calc_value), by(iso widcode)
+egen aux2= lastnm(year) if !missing(calc_value), by(iso widcode)
+egen ref_year1=mode(aux1), by(iso widcode)
+egen ref_year2=mode(aux2), by(iso widcode)
+drop aux*
+
+
+* Descriminate ascending and descending growth rates for the periods
+gen      calc_growth = calc_growthA 
+replace calc_growth = calc_growthB if year>ref_year2 
+drop    calc_growthA  calc_growthB
+
+* In case there are gaps, fill the growth rates
+by iso widcode : ipolate calc_growth year, generate(calc_growth_ipo) 
+replace calc_growth = calc_growth_ipo if missing(calc_growth) & !missing(calc_growth_ipo)
+drop  *ipo
+
+
+
+* Generate base value years for compleating the years with the "non last" series
+gsort iso widcode -year
+bysort iso widcode: carryforward calc_value, gen(ref_value)
+sort iso widcode year
+bysort iso widcode: carryforward calc_value, gen(ref_value2)
+replace ref_value= ref_value2 if missing(ref_value)
+drop ref_value2
+
+
+
+* Aggregate sequentially the growth rates
+gen double aux1 = calc_growth if year<ref_year1
+gen double aux2 = calc_growth if year>ref_year2 
+
+*replace calc_growth=. if !missing(calc_value)
+gsort iso widcode - year
+bysort iso widcode:       gen double  calc_growth1 = sum(aux1) if !missing(aux1)
+bysort iso widcode(year): gen double calc_growth2 = sum(aux2) if !missing(aux2)
+drop aux*
+
+gen flag_adj=1 if inlist(widcode, "comrx", "compx", "comnx", "pinrx", "pinpx", "fdirx", "ptfrx", "fdipx") | ///
+				 inlist(widcode, "ptfpx", "nnfin", "pinnx", "finrx", "finpx", "flcir", "flcip", "flcin") | ///
+			 	 inlist(widcode, "fsubx", "ftaxx", "taxnx")
+
+* Compile final values and calcualtions
+replace value=calc_value if !missing(calc_value)
+foreach v in 1 2 {
+	replace value = ref_value * ( 1 + calc_growth`v') if !missing(calc_growth) & missing(value) &  flag_adj==1
+}
+drop ref_* calc_* flag_adj
+
+
+*assert value >=0 if inlist(widcode, "comrx", "compx", "comnx", "pinrx", "pinpx", "fdirx", "ptfrx", "fdipx") | ///
+*					inlist(widcode, "ptfpx", "nnfin", "pinnx", "finrx", "finpx", "flcir", "flcip", "flcin") | ///
+*					inlist(widcode, "fsubx", "ftaxx", "taxnx")
+*/
+//------------------
 
 keep iso year widcode value series
 
@@ -114,9 +215,6 @@ drop com_vahn
 // Small data fix in MX
 replace confc = cfcgo + cfcco + cfchn if iso == "MX" & inrange(year, 1993, 1994)
 
-sa "$work_data/temp", replace 
-
-u "$work_data/temp", clear
 
 // -------------------------------------------------------------------------- //
 // Completing foreign income variables
@@ -703,5 +801,5 @@ drop aux* corecountry
 foreach var in fsubx ftaxx taxnx { 
 	replace `var' = 0 if year < 1991
 }
-
+label data "Generated by retropolate-combine-series.do"
 save "$work_data/sna-combined-prefki.dta", replace

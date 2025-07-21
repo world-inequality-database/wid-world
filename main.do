@@ -68,6 +68,15 @@ do "$do_dir/correct-widcodes.do"
 // -------------------------------------------------------------------------- //
 // Import Macroeconomic Researchers data
 // -------------------------------------------------------------------------- //
+// Import  Macroeconomci data from Piketty & Zucman (2013)
+do "$do_dir/import-pikettyzucman2013.do"
+
+// Import Bachas et al. 2024
+do "$do_dir/import-bachas-sectors.do"
+
+//papers for the camculation of Sector-factor shares 
+do "$do_dir/import-sectorfactor-shares-papers.do"
+
 // Import the WBoP data from Nievas & Piketty (2025) paper
 do "$do_dir/import-nievaspiketty2025.do" 
 
@@ -195,7 +204,7 @@ do "$do_dir/calculate-ppp.do"
                           
 // Finalize GDP
 do "$do_dir/retropolate-gdp.do"
-
+do "$do_dir/calculate-weighted-eur-cny-ppp.do"
 
 // -------------------------------------------------------------------------- //
 // Import and extend external wealth series from LMF
@@ -245,6 +254,7 @@ do "$do_dir/reformat-wid-data.do"
 do "$do_dir/retropolate-combine-series.do"
 do "$do_dir/estimate-fki.do"
 do "$do_dir/impute-confc.do"
+do "$do_dir/calculate-sector-factor-shares.do"
 do "$do_dir/finalize-series.do"
 
 // Perform corrections for tax havens and reinvested earnings on portfolio investment

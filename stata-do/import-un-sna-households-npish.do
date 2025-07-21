@@ -36,24 +36,32 @@ drop current_gdp
 
 generate widcode = ""
 
-replace widcode = "prg" if item == "BALANCE OF PRIMARY INCOMES"
-replace widcode = "cfc" if item == "Less: Consumption of fixed capital"
+replace widcode = "prg" 		if item == "BALANCE OF PRIMARY INCOMES"
+replace widcode = "cfc" 		if item == "Less: Consumption of fixed capital"
 
-replace widcode = "com" if item == "Compensation of employees" & sub_group == "II.1.2 Allocation of primary income account - Resources"
+// Generation of income Account
+replace widcode = "gvb" 		if item == "VALUE ADDED GROSS, at basic prices"
+replace widcode = "tsp" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Other taxes less Other subsidies on production"
+replace widcode = "tap" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Other taxes on production"
+replace widcode = "sbp" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Less: Other subsidies on production"
+replace widcode = "ceu" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Compensation of employees"
 
-replace widcode = "prp_recv" if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Resources"
-replace widcode = "prp_paid" if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Uses"
+// Alloation of primary income account
+replace widcode = "com" 		if item == "Compensation of employees" & sub_group == "II.1.2 Allocation of primary income account - Resources"
 
-replace widcode = "gsr" if item == "OPERATING SURPLUS, GROSS"
-replace widcode = "gmx" if item == "MIXED INCOME, GROSS"
+replace widcode = "prp_recv" 	if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Resources"
+replace widcode = "prp_paid" 	if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Uses"
 
-replace widcode = "tiw" if item == "Current taxes on income, wealth, etc." & sub_group == "II.2 Secondary distribution of income account - Uses"
-replace widcode = "ssc_recv" if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Resources"
-replace widcode = "ssc_paid" if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Uses"
-replace widcode = "ssb_recv" if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Resources"
-replace widcode = "ssb_paid" if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Uses"
+replace widcode = "gsr" 		if item == "OPERATING SURPLUS, GROSS"
+replace widcode = "gmx" 		if item == "MIXED INCOME, GROSS"
 
-replace widcode = "con" if item == "Final consumption expenditure"
+replace widcode = "tiw" 		if item == "Current taxes on income, wealth, etc." & sub_group == "II.2 Secondary distribution of income account - Uses"
+replace widcode = "ssc_recv" 	if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Resources"
+replace widcode = "ssc_paid" 	if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Uses"
+replace widcode = "ssb_recv" 	if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Resources"
+replace widcode = "ssb_paid" 	if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Uses"
+
+replace widcode = "con" 		if item == "Final consumption expenditure"
 
 append using "`va'"
 
@@ -100,6 +108,15 @@ generate widcode = ""
 
 replace widcode = "prg" if item == "BALANCE OF PRIMARY INCOMES"
 replace widcode = "cfc" if item == "Less: Consumption of fixed capital"
+
+// Generation of income Account
+replace widcode = "gvb" 		if item == "VALUE ADDED GROSS, at basic prices"
+replace widcode = "tsp" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Other taxes less Other subsidies on production"
+replace widcode = "tap" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Other taxes on production"
+replace widcode = "sbp" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Less: Other subsidies on production"
+replace widcode = "ceu" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Compensation of employees"
+
+// Alloation of primary income account
 
 replace widcode = "com" if item == "Compensation of employees" & sub_group == "II.1.2 Allocation of primary income account - Resources"
 

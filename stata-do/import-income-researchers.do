@@ -44,7 +44,7 @@ rename flemp comhn
 rename nmiho nmxho
 generate nmxhn = nmxho
 
-keep iso year ptxgo comhn nmxho nmxhn fkpin
+keep iso year ptxgo comhn nmxho nmxhn fkpin confc
 
 generate series = 300000
 

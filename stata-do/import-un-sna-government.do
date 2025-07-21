@@ -87,32 +87,39 @@ drop current_gdp
 
 generate widcode = ""
 
-replace widcode = "prggo" if item == "BALANCE OF PRIMARY INCOMES"
-replace widcode = "cfcgo" if item == "Less: Consumption of fixed capital"
+replace widcode = "prggo" 		if item == "BALANCE OF PRIMARY INCOMES"
+replace widcode = "cfcgo" 		if item == "Less: Consumption of fixed capital"
 
-replace widcode = "ptxgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on production and imports, less Subsidies"
+replace widcode = "ptxgo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on production and imports, less Subsidies"
 
-replace widcode = "tpigo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on production and imports"
-replace widcode = "tprgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on products"
-replace widcode = "otpgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Other taxes on production"
+replace widcode = "tpigo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on production and imports"
+replace widcode = "tprgo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on products"
+replace widcode = "otpgo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Other taxes on production"
 
-replace widcode = "spigo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Less: Subsidies"
-replace widcode = "sprgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Subsidies on products"
-replace widcode = "ospgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Other subsidies on production"
+replace widcode = "spigo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Less: Subsidies"
+replace widcode = "sprgo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Subsidies on products"
+replace widcode = "ospgo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Other subsidies on production"
 
-replace widcode = "prpgo_recv" if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Resources"
-replace widcode = "prpgo_paid" if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Uses"
+replace widcode = "prpgo_recv" 	if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Resources"
+replace widcode = "prpgo_paid" 	if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Uses"
 
-replace widcode = "gsrgo" if item == "OPERATING SURPLUS, GROSS"
+replace widcode = "gsrgo" 		if item == "OPERATING SURPLUS, GROSS"
 
-replace widcode = "tiwgo" if item == "Current taxes on income, wealth, etc." & sub_group == "II.2 Secondary distribution of income account - Resources"
-replace widcode = "sscgo" if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Resources"
-replace widcode = "ssbgo" if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Uses"
+replace widcode = "tiwgo" 		if item == "Current taxes on income, wealth, etc." & sub_group == "II.2 Secondary distribution of income account - Resources"
+replace widcode = "sscgo" 		if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Resources"
+replace widcode = "ssbgo" 		if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Uses"
 
-replace widcode = "congo" if item == "Final consumption expenditure"
-replace widcode = "indgo" if item == "Individual consumption expenditure"
-replace widcode = "colgo" if item == "Collective consumption expenditure"
-replace widcode = "comgo" if item == "Compensation of employees"
+replace widcode = "congo" 		if item == "Final consumption expenditure"
+replace widcode = "indgo" 		if item == "Individual consumption expenditure"
+replace widcode = "colgo"		if item == "Collective consumption expenditure"
+*replace widcode = "comgo" 		if item == "Compensation of employees"
+
+replace widcode = "gvbgo" 		if item == "VALUE ADDED GROSS, at basic prices"
+replace widcode = "tspgo" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Other taxes less Other subsidies on production"
+replace widcode = "tapgo" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Other taxes on production"
+replace widcode = "sbpgo" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Less: Other subsidies on production"
+replace widcode = "ceugo" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Compensation of employees"
+
 
 gen  old_data=0
  
@@ -132,45 +139,55 @@ drop current_gdp
 
 generate widcode = ""
 
-replace widcode = "prggo" if item == "BALANCE OF PRIMARY INCOMES"
-replace widcode = "cfcgo" if item == "Less: Consumption of fixed capital"
+replace widcode = "prggo" 		if item == "BALANCE OF PRIMARY INCOMES"
+replace widcode = "cfcgo" 		if item == "Less: Consumption of fixed capital"
 
-replace widcode = "ptxgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on production and imports, less Subsidies"
+replace widcode = "ptxgo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on production and imports, less Subsidies"
 
-replace widcode = "tpigo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on production and imports"
-replace widcode = "tprgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on products"
-replace widcode = "otpgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Other taxes on production"
+replace widcode = "tpigo"		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on production and imports"
+replace widcode = "tprgo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Taxes on products"
+replace widcode = "otpgo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Other taxes on production"
 
-replace widcode = "spigo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Less: Subsidies"
-replace widcode = "sprgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Subsidies on products"
-replace widcode = "ospgo" if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Other subsidies on production"
+replace widcode = "spigo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Less: Subsidies"
+replace widcode = "sprgo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Subsidies on products"
+replace widcode = "ospgo" 		if sub_group == "II.1.2 Allocation of primary income account - Resources" & item == "Other subsidies on production"
 
-replace widcode = "prpgo_recv" if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Resources"
-replace widcode = "prpgo_paid" if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Uses"
+replace widcode = "prpgo_recv" 	if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Resources"
+replace widcode = "prpgo_paid" 	if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Uses"
 
-replace widcode = "gsrgo" if item == "OPERATING SURPLUS, GROSS"
+replace widcode = "gsrgo" 		if item == "OPERATING SURPLUS, GROSS"
 
-replace widcode = "tiwgo" if item == "Current taxes on income, wealth, etc." & sub_group == "II.2 Secondary distribution of income account - Resources"
-replace widcode = "sscgo" if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Resources"
-replace widcode = "ssbgo" if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Uses"
+replace widcode = "tiwgo" 		if item == "Current taxes on income, wealth, etc." & sub_group == "II.2 Secondary distribution of income account - Resources"
+replace widcode = "sscgo" 		if item == "Social contributions" & sub_group == "II.2 Secondary distribution of income account - Resources"
+replace widcode = "ssbgo" 		if item == "Social benefits other than social transfers in kind" & sub_group == "II.2 Secondary distribution of income account - Uses"
 
-replace widcode = "congo" if item == "Final consumption expenditure"
-replace widcode = "indgo" if item == "Individual consumption expenditure"
-replace widcode = "colgo" if item == "Collective consumption expenditure"
-replace widcode = "comgo" if item == "Compensation of employees"
+replace widcode = "congo" 		if item == "Final consumption expenditure"
+replace widcode = "indgo" 		if item == "Individual consumption expenditure"
+replace widcode = "colgo" 		if item == "Collective consumption expenditure"
+*replace widcode = "comgo" if item == "Compensation of employees"
+
+replace widcode = "gvbgo" 		if item == "VALUE ADDED GROSS, at basic prices"
+replace widcode = "tspgo" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Other taxes less Other subsidies on production"
+replace widcode = "tapgo" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Other taxes on production"
+replace widcode = "sbpgo" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Less: Other subsidies on production"
+replace widcode = "ceugo" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Compensation of employees"
 
 gen  old_data=1
 
+
+ 
+
 merge 1:1 country_or_area sna93_table_code sub_group item sna93_item_code year series sna_system widcode using "`sec'", nogen update replace
+
+*tempfile sec_miss
+*save "`sec_miss'"
 //------------------------------------------------------------------------------
 
-
-append using "`func'"
-*append using "`va'"
-append using "`func'"
-
+// Compile tables
+* use "`sec_miss'", clear
 append using "`va_miss'"
-*append using "`sec_miss'"
+append using "`func'"
+
 
 duplicates tag country_or_area year series  widcode, gen(dup)
 drop if dup!=0 & old_data==1

@@ -7,6 +7,7 @@ use "$work_data/un-sna68.dta", clear
 keep if strpos(table, "103")
 
 replace widcode = "confc" if itemdescription == "Consumption of fixed capital"
+replace widcode = "ptxgo" if itemdescription == "Indirect taxes, net"
 
 drop if missing(widcode)
 keep iso year series widcode value

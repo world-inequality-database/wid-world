@@ -1,0 +1,58 @@
+//------------------------------------------------------------------------------
+//      Import Piketty Zucman (2013)
+//------------------------------------------------------------------------------
+
+* Objective: Comple the country long-run macro-economic series from Piketty & 
+//           Zucman (2013) and complete the ariables tha can be calculated with 
+//           this information.
+       
+
+// Combine all series
+use 		 "$wtid_data/PikettyZucman2013Data/JP.dta", clear
+append using "$wtid_data/PikettyZucman2013Data/AU.dta" 
+append using "$wtid_data/PikettyZucman2013Data/DE.dta" 
+append using "$wtid_data/PikettyZucman2013Data/IT.dta" 
+append using "$wtid_data/PikettyZucman2013Data/UK.dta" 
+append using "$wtid_data/PikettyZucman2013Data/US.dta" 
+append using "$wtid_data/PikettyZucman2013Data/CA.dta" 
+append using "$wtid_data/PikettyZucman2013Data/FR.dta" 
+
+// everything as share of GDP
+destring gdpro, replace
+destring nninc, replace
+
+foreach var of varlist _all {
+	
+    // Skip the GDP column itself to avoid dividing it by itself
+    if "`var'" != "gdpro" & "`var'" != "iso" & "`var'" != "year" {
+		destring `var', replace
+        replace `var' = `var' / gdpro
+    }
+}
+replace gsrco3 = cfcco3 + nsrco3 if iso == "JP"
+
+replace nsrco3 = gsrco3 - cfcco3
+gen nsrgo3 = gvago3 - cfcgo3 - ceugo3
+gen nsrhn3 = gsrhn3 - ccshn3
+gen nmxhn3 = gmxhn3 - ccmhn3
+gen gvshn3 = gsrhn3
+
+
+//egen nonmiss_count = rownonmiss(gvago3 gvaco3 gsrhn3 gvmhn3 gvhco3)
+//drop if nonmiss_count == 0
+//drop nonmiss_count
+
+drop if year == "1920b"
+replace year = "1920" if year == "1920a"
+destring year, replace
+
+* Prepare for Export
+rename *3 *
+keep iso year ptxgo gsrhn ccshn ceugo cfcgo gmxhn ceuhn ccmhn nsrhn nsrgo gsrco cfcco ceuco nsrco gsrhn nsrhn ccshn nmxhn
+
+// Define Series For been used in combine-retrpolate series
+gen series = 900
+* create break in the series so that the historical series are used as they are not not shifted through retroplate
+replace series = 800 if year <= 1940
+save "$work_data/PikettyZucman2013_cib.dta", replace
+

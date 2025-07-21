@@ -18,10 +18,28 @@ drop to_keep p currency
 greshape wide value, i(iso year) j(widcode) string
 renvars value*, predrop(5)
 
-ds iso year mgdpro999i, not
+* we loose India CFC because we have here only NNI and not GDP 
+gen  double mconfc999i_IN = mconfc999i/ (mnninc999i + mconfc999i) if iso == "IN" & year <= 1950
+
+/*
+Option 2 for compleating the mconfc
+gsort iso -year
+gen double mconfc999i_estimated = mconfc999i if year==1951
+forvalues y = 1950(-1)1860 {
+        replace mconfc999i_estimated =  mconfc999i_estimated[_n-1]*(mnninc999i / mnninc999i[_n-1]) ///
+            if iso == "IN" & & year == `y'
+
+        *replace mconfc999i = mconfc999i_estimated if year == `y' & iso == "IN" & missing(mconfc999i)
+    }
+drop  mconfc999i_estimated
+sort iso year
+*/
+ds iso year mgdpro999i mconfc999i_IN, not
 foreach v of varlist `r(varlist)' {
 	replace `v' = `v'/mgdpro999i
 }
+
+replace mconfc999i= mconfc999i_IN if iso=="IN" & year<=1950
 
 // Adapt widcodes
 rename mconfc999i confc

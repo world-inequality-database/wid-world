@@ -163,6 +163,8 @@ replace widcode = "tax" if transact == "NFD5P"
 replace widcode = "ssc" if transact == "NFD61R"
 replace widcode = "ssb" if transact == "NFD62P"
 
+replace widcode = "ceu" if transact == "NFD1P" 
+
 drop if missing(widcode)
 keep location year series widcode value sector_wid
 collapse (mean) value, by(location year series widcode sector_wid)
@@ -226,6 +228,7 @@ replace widcode = "ssb_recv" if transact == "NFD62R"
 replace widcode = "ssb_paid" if transact == "NFD62P"
 
 replace widcode = "con" if transact == "NFP3P"
+replace widcode = "ceu" if transact == "NFD1P"
 
 drop if missing(widcode)
 keep location year series widcode value sector_wid
@@ -325,6 +328,8 @@ replace widcode = "ssbgo" if transact == "NFD62P"
 replace widcode = "congo" if transact == "NFP3P"
 replace widcode = "indgo" if transact == "NFP31P"
 replace widcode = "colgo" if transact == "NFP32P"
+
+replace widcode = "ceugo" if transact == "NFD1P"
 
 drop if missing(widcode)
 keep location year series widcode value

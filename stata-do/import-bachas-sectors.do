@@ -1,0 +1,96 @@
+// ---------------------------------------------------------------------------
+//             Import Bachas Sectors .do
+// ---------------------------------------------------------------------------
+
+// Objective : Add sectoral decomposition from from Bachas et al. (2022) 
+//             "Capital Taxation, Development, and Globalization: Evidence from  
+//             a Macro-Historical Database"
+
+
+use "$input_data_dir/bachasetal-2024/master.dta", clear
+kountry country, from(iso3c) to(iso2c)
+rename _ISO2C_ iso
+replace iso = "KS" if country == "KOS"
+
+* If factor shares are significantly imputed for a country in all years we do not use Bachas values and prefer to use regional averages.
+replace imputed = 1 if missing(imputed)
+gen byte all_imputed = .
+bysort iso (year): gen  nonimputed = (imputed == 0)
+bysort iso (year): egen sum_nonimputed = total(nonimputed)
+drop if sum_nonimputed == 0
+drop all_imputed sum_nonimputed nonimputed
+
+*Everything as share of GDP 
+foreach var of varlist ce_hh ce_gov os_hh mi_hh os_corp os_gov nfi_L gdp {
+        display "`var'"
+		replace `var' = `var' / gdp
+    }
+
+order iso year gdp
+keep iso year gdp os_hh* ce_hh* mi_hh* ce_gov* os_corp* os_gov* nfi_L
+
+* Transfrom long for different series for imputed and non-imputed values
+foreach var of varlist os_hh ce_hh mi_hh ce_gov os_corp os_gov {
+	replace `var'_imputed =  `var'_imputed *  `var'
+	replace `var' = . if `var'_imputed  != 0
+	replace `var'_imputed =  . if `var' != .
+}
+
+rename ce_hh ce_hh_raw
+rename mi_hh mi_hh_raw
+rename os_hh os_hh_raw
+rename os_corp os_corp_raw
+rename os_gov os_gov_raw
+rename ce_gov ce_gov_raw
+
+greshape long ce_hh_ mi_hh_ os_hh_ os_corp_ os_gov_ ce_gov_, i(iso year gdp nfi_L) j(imputed) string
+
+gen comhn = ce_hh +  nfi_L
+rename os_hh nsrhn
+rename mi_hh nmxhn
+rename ce_gov ceugo
+rename os_corp nsrco
+rename os_gov nsrgo
+drop ce_hh
+
+keep iso year gdp comhn ceugo nsrhn nmxhn nsrco nsrgo imputed
+
+* Net operating surplus of the government reaches up to 5% of GDP in imputed countries. In real observed countries it is never larger than 0.01%. We prefer to set net operating surplus of the government sector to zero,  which should hold by accounting identity and distribute it by the relative size of households and corporations
+replace nsrhn = nsrhn + nsrhn / (nsrhn + nsrco) * nsrgo if imputed == "imputed"
+replace nsrco = nsrco + nsrco / (nsrhn + nsrco) * nsrgo if imputed == "imputed"
+replace nsrgo = 0 if imputed == "imputed"
+
+* Do not use for selected countries with unrealistic values
+* drop for China
+drop if iso == "CN"
+
+* drop for Saudi Arabia
+drop if iso == "SA"
+
+* drop for Russia
+drop if iso == "RU"
+
+* drop for Barbados
+drop if iso == "BB"
+
+* drop for Laos
+drop if iso == "LA"
+
+* drop for Phillipines pre 1980
+drop if iso == "PH" & year < 1980
+
+* Fix some countries
+* Canada
+replace nsrhn = . if iso == "CA"
+
+* Nigeria
+replace comhn = . if iso == "NG" & year >= 1998 & year <= 2009
+
+* New Zealand
+replace nmxhn = . if iso =="NZ" 
+
+gen series = 0
+replace series = 12 if imputed == "raw"
+drop imputed gdp
+keep if year >= 1970
+save "$work_data/bachasetal2024_sectors.dta", replace

@@ -16,19 +16,32 @@ drop current_gdp
 
 generate widcode = ""
 
-replace widcode = "prp_recv" if sub_group == "II.1.2 Allocation of primary income account  -  Resources" & item == "Property income"
-replace widcode = "prp_paid" if sub_group == "II.1.2 Allocation of primary income account  -  Uses" & item == "Property income"
+replace widcode = "gvb" 		if item == "VALUE ADDED GROSS, at basic prices"
+replace widcode = "tsp" 		if item == "Other taxes less Other subsidies on production" ///
+											& sub_group == "II.1.1 Generation of income account  -  Uses" 				
+replace widcode = "tap" 		if item == "Other taxes on production" ///
+											& sub_group == "II.1.1 Generation of income account  -  Uses" 		
+replace widcode = "sbp" 		if item == "Less: Other subsidies on production" ///
+										& sub_group == "II.1.1 Generation of income account  -  Uses" 
+replace widcode = "ceu" 		if item == "Compensation of employees" ///
+										& sub_group == "II.1.1 Generation of income account  -  Uses" 		
+										
+replace widcode = "prp_recv" 	if item == "Property income" ///
+										& sub_group == "II.1.2 Allocation of primary income account  -  Resources"
+replace widcode = "prp_paid" 	if item == "Property income" ///
+										& sub_group == "II.1.2 Allocation of primary income account  -  Uses"  
 
-replace widcode = "prp_fisi" if sub_group == "II.1.2 Allocation of primary income account  -  Resources" & inlist(item, "Adjustment entry for FISIM (Nominal Sector)", "Adjustment entry for FISIM (balanced by Nominal Sector)")
+replace widcode = "prp_fisi" 	if inlist(item, "Adjustment entry for FISIM (Nominal Sector)", "Adjustment entry for FISIM (balanced by Nominal Sector)") ///
+										& sub_group == "II.1.2 Allocation of primary income account  -  Resources" 
 
-replace widcode = "gsr" if item == "OPERATING SURPLUS, GROSS"
-replace widcode = "prg" if item == "BALANCE OF PRIMARY INCOMES"
-replace widcode = "cfc" if item == "Less: Consumption of fixed capital"
-replace widcode = "com" if item == "Compensation of employees"
+replace widcode = "gsr" 		if item == "OPERATING SURPLUS, GROSS"
+replace widcode = "prg" 		if item == "BALANCE OF PRIMARY INCOMES"
+replace widcode = "cfc" 		if item == "Less: Consumption of fixed capital"
+//replace widcode = "com" if item == "Compensation of employees" // this is now "ceu"
 
-replace widcode = "tax" if item == "Current taxes on income, wealth, etc."
-replace widcode = "ssc" if item == "Social contributions"
-replace widcode = "ssb" if item == "Social benefits other than social transfers in kind"
+replace widcode = "tax" 		if item == "Current taxes on income, wealth, etc."
+replace widcode = "ssc" 		if item == "Social contributions"
+replace widcode = "ssb" 		if item == "Social benefits other than social transfers in kind"
 
 drop if missing(widcode)
 foreach v of varlist footnote* {

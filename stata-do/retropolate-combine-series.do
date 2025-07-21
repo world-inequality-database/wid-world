@@ -2,12 +2,14 @@
 // Retropolate series
 // -------------------------------------------------------------------------- //
 
-use "$work_data/un-sna86-full.dta", clear // series 1-5
-append using "$work_data/un-sna-full.dta" // series 10-60, 100-600, 1000,1100
-append using "$work_data/oecd-full.dta" // series 10000-20000
-append using "$work_data/imf-foreign-income.dta" // series 6000
-append using "$work_data/wid-luis-data.dta" // series 300000
-append using "$work_data/sna-wid.dta" // series 150-350
+use "$work_data/un-sna86-full.dta", clear 				// series 1-5
+append using "$work_data/un-sna-full.dta" 				// series 10-60, 100-600, 1000,1100
+append using "$work_data/oecd-full.dta" 				// series 10000-20000
+append using "$work_data/imf-foreign-income.dta" 		// series 6000
+append using "$work_data/wid-luis-data.dta" 			// series 300000
+append using "$work_data/sna-wid.dta" 					// series 150-350
+append using "$work_data/bachasetal2024_sectors.dta" 	// series 0 and 12
+append using "$work_data/PikettyZucman2013_cib.dta" 	// Series 800 and 900
 
 drop footnote*
 drop gdpro
@@ -59,6 +61,61 @@ foreach v of varlist cfc* nsr* gsrgo pri* nsm* nmx* sec* sav* ccm* ccs* cap* {
 	}
 }
 
+// Correct Values from PZ(2013) and Bachasetal(2024)
+
+replace gsrhn = . 		if iso == "CV" & series == 100
+replace gsrco = . 		if iso == "MZ" & series == 100 & year == 1999
+replace comhn = . 		if iso == "NG" & series == 100
+replace gsrhn = .		if iso == "FM" & series == 200
+replace comhn = . 		if iso == "GN" & series == 200
+replace comhn = . 		if iso == "NG" & series == 100
+replace com_vahn = . 	if iso == "NG" & series == 100
+replace com_vahn = . 	if iso == "LA"
+*replace confc = . 		if iso == "NG" & series == 1
+replace cfcgo = . 		if iso == "CI" & series == 10
+replace confc = . 		if iso == "ID" & (series == 100 | series == 20 | ///
+ series == 10 | series == 3 )
+replace confc = . 		if confc > 0.2 & iso == "RU" & year < 2000
+replace confc = . 		if iso == "CL" & (series == 2 | series == 20 ) & year <= 1962
+replace ceuco = . 		if iso == "AR" & series == 1000
+replace ceuhn = . 		if iso == "AU" & series == 100
+replace comhn = . 		if iso == "BT" & series == 200
+replace nsrhn =. 		if iso == "CA" & (series == 1000 | series == 10000 | series == 20000)
+replace gsrhn =. 		if iso == "CA" & (series == 100 |  series == 1000  |  series == 10000 | series == 20000)
+replace ceuco = . 		if iso == "JP" & series == 1000
+*replace nmxhn = . 		if iso == "NZ" & series == 7
+replace gmxhn = . 		if iso == "RS" & series == 200
+replace nmxhn = . 		if iso == "RS" & series == 200
+* Sectoral decomposition does not make senes (gov > corporation)
+replace cfcco = . 		if iso == "IN" & series == 200000
+replace cfchn = . 		if iso == "IN" & series == 200000
+replace cfcho = . 		if iso == "IN" & series == 200000
+replace cfcnp = . 		if iso == "IN" & series == 200000
+replace cfcgo = . 		if iso == "IN" & series == 200000
+
+
+foreach var in ceugo nsrco nmxhn nsrhn comhn ptxgo gsrco ceuco ceuhn cfcgo cfchn cfcco nsrgo gsmhn nsmhn gvbhn gvbco gvbgo {
+	* Drop values Irqq in 2002 to 2004, many implausabel values
+	    replace `var' = . if iso == "IQ" & series == 20 & year >=2002 & year <= 2004
+		* Norway huge profit increase for 2021 and 2022, does not appear in National source (maybe not in new Macro update)
+		replace `var' = . if iso == "NO" & year > 2020 & series == 1000
+}
+
+// Ensure no negative income values and cfc
+foreach v of varlist gsrco gsrfc gsrnf gsrh*  gmx*  comhn ceu* cfc* ccm* ccs* {
+	replace `v' = . if `v' <= 0
+}
+
+// Drop CFC values that are below 4% betwen 1950 and 1980 and below 5% after 1980
+foreach v of varlist cfc* ccm* ccs* confc{
+	replace `v' = . if (confc < 0.05 & year >= 1980) | (confc <= 0.04 & year < 1980 & year >= 1950)
+}
+
+// Drop Sectoral CFC decomposition. Sweden cfcgo levels of up to 8 % and CFC corporation close to 0 (happens in enforece). Original value with 5% already very high (larger than corprataion) in the Waldenström source
+foreach v of varlist cfc* ccm* ccs* {
+	replace `v' = . if iso == "SE" & series == 200000 & year >=1950
+}
+
 // Retropolate and combine series
 glevelsof series, local(series_list)
 
@@ -70,10 +127,15 @@ greshape long value, i(iso year series) j(widcode) string
 glevelsof series, local(series_list)
 greshape wide value, i(iso year widcode) j(series)
 
-// Dropping anomalic data
+
+// Dropping anomalic data (17Jul2025)
 replace value1100=. if iso=="PK" & widcode=="comnx"  & year< 2004 // 6000 are available and 100 dont match well
 replace value1100=. if iso=="PK" & widcode=="comrx"  & year< 2003 // 6000 are available and 100 dont match well
 replace value1100=. if iso=="PK" & widcode=="compx"  & year< 2004 // 6000 are available and 100 dont match well
+
+// Remove old CFC series if there is the update from Luis
+replace value200000 =. if widcode == "confc" & ! missing(value300000)
+
 
 // Rectangularize panel
 fillin iso year widcode
@@ -118,8 +180,10 @@ gen much= (dif -(mean + 3*sd)) if !missing(dif)
 
 */
 
-//----------------
+
 /*
+//--- Code for future improvement of the selection of series for series --------
+
 gen double calc_growthA = .
 gen double calc_growthB = .
 gen double calc_value  = .
@@ -196,8 +260,8 @@ drop ref_* calc_* flag_adj
 *assert value >=0 if inlist(widcode, "comrx", "compx", "comnx", "pinrx", "pinpx", "fdirx", "ptfrx", "fdipx") | ///
 *					inlist(widcode, "ptfpx", "nnfin", "pinnx", "finrx", "finpx", "flcir", "flcip", "flcin") | ///
 *					inlist(widcode, "fsubx", "ftaxx", "taxnx")
+//------------------------------------------------------------------------------
 */
-//------------------
 
 keep iso year widcode value series
 
@@ -771,6 +835,7 @@ enforce (comnx = comrx - compx) ///
 		/// Labor + capital income decomposition
 		(fkpin = prphn + prico + nsrhn + prpgo), fixed(gdpro nnfin confc fkpin comhn nmxhn) replace
 
+
 foreach v in compx comrx fdipx fdirx fsubx ftaxx pinpx pinrx ptfpx ptfrx ptfpx_deb ptfpx_eq ptfrx_deb ptfrx_eq ptfrx_res {
 	replace `v' =. if `v' < 0
 }
@@ -781,6 +846,10 @@ foreach v of varlist *go {
 	replace `v' = . if inlist(iso, "NA")
 }
 
+// No negative cfc and income values created in enforce
+foreach v of varlist confc cfc* gsr* gmx* ccm* ccs* com* {
+	replace `v' = . if `v' <= 0
+}
 
 // fixing some discrepancies caused by enforce
 egen auxptfrx = rowtotal(ptfrx_eq ptfrx_deb ptfrx_res), missing

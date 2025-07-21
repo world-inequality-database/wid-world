@@ -212,6 +212,10 @@ generate cfc_ub_pred = cfc_ub/gdp
 replace series_confc = -1 if missing(confc)
 replace confc = cfc_pct_pred if missing(confc)
 
+// Correct very low cfc values by threshold
+replace confc = 0.05 if (confc < 0.05 & year >= 1980)
+replace confc = 0.04 if (confc < 0.04 & year < 1980 & year >= 1950) 
+
 // Plot CFC series
 global plot_imputation_cfc 0
 if ($plot_imputation_cfc) {

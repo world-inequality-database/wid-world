@@ -119,6 +119,15 @@ rename xlcusx999i MER
 merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogenerate
 gen region7="WO" if corecountry==1
 drop titlename shortname TH corecountry 
+//-----------------------------------------------------------------------------
+gen     region4 = "QP" if inlist(iso,"BM","BQ","CA","GL","PM","UM","US")
+
+
+replace region4 = "QF" if inlist(iso,"AS","AU","CC","CK","CX","FJ","FM","GU","HM") | ///
+						  inlist(iso,"KI","MH","MP","NC","NF","NR","NU","NZ","PF") | ///
+						  inlist(iso,"PG","PN","PW","SB","TK","TO","TV","VU","WF") | ///
+						  inlist(iso,"WS")
+//------------------------------------------------------------------------------
 
 foreach z in i w d {
 

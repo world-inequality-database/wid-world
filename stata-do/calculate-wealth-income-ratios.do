@@ -37,7 +37,7 @@ save "`ratios'"
 
 use "$work_data/complete-variables-output.dta", clear
 *keep only regions PPP
-keep if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE")
+keep if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE","QF","QP")
 keep if strpos(iso, "-PPP")
 *Keep only relevant aggregates
 keep if substr(widcode,1,1)=="m"

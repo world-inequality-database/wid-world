@@ -117,6 +117,13 @@ preserve
 	replace     iso= "OL" if dup2==1
 	drop dup*
 	
+	expand 2 if iso=="XB", gen (dup)
+	replace     iso= "QP" if dup ==1
+	
+	expand 2 if iso=="XB", gen (dup2)
+	replace     iso= "QF" if dup2==1
+	drop dup*
+	
 	gen paper=1
 	tempfile xratereal
 	save   `xratereal'

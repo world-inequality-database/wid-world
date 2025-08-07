@@ -78,10 +78,11 @@ foreach l in `fivelet_2' {
 */
 
 keep if tokeep == 1
-drop if inlist(widcode, "aTH999992i", "aTH999999i", "mTH999i",, "wicwtoq999i", "micwtoq999i")) 
+drop if inlist(widcode, "aTH999992i", "aTH999999i", "mTH999i", "wicwtoq999i", "micwtoq999i") 
 
 
-replace p = "p0p100"
+replace p = "p0p100" if p=="pall"
+
 replace value = round(value, 0.1)    if inlist(substr(widcode, 1, 1), "a", "t")
 replace value = round(value, 1)      if inlist(substr(widcode, 1, 1), "m", "n")
 replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s","y","w")
@@ -90,8 +91,7 @@ drop if iso == "KV"
 drop if missing(year)
 keep iso year p widcode value 
 
-tempfile core_macro
-save `core_macro'
+
 
 
 // Prepare to export
@@ -101,12 +101,19 @@ gen flag= 1	if  ( inlist(substr(widcode, 2, 5), "nwnfa","nwhou","nwbus","nwagr",
 				| inlist(substr(widcode, 2, 5), "pwodk","pwfin","pwfiw","pweqi","pwpen","pwdeb","iweal","cwboo") ///  ,"mhweal"
 				| inlist(substr(widcode, 2, 5), "cwnfa","cwhou","cwbus","cwfin","cwdeb","cwdeq","gwnfa","gwhou") ///  ,"mgweal"
 				| inlist(substr(widcode, 2, 5), "gwbus","gwfin","gwdeb"))  & year==2024
+				
 drop if  flag==1 & value==0
+*drop if year=2024 & strpos(widcode,"nwnxa")
 drop flag
 
+gen regions=0
+
+tempfile core_macro
+save `core_macro'
 
 //---------------- Temporary -----------------------
-gen region = 1 if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE")
+drop regions
+gen region = 1 if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE","QP","QF")
 keep if region==1
 drop region
 gen      type = substr(iso,4,3)  
@@ -123,24 +130,67 @@ reshape long value, i(iso year p widcode) j(type) string
 replace iso = iso + "-" + type if inlist(type,"MER","PPP")
 drop type
 
+gen regions=1
+
+tempfile regions
+save `regions'
+
+/*
 rename iso Alpha2
 rename p   perc
 order Alpha2 year perc widcode
 
-foreach onelet in a i m n  w y x { //   p
+preserve
+	keep if inlist(substr(Alpha2,1,2),"QF","QP")
+	*export delim "$output_dir/$time/wid-data-$time-macro-var-$year-QFQP.csv", delimiter(";") replace
+restore
+
+foreach onelet in w  { //a i m n  w y x { //   p
 	preserve
 		keep if substr(widcode,1,1)=="`onelet'"
 		di "Exporting `onelet'..."
-		export delim "$output_dir/$time/wid-data-$time-macro-var-$year_var_`onelet'_regions.csv", delimiter(";") replace
+		*export delim "$output_dir/$time/wid-data-$time-macro-var-$year_`onelet'_regions.csv", delimiter(";") replace
 	restore
 }
+*/
 //--------------------------------------------------
 
-use "`core-macro'"
+use "`core_macro'", clear
+append using "`regions'"
+
+duplicates tag iso year widcode p, gen(dup)
+drop if dup==1 & regions!=1
+duplicates tag iso year widcode p, gen(dup2)
+assert dup2==0
+drop dup*
+
 
 rename iso Alpha2
 rename p   perc
 order Alpha2 year perc widcode
+
+preserve
+	drop if Alpha2=="RU"
+	*keep if year==2024
+	drop regions
+	*export delim "$output_dir/$time/wid-data-$time-macro-var-$year.csv", delimiter(";") replace
+restore
+
+preserve
+	keep if year<2024
+	keep if region==1
+	drop regions
+	keep if substr(widcode,1,1)=="w"
+	*export delim "$output_dir/$time/wid-data-$time-macro-var-$year-reg_w.csv", delimiter(";") replace
+restore
+
+preserve
+	*keep if strpos(Alpha2,"-PPP")
+	keep if region==1
+	drop regions
+	*drop if strpos(Alpha2,"-MER") & !inlist(widcode,"xlceup999i","xlceux999i","xlcusp999i","xlcusx999i","xlcyup999i","xlcyux999i") 
+	export delim "$output_dir/$time/wid-data-$time-macro-var-$year-reg.csv", delimiter(";") replace
+restore
 
 foreach onelet in a i m n  w y x { //   p
 	preserve

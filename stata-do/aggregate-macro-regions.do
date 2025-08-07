@@ -28,12 +28,14 @@
 //      5.2. Bring wealth to product ratios (y)
 //      5.3. Generate constant $pastyear monetary values
 //      5.4. Calculate wealth to income ratios (w)
-// 		5.5. Extend USD exchange rate to regions
-// 		5.6. Complete -PPP regions
+// 		5.5. Extend exchange rate to regions-MER before 1970 
+// 		5.6. Extend PPP to regions-MER before 1970
+//		5.7. Extend exchange rate to regions-MER before 1970
 //      5.7. Complete Price index for regions -PPP  
+//      5.8.  Extend Population to regions-PPP
+// 		5.9.  Extend aggregates  to regions-PPP
 //      5.8.  Complete intclu 
-// 		5.9.  Extend Population to PPP
-//      5.10. Exclusion checks
+//      5.11. Exclusion checks
 //  6. Merge Historical countries from Nievas & Piketty (2025)
 //  7. Final Formating and export
 //      7.1. Pile countries 
@@ -224,6 +226,7 @@ foreach l in x p {
 	generate double mnninc999i_nomyu`l' = (mnninc999i*inyixx)/xlcyu`l'
 
 }
+
 // ----->> Data in MER (USD, EUR, CNY) and PPP (USD, EUR, CNY) Current Prices
 
 *drop mcitgr999i-mtaxnx999i pppeur-exccny inyixx999i xlc*
@@ -571,9 +574,12 @@ preserve
 	//generate valuexlcusp999i = mnninc999i_pppusd/mnninc999i_pppusd 
 	//generate valuexlcyup999i = mnninc999i_pppusd/mnninc999i_pppcny 
 	*nominal 
-	generate double valuexlceup999i    = mnninc999i_nomusx/mnninc999i_nomeup 
-	generate double valuexlcusp999i    = mnninc999i_nomusx/mnninc999i_nomusp 
-	generate double valuexlcyup999i    = mnninc999i_nomusx/mnninc999i_nomyup 
+	generate double valuexlceup999i     = mnninc999i_nomusx/mnninc999i_nomeup 
+	generate double valuexlcusp999i     = mnninc999i_nomusx/mnninc999i_nomusp 
+	generate double valuexlcyup999i     = mnninc999i_nomusx/mnninc999i_nomyup 
+	generate double valuexlceup999i_ppp = mnninc999i_nomusp/mnninc999i_nomeup 
+	generate double valuexlcusp999i_ppp = mnninc999i_nomusp/mnninc999i_nomusp 
+	generate double valuexlcyup999i_ppp = mnninc999i_nomusp/mnninc999i_nomyup 
 	
 	// MERs
 	*constant
@@ -584,6 +590,9 @@ preserve
 	generate double valuexlceux999i     = mnninc999i_nomusx/mnninc999i_nomeux 
 	generate double valuexlcusx999i     = mnninc999i_nomusx/mnninc999i_nomusx 
 	generate double valuexlcyux999i     = mnninc999i_nomusx/mnninc999i_nomyux 
+	generate double valuexlceux999i_ppp = mnninc999i_nomusp/mnninc999i_nomeux 
+	generate double valuexlcusx999i_ppp = mnninc999i_nomusp/mnninc999i_nomusx 
+	generate double valuexlcyux999i_ppp = mnninc999i_nomusp/mnninc999i_nomyux 
 	
 	// Price index 
 	generate double valueinyixx999i     = mnninc999i_nomusx/mnninc999i_excusd 
@@ -608,8 +617,6 @@ restore
 // Note: Prior May 2025, the bydefault data of the regions was EUR PPP. Now the 
 //       data is presented, as all the other countries, in LCU in Constant prices, 
 //       wher the LCU is the USD.
-save"$work_data/aux.dta", replace
-u "$work_data/aux.dta", clear
 
 * Drop Nominal Values
 drop if inlist(widcode, "mnninc999i_nomeup", "mnninc999i_nomeux", "mnninc999i_nomusp", "mnninc999i_nomusx", "mnninc999i_nomyup", "mnninc999i_nomyux")
@@ -647,12 +654,12 @@ replace widcode = substr(widcode, 1, 10)
 * Call ppp data                        
 append using "`ppp'" 
 
-replace region = region + "-PPP" if inlist(widcode, "inyixx999i_ppp","xlceup999i","xlcusp999i","xlcyup999i") 
-replace widcode = "inyixx999i" if widcode == "inyixx999i_ppp"
+replace region = region + "-PPP" if strpos(widcode, "_ppp") 
+replace widcode = substr(widcode,1,10)
 
 * bring WO values to constant prices again
 preserve
-	keep if inlist(widcode,"inyixx999i","inyixx999i_ppp")
+	keep if inlist(widcode,"inyixx999i")
 	keep year region value
 	rename value index
 	tempfile reg_idx
@@ -680,13 +687,14 @@ preserve
 	merge m:1 region year using "`nninc_gdpro'", nogen
 	
 	gen double valuey = value/mgdpro999i
-	gen double valuew = value/mgdpro999i
+	gen double valuew = value/mnninc999i
 	
 	keep region year widcode valuey valuew
 	reshape long value, i(region year  widcode) j(onelet) string
 	replace widcode= onelet + substr(widcode,2,9)
 	drop onelet
 	
+	drop if inlist(widcode,"ygdpro999i", "wmnninc999i")
 	gen new=1
 	
 	tempfile reg_yw
@@ -902,8 +910,9 @@ duplicates tag region year p widcode, gen(dup)
 assert dup==0
 drop dup 
 
-// --------- 5.5. Extend USD exchange rate to regions ----------------------- //
+// --------- 5.5. Extend exchange rate to regions-MER before 1970 ----------- //
 preserve
+	drop if substr(region,4,3)=="PPP"
 	keep if inlist(widcode,"xlcusx999i","xlceux999i","xlcyux999i")
 	keep widcode region year value
 	
@@ -911,9 +920,9 @@ preserve
 	drop _fillin
 	merge m:1 year using "`xrateusd'", nogenerate
 	
-	replace value = xlcusx999i if widcode == "xlcusx999i"
-	replace value = xlceux999i if widcode == "xlceux999i"
-	replace value = xlcyux999i if widcode == "xlcyux999i"
+	replace value = xlcusx999i if widcode == "xlcusx999i" 
+	replace value = xlceux999i if widcode == "xlceux999i" 
+	replace value = xlcyux999i if widcode == "xlcyux999i" 
 	
 	drop xlc*
 	keep if year<1970
@@ -934,14 +943,17 @@ duplicates tag region year p widcode, gen(dup2)
 assert dup2==0
 drop dup* new
 
-// --------- 5.5. Extend PPP before 1970 ------------------------------------- //
+
+// --------- 5.6. Extend PPP to regions-MER before 1970 ----------- //
 preserve 
 	* Generate a ppp usd
-	gen type_v=substr(region,3,4)
+	*gen type_v=substr(region,3,4)
 
-	keep if (type_v=="-PPP" & year>=1970) | (year<1970)
-	drop type_v
-	replace region = substr(region,1,2)
+	*keep if (type_v=="-PPP" & year>=1970) | (year<1970)
+	*drop type_v
+	*replace region = substr(region,1,2)
+	
+	drop if substr(region,4,3)=="PPP"
 	
 	keep if inlist(widcode,"inyixx999i", "xlcusp999i") // , "xlcyup999i")
 
@@ -988,7 +1000,7 @@ preserve
 	reshape long value,i(region year p)j(widcode) string   
 	gen new=1
 	
-	replace region= region+"-PPP"
+	*replace region= region+"-PPP"
 	replace p="pall"
 	tempfile ppp_complete
 	save`ppp_complete'
@@ -1000,43 +1012,59 @@ duplicates tag region year p widcode, gen(dup)
 drop if dup==1 & new!=1
 drop dup new 
 
-// --------- 5.6. Complete -PPP regions ------------------------------------- //
-preserve 
-	keep if year==$pastyear
-	keep if widcode=="xlcusp999i"
-	rename value pppusd
-	replace region= substr(region,1,2)
-	drop currency p widcode year
-	
-	tempfile ppp_reg_pastyear
-	save `ppp_reg_pastyear'
-restore
+// --------- 5.7. Extend exchange rate to regions-MER before 1970 ----------- //
+
+* Note: Given that we have already have the full convertion factors for the MER 
+*       regions, we can use them for calculating the conversion factors for the 
+*        regions-ppp 
 
 preserve
+	*Keep relevant values  
 	keep if year<1970
-	keep if substr(widcode,1,1)=="m"
-	merge m:1 region using "`ppp_reg_pastyear'", nogenerate
-	replace value = value/pppusd
-	replace region = region+"-PPP"
+	keep if substr(region,3,4)!="-PPP"
+	keep if widcode=="mnninc999i" | inlist(widcode,"xlcusp999i",                /// "xlcusx999i",
+													"xlceup999i","xlceux999i", /// 
+													"xlcyup999i","xlcyux999i") // 
+	drop currency p                                                                
+	reshape wide value, i(region year) j(widcode) string
+	rename value* *
+	rename *999i *
 	
-	drop pppusd
+	* Generate mnnninc values in ppp, MER for USD, EUR and CNY
+	foreach c in  us eu yu {
+		if "`c'" != "us" {
+			replace xlc`c'x = mnninc / xlc`c'x
+		}
+		replace xlc`c'p  =mnninc/xlc`c'p
+	}
+	
+	rename mnninc xlcusx
+	rename xlc* mnninc_*
+	
+	* Calculate PPP convertions factors
+	gen xlcusx999i= mnninc_usp / mnninc_usx
+	gen xlceux999i= mnninc_usp / mnninc_eux
+	gen xlcyux999i= mnninc_usp / mnninc_yux
+	
+	gen xlcusp999i= 1 // mnninc_usp / mnninc_usp
+	gen xlceup999i= mnninc_usp / mnninc_eup
+	gen xlcyup999i= mnninc_usp / mnninc_yup
+	
+	* Format
+	drop mnninc_*
+	rename xlc* valuexlc*
+	replace region=region+"-PPP"
+	
+	reshape long value, i(region year) j(widcode) string
+	
+	gen p="pall"
 	gen new=1
-	replace p="pall"
-	tempfile ppp_reg_pre70
-	save `ppp_reg_pre70'
+	tempfile ppp_mer_regppp_pre70
+	save `ppp_mer_regppp_pre70'
 restore
 
-append using "`ppp_reg_pre70'"
-/*
-* Extend PPP rates to MER regions
-preserve
-	keep if inlist(widcode,"xlceup999i","xlcusp999i","xlcyup999i")
-	replace region=substr(region,1,2)
-	
-	tempfile copy_ppp
-	save `copy_ppp'
-restore
-*/
+
+append using "`ppp_mer_regppp_pre70'"
 
 duplicates tag region year p widcode, gen(dup)
 drop if dup==1 & new!=1
@@ -1046,47 +1074,41 @@ drop dup* new
 
 // --------- 5.7. Complete Price index for regions -PPP  ------------------- //
 preserve
-	* retain relevant variables
-	keep if year<1970			
-	keep if inlist(widcode,"mnninc999i","inyixx999i","xlceup999i")
-	replace region=substr(region,1,2) if widcode=="xlceup999i"
-	*merge m:1 region using "`ppp_reg_pastyear'", nogen
-	* Generate current value:
-	*    This operation will generate valuemnninc999i_nomusp using the MER available values
-	reshape wide value, i(region year p currency /*pppusd*/) j(widcode) string
-	gen double valuemnninc999i_nomusp = (valuemnninc999i*valueinyixx999i)/ valuexlceup999i // pppusd
-	reshape long
-	*drop pppusd
-	gen     type_v = substr(region,4,.)
-	replace type_v = "MER" if missing(type_v)
-
-
-	keep if (widcode=="mnninc999i_nomusp" & type_v=="MER") | (widcode=="mnninc999i" & type_v=="PPP")
-	drop type_v
-	replace region=substr(region,1,2)
-
-	reshape wide value, i(region year p currency) j(widcode) string
-	
-	rename valuemnninc999i valuemnninc999i_pppusd
-
-	generate double valueinyixx999i_ppp = valuemnninc999i_nomusp/valuemnninc999i_pppusd
-
-	keep region year p currency valueinyixx999i_ppp
-
-	reshape long
-
-	replace widcode = "inyixx999i"
-	replace region = region + "-PPP"
+	* Retain relevant variables
+	keep if substr(region,3,4)!="-PPP"
+	keep if inlist(widcode,"mnninc999i","inyixx999i","xlcusp999i")
 	drop currency
+	* Wide variables
+	reshape wide value, i(region year p) j(widcode) string
+	rename value* *
+	
+	* Gen PPP pastyear 
+	gen aux= xlcusp999i if year==$pastyear
+	egen xlcusp999i_pasty = mode(aux), by(region)
+	drop aux
+	keep if year<1970
+	
+	* gen Input variables
+	gen double mnninc999i_nomusp=(mnninc999i*inyixx999i)/xlcusp999i
+	gen double mnninc999i_pppusd=mnninc999i/xlcusp999i_pasty
+	
+	* Calculate Price index
+	generate double inyixx999i_ppp = mnninc999i_nomusp/mnninc999i_pppusd
+	
+	* Format
+	keep region year p  *_ppp
+	
+	rename inyixx999i value
+	
+	gen widcode = "inyixx999i"
+	replace region = region + "-PPP"
+	
 	gen new=1
 	tempfile idx_regpp_pre70
 	save    `idx_regpp_pre70'
 restore
 
-
-
 append using "`idx_regpp_pre70'"
-*append  using "`copy_ppp'"
 
 duplicates tag region year p widcode, gen(dup)
 drop if dup==1 & new!=1
@@ -1094,7 +1116,44 @@ duplicates tag region year p widcode, gen(dup2)
 assert dup2==0
 drop dup* new
 
-// --------- 5.8.  Complete intclu ------------------------------------------ //
+// --------- 5.8.  Extend Population to regions-PPP ------------------------- //
+expand 2 if substr(widcode,1,1)=="n", gen(xpnd)
+replace region=region+"-PPP" if xpnd==1
+drop xpnd
+
+// --------- 5.9.  Extend aggregates  to regions-PPP ------------------------ //
+save "$work_data/aux.dta", replace
+use "$work_data/aux.dta",clear
+preserve
+	keep if substr(widcode,1,1)=="m" | widcode=="xlcusp999i"
+	keep if substr(region,3,4)!="-PPP"
+	
+	gen aux=value if widcode=="xlcusp999i" & year==$pastyear
+	egen pppusd= mode(aux),by(region)
+	drop aux currency
+	
+	keep if year<1970
+	drop if widcode=="xlcusp999i"
+	
+	replace value=value/pppusd
+	drop pppusd
+	
+	replace region= region + "-PPP"
+	
+	gen new=1
+	tempfile agg_regpp_pre70
+	save    `agg_regpp_pre70'
+restore
+
+append using "`agg_regpp_pre70'"
+
+duplicates tag region year p widcode, gen(dup)
+drop if dup==1 & new!=1
+duplicates tag region year p widcode, gen(dup2)
+assert dup2==0
+drop dup* new
+
+// --------- 5.10.  Complete intclu ------------------------------------------ //
 local n = 1+ ($pastyear - 2023)
 expand `n' if widcode=="intlcu999i" & year==2023, gen(xpnd)
 
@@ -1102,12 +1161,7 @@ bysort region year widcode : gen year_plus = _n if xpnd==1
 replace year = year + year_plus -1 if xpnd==1
 drop xpnd year_plus
 
-// --------- 5.9.  Extend Population to PPP --------------------------------- //
-expand 2 if substr(widcode,1,1)=="n", gen(xpnd)
-replace region=region+"-PPP" if xpnd==1
-drop xpnd
-
-// --------- 5.10. Exclusion checks  ----------------------------------------- //
+// --------- 5.11. Exclusion checks  ----------------------------------------- //
 rename region iso
 keep iso year widcode value currency
 generate p = "pall"

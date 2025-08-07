@@ -396,7 +396,7 @@ duplicates report // no duplicates
 tempfile full
 save "`full'"
 save "$work_data/world-full-distributions-pretax_posttax_wealth.dta", replace
-
+*u "/Users/manuelestebanarias/Documents/GitHub/wid-world/work-data_20JunMacro/world-full-distributions-pretax_posttax_wealth.dta", clear
 // ------- 7. Export the distributions to data to CSV --------------------------
 replace value = round(value, 0.1)    if inlist(substr(widcode, 1, 1), "a", "t")
 replace value = round(value, 1)      if inlist(substr(widcode, 1, 1), "m", "n")
@@ -406,14 +406,16 @@ drop if missing(value)
 keep iso year p widcode value 
 
 //---------------- Temporary -----------------------
-gen region = 1 if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE")
-
+gen region = 1 if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE" ,"QF","QP")
+*keep if region==1
 gen      type = substr(iso,4,3)             if region==1
 replace  type = "MER"                       if region==1 & missing(type)
 replace   iso = substr(iso,1,2)+ "-" + type if region==1
 
 expand 2 if region==1 & type=="PPP", gen(xpnd)
 replace iso = substr(iso,1,2) if xpnd==1
+
+drop if strpos(iso,"-MER") & year<1980
 drop region type xpnd
 //--------------------------------------------------
 
@@ -429,14 +431,14 @@ preserve
 	expand 2 if widcode == "sptinc992j", gen(exp)
 	replace widcode = "sptinc999j" if exp == 1 
 	drop exp 
-	*export delim "$output_dir/$time/wid-data-$time-ptinc2024Update.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-ptinc2025Update-reg.csv", delimiter(";") replace
 restore
 
 
 //------------- 7.2 Generating posttax income data .csv
 preserve
 	keep if strpos(widcode,"diinc")
-	*export delim "$output_dir/$time/wid-data-$time-diinc2024Update.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-diinc2025Update-reg.csv", delimiter(";") replace
 restore
 
 //------------- 7.3 Generating wealth distribution data .csv
@@ -447,7 +449,7 @@ preserve
 	drop value_upcsd
 	drop if value==.
 	sort Alpha2 widcode year perc
-	*export delim "$output_dir/$time/wid-data-$time-hweal2024Update.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-reg.csv", delimiter(";") replace
 restore
 
 
@@ -458,7 +460,7 @@ use "$work_data/merge-historical-main.dta", clear
 drop if iso=="XX"
 
 //---------------- Temporary -----------------------
-gen region = 1 if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE")
+gen region = 1 if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE","QF","QP")
 
 gen      type = substr(iso,4,3)             if region==1
 replace  type = "MER"                       if region==1 & missing(type)

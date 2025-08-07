@@ -567,10 +567,10 @@ replace value = value/1000 if iso == "ZM" & year < 1972
 
 // Missing data (MR, 2004)
 expand 2 if iso == "MR" & year == 2003, gen(new)
-replace value = . if new
+replace value = .   if new
 replace year = 2004 if new
-ipolate value year if iso == "MR" & inrange(year, 2003, 2005), gen(i)
-replace value = i if new
+ipolate value year  if iso == "MR" & inrange(year, 2003, 2005), gen(i)
+replace value = i   if new
 drop new i
 
 // *************** PART Main.2 :  + `Somalia' *************************************
@@ -593,24 +593,24 @@ drop if iso == "VE"
 append using `ves'
 
 // Introduction of the new Ouguiya in 2018
-replace currency = "MRU" if currency == "MRO"
+replace currency = "MRU"    if currency == "MRO"
 
 reshape wide value, i(iso year p currency) j(widcode) string
 
 fillin iso year
-replace currency = "USD" if iso == "ZW"
+replace currency = "USD"    if iso == "ZW"
 replace valuexlcusx999i = 1 if iso == "ZW"
-replace p = "pall" if iso == "ZW"
+replace p = "pall"          if iso == "ZW"
 drop if _fillin & iso != "ZW"
 drop _fillin
 
 // Bonaire, Sint Eustatius and Saba series is in USD
 drop if iso == "BQ"
 expand 2 if (iso == "ZW"), generate(newobsBQ)
-replace iso = "BQ" if newobsBQ
-replace currency = "USD" if iso == "BQ"
+replace iso = "BQ"          if newobsBQ
+replace currency = "USD"    if iso == "BQ"
 replace valuexlcusx999i = 1 if iso == "BQ"
-replace p = "pall" if iso == "BQ"
+replace p = "pall"          if iso == "BQ"
 
 // Fixing Gibraltar
 drop if iso == "GI"
@@ -668,60 +668,61 @@ drop _m
 gen flagexrate = 1 if missing(valuexlcusx999i)
 replace flagexrate = 0 if missing(flagexrate)
 
-	replace valuexlcusx999i = amaxrt if currency == "EUR" & year < 1999
-	replace valuexlcusx999i = amaxrt if year >= 1990 & year <= 1994 & soviet == 1
-	replace valuexlcusx999i = amaxrt if iso == "UZ"	
-	replace valuexlcusx999i = amaxrt if iso == "GW"	
-	replace valuexlcusx999i = amaxrt if yugosl == 1 & year >= 1990
-	replace valuexlcusx999i = amaxrt if year > 1994 & year <= 2001 & iso == "TM" // Turkmenistan's exchange rate is preferred from UN SNA than from WB WDI
-	replace valuexlcusx999i = amaxrt if iso == "CD" & !missing(amaxrt) // if we use the imfxrt Congo gets and incredible jump in gdp_usd in 2000s
-	replace valuexlcusx999i = amaxrt if iso == "GN" & !missing(amaxrt) // we need to use ama because if not there is a disparity pre and post 1986
-	replace valuexlcusx999i = amaxrt if iso == "IQ" & !missing(amaxrt) // & year < 1991 // we need to use ama because of inconsistency pre 2003. We are comparing with WB whenever cases are critical
-	*replace valuexlcusx999i = amaxrt if iso == "IQ" & !missing(amaxrt) & year >= 1991 // we need to use ama because of inconsistency pre 2003
-	replace valuexlcusx999i = amaxrt if iso == "IR" & !missing(amaxrt) & year >= 1987 // 1990 is problematic if not
-	replace valuexlcusx999i = amaxrt if iso == "MM" & !missing(amaxrt) // evolution does not coincide with WB if not
-	replace valuexlcusx999i = amaxrt if iso == "NI" & !missing(amaxrt) // evolution does not coincide with WB if not. problematic year 1987: 0.00000014 from WB gdp_lcu/gdp_usd. we have the same gdp_lcu and the same exrate but values didn't aligned. apparently WB sometimes don't use the exrate they publish
-	replace valuexlcusx999i = amaxrt if iso == "PL"  // evolution does not coincide with WB if not
-	replace valuexlcusx999i = amaxrt if iso == "SO" // & year == 2021 // huge peak in 2021 if not
-	replace valuexlcusx999i = amaxrt if iso == "SR" // crazy peak if not
-	replace valuexlcusx999i = amaxrt if iso == "SS" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "SY" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "UG" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "YE" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "KP" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "AF" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "BG" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "ER" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "GH" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "KH" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "LA" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "LB" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "MN" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "RO" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "VN" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "TJ" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "CW" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "SX" & !missing(amaxrt)
-	replace valuexlcusx999i = amaxrt if iso == "ER" & !missing(amaxrt) & inrange(year, 1990, 1992) 
-	replace valuexlcusx999i = amaxrt if iso == "SD" & !missing(amaxrt) & year >= 2020
-	replace valuexlcusx999i = amaxrt if iso == "SL"
-	// from the ratio of gdp_lcu/gdp_usd from WB WDI to fix problematic years for Georgia. gdp_usd WB is calculated using their growth rate before 1990
-	/*
-	replace valuexlcusx999i = 0.000001323856 if iso == "GE" & year == 1975
-	replace valuexlcusx999i = 0.000001327758 if iso == "GE" & year == 1976
-	replace valuexlcusx999i = 0.00000134685 if iso == "GE" & year == 1977
-	replace valuexlcusx999i = 0.00000135122 if iso == "GE" & year == 1978
-	replace valuexlcusx999i = 0.00000138821 if iso == "GE" & year == 1979
-	replace valuexlcusx999i = 0.00000140190 if iso == "GE" & year == 1980
-	replace valuexlcusx999i = 0.00000144960 if iso == "GE" & year == 1981
-	replace valuexlcusx999i = 0.00000150204 if iso == "GE" & year == 1982
-	replace valuexlcusx999i = 0.00000146224 if iso == "GE" & year == 1983
-	replace valuexlcusx999i = 0.00000147103 if iso == "GE" & year == 1984
-	replace valuexlcusx999i = 0.00000140176 if iso == "GE" & year == 1985
-	replace valuexlcusx999i = 0.00000149385 if iso == "GE" & year == 1986
-	replace valuexlcusx999i = 0.00000152877 if iso == "GE" & year == 1987
-	replace valuexlcusx999i = 0.00000148910 if iso == "GE" & year == 1988
-	*/
+replace valuexlcusx999i = amaxrt if currency == "EUR" & year < 1999
+replace valuexlcusx999i = amaxrt if year >= 1990 & year <= 1994 & soviet == 1
+replace valuexlcusx999i = amaxrt if iso == "UZ"	
+replace valuexlcusx999i = amaxrt if iso == "GW"	
+replace valuexlcusx999i = amaxrt if yugosl == 1 & year >= 1990
+replace valuexlcusx999i = amaxrt if year > 1994 & year <= 2001 & iso == "TM" // Turkmenistan's exchange rate is preferred from UN SNA than from WB WDI
+replace valuexlcusx999i = amaxrt if iso == "CD" & !missing(amaxrt) // if we use the imfxrt Congo gets and incredible jump in gdp_usd in 2000s
+replace valuexlcusx999i = amaxrt if iso == "GN" & !missing(amaxrt) // we need to use ama because if not there is a disparity pre and post 1986
+replace valuexlcusx999i = amaxrt if iso == "IQ" & !missing(amaxrt) // & year < 1991 // we need to use ama because of inconsistency pre 2003. We are comparing with WB whenever cases are critical
+*replace valuexlcusx999i = amaxrt if iso == "IQ" & !missing(amaxrt) & year >= 1991 // we need to use ama because of inconsistency pre 2003
+replace valuexlcusx999i = .      if iso == "IR" & year >= 2017
+replace valuexlcusx999i = amaxrt if iso == "IR" & !missing(amaxrt) & year >= 1987 // 1990 is problematic if not
+replace valuexlcusx999i = amaxrt if iso == "MM" & !missing(amaxrt) // evolution does not coincide with WB if not
+replace valuexlcusx999i = amaxrt if iso == "NI" & !missing(amaxrt) // evolution does not coincide with WB if not. problematic year 1987: 0.00000014 from WB gdp_lcu/gdp_usd. we have the same gdp_lcu and the same exrate but values didn't aligned. apparently WB sometimes don't use the exrate they publish
+replace valuexlcusx999i = amaxrt if iso == "PL"  // evolution does not coincide with WB if not
+replace valuexlcusx999i = amaxrt if iso == "SO" // & year == 2021 // huge peak in 2021 if not
+replace valuexlcusx999i = amaxrt if iso == "SR" // crazy peak if not
+replace valuexlcusx999i = amaxrt if iso == "SS" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "SY" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "UG" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "YE" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "KP" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "AF" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "BG" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "ER" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "GH" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "KH" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "LA" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "LB" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "MN" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "RO" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "VN" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "TJ" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "CW" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "SX" & !missing(amaxrt)
+replace valuexlcusx999i = amaxrt if iso == "ER" & !missing(amaxrt) & inrange(year, 1990, 1992) 
+replace valuexlcusx999i = amaxrt if iso == "SD" & !missing(amaxrt) & year >= 2020
+replace valuexlcusx999i = amaxrt if iso == "SL"
+// from the ratio of gdp_lcu/gdp_usd from WB WDI to fix problematic years for Georgia. gdp_usd WB is calculated using their growth rate before 1990
+/*
+replace valuexlcusx999i = 0.000001323856 if iso == "GE" & year == 1975
+replace valuexlcusx999i = 0.000001327758 if iso == "GE" & year == 1976
+replace valuexlcusx999i = 0.00000134685 if iso == "GE" & year == 1977
+replace valuexlcusx999i = 0.00000135122 if iso == "GE" & year == 1978
+replace valuexlcusx999i = 0.00000138821 if iso == "GE" & year == 1979
+replace valuexlcusx999i = 0.00000140190 if iso == "GE" & year == 1980
+replace valuexlcusx999i = 0.00000144960 if iso == "GE" & year == 1981
+replace valuexlcusx999i = 0.00000150204 if iso == "GE" & year == 1982
+replace valuexlcusx999i = 0.00000146224 if iso == "GE" & year == 1983
+replace valuexlcusx999i = 0.00000147103 if iso == "GE" & year == 1984
+replace valuexlcusx999i = 0.00000140176 if iso == "GE" & year == 1985
+replace valuexlcusx999i = 0.00000149385 if iso == "GE" & year == 1986
+replace valuexlcusx999i = 0.00000152877 if iso == "GE" & year == 1987
+replace valuexlcusx999i = 0.00000148910 if iso == "GE" & year == 1988
+*/
 	
 replace valuexlcusx999i = amaxrt if missing(valuexlcusx999i)
 gen double auxcsk = valuexlcusx999i if iso == "CS"
@@ -766,6 +767,9 @@ drop _m
 replace valuexlcusx999i = xrate_iq_usd if iso == "IQ" & year < 2003
 drop xrate_iq_usd 
 */
+
+* Correct Iran 2024
+
 
 * ------- Compleating YUN ------------------------------------------------------
 sort iso year 

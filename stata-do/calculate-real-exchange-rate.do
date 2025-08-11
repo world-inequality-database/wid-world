@@ -11,6 +11,7 @@ use "$work_data/aggregate-regions-output.dta", clear
 drop if strpos(iso,"CN-")
 drop if strpos(iso,"-") &  inlist(substr(widcode,1,6), "inyixx",  "mgdpro","npopul")
 keep if inlist(substr(widcode,1,6), "inyixx", "xlcusp", "xlceup", "xlcyup", "xlcusx", "xlceux", "xlcyux", "mgdpro") | widcode=="npopul999i"
+drop if strpos(iso,"-PPP")
 replace iso= substr(iso,1,2)
 
 duplicates tag iso year widcode p, gen (dup)
@@ -115,6 +116,13 @@ preserve
 	
 	expand 2 if iso=="OH", gen (dup2)
 	replace     iso= "OL" if dup2==1
+	drop dup*
+	
+	expand 2 if iso=="XB", gen (dup)
+	replace     iso= "QP" if dup ==1
+	
+	expand 2 if iso=="XB", gen (dup2)
+	replace     iso= "QF" if dup2==1
 	drop dup*
 	
 	gen paper=1

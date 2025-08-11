@@ -29,75 +29,75 @@ replace nwgxa_lm = nwgxa_lm - portfolioequityassets if negportfolioequityassets 
 replace nwgxa_lm = nwgxa_lm - portfolioequityliabilities if negportfolioequityliabilities == 1
 replace nwgxd_lm = nwgxd_lm - portfolioequityliabilities if negportfolioequityliabilities == 1
 replace nwgxd_lm = nwgxd_lm - portfolioequityassets if negportfolioequityassets == 1
-gen aux = 1 if negportfolioequityassets == 1 & negportfolioequityliabilities == 1
-replace negportfolioequityassets = 0 if aux == 1 
+gen     aux      = 1 if negportfolioequityassets == 1 & negportfolioequityliabilities == 1
+replace negportfolioequityassets      = 0 if aux == 1 
 replace negportfolioequityliabilities = 0 if aux == 1 
-cap swapval portfolioequityassets portfolioequityliabilities if aux == 1 
-replace portfolioequityassets = abs(portfolioequityassets) if aux == 1
-replace portfolioequityliabilities = abs(portfolioequityliabilities) if aux == 1
-replace portfolioequityassets = portfolioequityassets - portfolioequityliabilities if negportfolioequityliabilities == 1
-replace portfolioequityliabilities = 0 if negportfolioequityliabilities == 1 
-replace portfolioequityliabilities = portfolioequityliabilities - portfolioequityassets if negportfolioequityassets == 1 
-replace portfolioequityassets = 0 if negportfolioequityassets == 1
+cap swapval portfolioequityassets portfolioequityliabilities            if aux == 1 
+replace portfolioequityassets         = abs(portfolioequityassets)      if aux == 1
+replace portfolioequityliabilities    = abs(portfolioequityliabilities) if aux == 1
+replace portfolioequityassets         = portfolioequityassets - portfolioequityliabilities if negportfolioequityliabilities == 1
+replace portfolioequityliabilities    = 0 if negportfolioequityliabilities == 1 
+replace portfolioequityliabilities    = portfolioequityliabilities - portfolioequityassets if negportfolioequityassets == 1 
+replace portfolioequityassets         = 0 if negportfolioequityassets == 1
 drop aux 
 
-replace nwgxa_lm = nwgxa_lm - portfoliodebtassets if negportfoliodebtassets == 1
+replace nwgxa_lm = nwgxa_lm - portfoliodebtassets      if negportfoliodebtassets == 1
 replace nwgxa_lm = nwgxa_lm - portfoliodebtliabilities if negportfoliodebtliabilities == 1
 replace nwgxd_lm = nwgxd_lm - portfoliodebtliabilities if negportfoliodebtliabilities == 1
-replace nwgxd_lm = nwgxd_lm - portfoliodebtassets if negportfoliodebtassets == 1
-gen aux = 1 if negportfoliodebtassets == 1 & negportfoliodebtliabilities == 1
-replace negportfoliodebtassets = 0 if aux == 1 
+replace nwgxd_lm = nwgxd_lm - portfoliodebtassets      if negportfoliodebtassets == 1
+gen          aux = 1                                   if negportfoliodebtassets == 1 & negportfoliodebtliabilities == 1
+replace negportfoliodebtassets      = 0 if aux == 1 
 replace negportfoliodebtliabilities = 0 if aux == 1 
-cap swapval portfoliodebtassets portfoliodebtliabilities if aux == 1 
-replace portfoliodebtassets = abs(portfoliodebtassets) if aux == 1
-replace portfoliodebtliabilities = abs(portfoliodebtliabilities) if aux == 1
-replace portfoliodebtassets = portfoliodebtassets - portfoliodebtliabilities if negportfoliodebtliabilities == 1
-replace portfoliodebtliabilities = 0 if negportfoliodebtliabilities == 1 
-replace portfoliodebtliabilities = portfoliodebtliabilities - portfoliodebtassets if negportfoliodebtassets == 1 
-replace portfoliodebtassets = 0 if negportfoliodebtassets == 1
+cap swapval portfoliodebtassets portfoliodebtliabilities            if aux == 1 
+replace portfoliodebtassets         = abs(portfoliodebtassets)      if aux == 1
+replace portfoliodebtliabilities    = abs(portfoliodebtliabilities) if aux == 1
+replace portfoliodebtassets         = portfoliodebtassets - portfoliodebtliabilities if negportfoliodebtliabilities == 1
+replace portfoliodebtliabilities    = 0                             if negportfoliodebtliabilities == 1 
+replace portfoliodebtliabilities    = portfoliodebtliabilities - portfoliodebtassets if negportfoliodebtassets == 1 
+replace portfoliodebtassets         = 0                             if negportfoliodebtassets == 1
 drop aux 
 
-replace nwgxa_lm = nwgxa_lm - debtassets if negdebtassets == 1
+replace nwgxa_lm = nwgxa_lm - debtassets      if negdebtassets == 1
 replace nwgxa_lm = nwgxa_lm - debtliabilities if negdebtliabilities == 1
 replace nwgxd_lm = nwgxd_lm - debtliabilities if negdebtliabilities == 1
-replace nwgxd_lm = nwgxd_lm - debtassets if negdebtassets == 1
-gen aux = 1 if negdebtassets == 1 & negdebtliabilities == 1
-replace negdebtassets = 0 if aux == 1 
-replace negdebtliabilities = 0 if aux == 1 
-cap swapval debtassets debtliabilities if aux == 1 
-replace debtassets = abs(debtassets) if aux == 1
-replace debtliabilities = abs(debtliabilities) if aux == 1
-replace debtassets = debtassets - debtliabilities if negdebtliabilities == 1
-replace debtliabilities = 0 if negdebtliabilities == 1 
-replace debtliabilities = debtliabilities - debtassets if negdebtassets == 1 
-replace debtassets = 0 if negdebtassets == 1
+replace nwgxd_lm = nwgxd_lm - debtassets      if negdebtassets == 1
+gen          aux = 1                          if negdebtassets == 1 & negdebtliabilities == 1
+replace negdebtassets      = 0                if aux == 1 
+replace negdebtliabilities = 0                if aux == 1 
+cap swapval debtassets debtliabilities        if aux == 1 
+replace debtassets         = abs(debtassets)      if aux == 1
+replace debtliabilities    = abs(debtliabilities) if aux == 1
+replace debtassets         = debtassets - debtliabilities if negdebtliabilities == 1
+replace debtliabilities    = 0                            if negdebtliabilities == 1 
+replace debtliabilities = debtliabilities - debtassets    if negdebtassets == 1 
+replace      debtassets = 0                               if negdebtassets == 1
 drop aux 
 
-replace nwgxa_lm = nwgxa_lm - financialderivativesassets if negfinancialderivativesassets == 1
+replace nwgxa_lm = nwgxa_lm - financialderivativesassets    if negfinancialderivativesassets == 1
 replace nwgxa_lm = nwgxa_lm - financialderivativesliabiliti if negfinancialderivativesliabiliti == 1
 replace nwgxd_lm = nwgxd_lm - financialderivativesliabiliti if negfinancialderivativesliabiliti == 1
-replace nwgxd_lm = nwgxd_lm - financialderivativesassets if negfinancialderivativesassets == 1
+replace nwgxd_lm = nwgxd_lm - financialderivativesassets    if negfinancialderivativesassets == 1
 gen aux = 1 if negfinancialderivativesassets == 1 & negfinancialderivativesliabiliti == 1
-replace negfinancialderivativesassets = 0 if aux == 1 
-replace negfinancialderivativesliabiliti = 0 if aux == 1 
-cap swapval financialderivativesassets financialderivativesliabiliti if aux == 1 
-replace financialderivativesassets = abs(financialderivativesassets) if aux == 1
+replace negfinancialderivativesassets = 0                   if aux == 1 
+replace negfinancialderivativesliabiliti = 0                if aux == 1 
+cap swapval financialderivativesassets financialderivativesliabiliti       if aux == 1 
+replace financialderivativesassets = abs(financialderivativesassets)       if aux == 1
 replace financialderivativesliabiliti = abs(financialderivativesliabiliti) if aux == 1
 replace financialderivativesassets = financialderivativesassets - financialderivativesliabiliti if negfinancialderivativesliabiliti == 1
 replace financialderivativesliabiliti = 0 if negfinancialderivativesliabiliti == 1 
 replace financialderivativesliabiliti = financialderivativesliabiliti - financialderivativesassets if negfinancialderivativesassets == 1 
-replace financialderivativesassets = 0 if negfinancialderivativesassets == 1
+replace financialderivativesassets = 0    if negfinancialderivativesassets == 1
 drop aux 
 
-replace nwgxa_lm = nwgxa_lm - otherinvestmentassets if negotherinvestmentassets == 1
+replace nwgxa_lm = nwgxa_lm - otherinvestmentassets      if negotherinvestmentassets == 1
 replace nwgxa_lm = nwgxa_lm - otherinvestmentliabilities if negotherinvestmentliabilities == 1
 replace nwgxd_lm = nwgxd_lm - otherinvestmentliabilities if negotherinvestmentliabilities == 1
-replace nwgxd_lm = nwgxd_lm - otherinvestmentassets if negotherinvestmentassets == 1
+replace nwgxd_lm = nwgxd_lm - otherinvestmentassets      if negotherinvestmentassets == 1
 gen aux = 1 if negotherinvestmentassets == 1 & negotherinvestmentliabilities == 1
-replace negotherinvestmentassets = 0 if aux == 1 
-replace negotherinvestmentliabilities = 0 if aux == 1 
+replace negotherinvestmentassets = 0                     if aux == 1 
+replace negotherinvestmentliabilities = 0                if aux == 1 
 cap swapval otherinvestmentassets otherinvestmentliabilities if aux == 1 
-replace otherinvestmentassets = abs(otherinvestmentassets) if aux == 1
+replace otherinvestmentassets = abs(otherinvestmentassets)   if aux == 1
 replace otherinvestmentliabilities = abs(otherinvestmentliabilities) if aux == 1
 replace otherinvestmentassets = otherinvestmentassets - otherinvestmentliabilities if negotherinvestmentliabilities == 1
 replace otherinvestmentliabilities = 0 if negotherinvestmentliabilities == 1 
@@ -109,16 +109,16 @@ replace nwgxa_lm = nwgxa_lm - fdixa if negfdixa == 1
 replace nwgxa_lm = nwgxa_lm - fdixd if negfdixd == 1
 replace nwgxd_lm = nwgxd_lm - fdixd if negfdixd == 1
 replace nwgxd_lm = nwgxd_lm - fdixa if negfdixa == 1
-gen aux = 1 if negfdixa == 1 & negfdixd == 1
-replace negfdixa = 0 if aux == 1 
-replace negfdixd = 0 if aux == 1 
-cap swapval fdixa fdixd if aux == 1 
-replace fdixa = abs(fdixa) if aux == 1
-replace fdixd = abs(fdixd) if aux == 1
-replace fdixa = fdixa - fdixd if negfdixd == 1
-replace fdixd = 0 if negfdixd == 1 
-replace fdixd = fdixd - fdixa if negfdixa == 1 
-replace fdixa = 0 if negfdixa == 1
+gen          aux = 1                if negfdixa == 1 & negfdixd == 1
+replace negfdixa = 0                if aux == 1 
+replace negfdixd = 0                if aux == 1 
+cap swapval fdixa fdixd             if aux == 1 
+replace    fdixa = abs(fdixa)       if aux == 1
+replace    fdixd = abs(fdixd)       if aux == 1
+replace    fdixa = fdixa - fdixd    if negfdixd == 1
+replace    fdixd = 0                if negfdixd == 1 
+replace    fdixd = fdixd - fdixa    if negfdixa == 1 
+replace    fdixa = 0                if negfdixa == 1
 drop aux 
 
 
@@ -212,11 +212,14 @@ merge 1:1 iso year using "$work_data/import-core-country-codes-year-output.dta",
 keep if corecountry == 1 & year >= 1970
 
 ren gdp gdp_lm 
+
+* generate GDP in usd current prices
 merge 1:1 iso year using "$work_data/retropolate-gdp.dta", nogenerate keepusing(gdp) keep(master matched)
 merge 1:1 iso year using "$work_data/USS-exchange-rates.dta", nogen keepusing(exrate_usd) keep(master matched)
 merge 1:1 iso year using "$work_data/price-index.dta", nogen keep(master matched)
+
 gen gdp_idx = gdp*index
-	gen gdp_usd = gdp_idx/exrate_usd
+gen gdp_usd = gdp_idx/exrate_usd
 	
 preserve
 	keep iso year gdp* 

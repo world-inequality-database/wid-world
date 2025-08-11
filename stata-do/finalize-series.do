@@ -41,6 +41,7 @@ replace confc = imputed_confc if (missing(confc) | toreplace2) & !missing(impute
 drop imputed_* toreplace toreplace2
 
 //--------  Import data from Nievas Piketty 2025 ---------------------------- //
+
 preserve
 	* Import Data
 	use "$wid_dir/Country-Updates/WBOP_NP2025/NievasPiketty2025WBOP.dta", clear
@@ -68,14 +69,43 @@ preserve
 	save    `np2025_reg'
 	
 restore
+/*
+//--------  Import data from Dietrish et al. 2025 ---------------------------- //
+preserve
+	* Import Data
+	use "$work_data/Dietrishetal2025.dta", clear
+	keep if year>=1970
+	*keep if iso=="RU"
+	* Generate Fivelets as defined in the Wid-Dictionary
+	gen  fivelet= "confc"  if origin =="C1"
+	
+	*Format for importing
+	drop if mi(fivelet)
+	drop origin concept
+	reshape wide value, i(iso year) j(fivelet) string
+	rename value* *
+	
 
-
+	tempfile d2025
+	save `d2025'
+	
+	keep  if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso, "QL","QM","WO","QE")
+	
+	rename * paper_*
+	rename (paper_iso paper_year)(region2 year)
+	
+	tempfile d2025_reg 
+	save    `d2025_reg'
+	
+restore
+*/
 merge 1:1 iso year using "$work_data/USS-exchange-rates.dta", nogen keepusing(exrate_usd) keep(master matched)
 
 gen gdpusd=(gdp_idx/exrate_usd)
 
 drop exrate_usd
 merge 1:1 iso year using "`np2025'", nogen update replace
+*merge 1:1 iso year using "`d2025'", nogen update replace
 
 
 // Adjust countries in residual regions to fitin in the residual regions of NP2025
@@ -88,7 +118,9 @@ merge 1:1 iso year using "$work_data/import-core-country-codes-year-output.dta",
 bys year region2: egen reg_gdp_usd = total(gdpusd) 
 
 * Bring regions from Paper
-merge m:1 region2 year using "`np2025_reg'", nogenerate keep(master match)
+merge m:1 region2 year using "`np2025_reg'", nogenerate keep(master match) update 
+*merge m:1 region2 year using "`d2025_reg'",  nogenerate keep(master match) update replace
+
 sort iso year 
 
 

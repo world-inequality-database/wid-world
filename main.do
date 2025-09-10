@@ -14,7 +14,7 @@ do "~/Documents/GitHub/wid-world/stata-do/setup.do"
 // -------------------------------------------------------------------------- //
 //
  do "$do_dir/import-country-codes.do"
-/*
+
 // // -------------------------------------------------------------------------- //
 // // Import, clean, and convert to the new format the old WTID
 // // -------------------------------------------------------------------------- //
@@ -52,7 +52,6 @@ do "~/Documents/GitHub/wid-world/stata-do/setup.do"
 //
 // // Calculate o- variables
  do "$do_dir/calculate-average-over.do"
-*/
 
 // -------------------------------------------------------------------------- //
 // Add data from researchers
@@ -65,21 +64,24 @@ do "$do_dir/add-researchers-data.do"
 // changed: to be eventually integrated to the above files
 do "$do_dir/correct-widcodes.do"
 
+//------------------- START OF MACRO PART-------------------------------------//
 // -------------------------------------------------------------------------- //
 // Import Macroeconomic Researchers data
 // -------------------------------------------------------------------------- //
-// Import  Macroeconomci data from Piketty & Zucman (2013)
+// Import  Macroeconomic data from Piketty & Zucman (2013)
 do "$do_dir/import-pikettyzucman2013.do"
 
 // Import Bachas et al. 2024
 do "$do_dir/import-bachas-sectors.do"
 
-//papers for the camculation of Sector-factor shares 
+// Papers for the accumulation of Sector-factor shares 
 do "$do_dir/import-sectorfactor-shares-papers.do"
 
-// Import the WBoP data from Nievas & Piketty (2025) paper
+// Import the WBoP data from Nievas & Piketty(2025) paper
 do "$do_dir/import-nievaspiketty2025.do" 
 
+// Import the sector factor sshares data from Diertrisch et al.(2025) paper
+do "$do_dir/import-dietrichetal2025.do" 
 
 // -------------------------------------------------------------------------- //
 // Import external GDP data
@@ -204,6 +206,8 @@ do "$do_dir/calculate-ppp.do"
                           
 // Finalize GDP
 do "$do_dir/retropolate-gdp.do"
+
+// Calculate weighted-EUR and cny ppp conversion rates.
 do "$do_dir/calculate-weighted-eur-cny-ppp.do"
 
 // -------------------------------------------------------------------------- //
@@ -285,7 +289,7 @@ do "$do_dir/add-exchange-rates.do"
 // Convert WID series to real values
 do "$do_dir/convert-to-real.do"
 
-// Add the price index
+// Add the price index and local currency unit change indicator 
 do "$do_dir/add-price-index.do"
 
 // Add the national accounts
@@ -304,23 +308,26 @@ do "$do_dir/add-wealth-aggregates.do"
 // Aggregate by regions & Merge Historical series (NP2025)
 do "$do_dir/aggregate-macro-regions.do" 
 
+// Merge Nievas&Piketty(2025) and DietrichEtAl.(2025) historical aggregates to WID
+do "$do_dir/merge-historical-aggregates.do"
+
 // Generate the real exchange rate
 do "$do_dir/calculate-real-exchange-rate.do" 
 
 // Complete some missing variables for which we only have subcomponents
 do "$do_dir/complete-variables.do"
 
-// Wealth/income ratios (+ labor/capital shares)
+// Wealth/income ratios (+ labor/capital shares) for macro and PPP historical
 do "$do_dir/calculate-wealth-income-ratios.do"
 
 // Per capita/per adults series
 do "$do_dir/calculate-per-capita-series.do"
 
-// Merge historical aggregates to WID
-//do "$do_dir/merge-historical-aggregates.do"
+//------------------- END OF MACRO PART---------------------------------------//
+
 
 // -------------------------------------------------------------------------- //
-// END OF MACRO PART
+// Add distribution data from researchers and WIL coordinators
 // -------------------------------------------------------------------------- //
 
 // Add researchers data which are in real value
@@ -332,6 +339,9 @@ do "$do_dir/add-wealth-distribution.do"
 // Distribute national income by rescaling fiscal income
 do "$do_dir/distribute-national-income.do"
 
+// -------------------------------------------------------------------------- //
+// Calibrate, complete and process distribution data 
+// -------------------------------------------------------------------------- // 
 // Extrapolate pre-tax national income shares with fiscal income when possible
 // do "$do_dir/extrapolate-pretax-income.do"
 

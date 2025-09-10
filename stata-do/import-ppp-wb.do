@@ -43,6 +43,14 @@ rename value ppp_wb
 
 *keep if year == 2011
 gegen max_year = max(year), by(iso)
+//-------------------------------------------
+*Note:The PPP are ment to pass from LCU to USD PPP. Given that we treat the data in USD for special country cases, these needs to be correcte as follows. Check section PartMain.1 of import-exchange-rate.do.
+merge 1:1 iso year using  "$work_data/exchange-rates-cases.dta", nogenerate keep(master match) keepusing(exrate_usd)
+
+replace ppp_wb=ppp_wb/exrate_usd if inlist(iso, "ZW") //,  "LR" , "SV", "EC")
+drop exrate_usd
+//-------------------------------------------
+
 keep if year == min(2021, max_year)
 drop max_year
 

@@ -728,21 +728,13 @@ enforce (tbxrx = tgxrx + tsxrx) ///
 //--------  Import data from Nievas Piketty 2025 ---------------------------- //
 preserve
 	* Import Data
-	use "$work_data/NievasPiketty2025WBOP.dta", clear
-	 keep if year<=2022
-	* Generate Fivelets as defined in the Wid-Dictionary
-	gen      fivelet= "tgxrx"  if origin =="B1b"
-	replace  fivelet= "tgmpx"  if origin =="B1c"
-	replace  fivelet= "tsxrx"  if origin =="C1b"
-	replace  fivelet= "tsmpx"  if origin =="C1c"
-	replace  fivelet= "tbxrx"  if origin =="C1e"
-	replace  fivelet= "tbmpx"  if origin =="C1f"
-	replace  fivelet= "scirx"  if origin =="E1b"
-	replace  fivelet= "scipx"  if origin =="E1c"
+	use "$work_data/nievaspiketty2025_70.dta", clear
+	keep if year<=2022
+	gen fivelet=substr(widcode,2,5)
+	drop widcode p
+	keep if inlist(fivelet,"tgxrx", "tgmpx", "tsxrx", "tsmpx", "tbxrx", "tbmpx", "scirx", "scipx")
 	
 	*Format for importing
-	drop if mi(fivelet)
-	drop origin concept
 	reshape wide value, i(iso year) j(fivelet) string
 	rename value* *
 	

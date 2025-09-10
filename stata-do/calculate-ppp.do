@@ -26,13 +26,17 @@
 use "$work_data/ppp-wb.dta", clear
 replace currency = "EUR" if iso == "HR"
 drop if iso == "VE"
+replace ppp_wb=ppp_wb if iso=="ZW" // ZW has changed their currency and given that the data is treated in dollars this ppp fails to represent their values.
+
 * IMF for Venezuela
 append using "$work_data/imf-ven-pppex" 
 replace currency = "VES" if iso == "VE"
+
 * IMF for Taiwan
 append using "$work_data/imf-tw-pppex" 
 replace currency = "TWD" if iso == "TW"
 drop if iso == "SS"
+
 * IMF Sourth Soudan
 append using "$work_data/imf-ss-pppex" 
 replace currency = "SSP" if iso == "SS"

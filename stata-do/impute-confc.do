@@ -251,6 +251,13 @@ sort iso year
 by iso : ipolate confc year if iso == "KP", gen(xconfc)
 replace confc = xconfc if missing(confc) & iso == "KP" 
 
+// fixing Oman
+replace confc = . if iso == "OM" & inlist(year, 1964)
+sort iso year
+by iso : ipolate confc year if iso == "OM", gen(yconfc)
+replace confc = yconfc if missing(confc) & iso == "OM" 
+drop yconfc
+
 save "$work_data/confc-imputed.dta", replace
 
 // -------------------------------------------------------------------------- //

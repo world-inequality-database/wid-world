@@ -150,8 +150,11 @@ replace method = "[URL][URL_LINK]http://data.imf.org/BOP[/URL_LINK][URL_TEXT]IMF
 replace method = "[URL][URL_LINK]https://stats.oecd.org/Index.aspx?DataSetCode=SNA_TABLE14A[/URL_LINK][URL_TEXT]OECD[/URL_TEXT][/URL]; " if inrange(series, 10000, 20000)
 replace method = source if (series == 200000)
 replace method = "[URL][URL_LINK]http://wid.world/document/revised-extended-national-wealth-series-australia-canada-france-germany-italy-japan-uk-usa-wid-world-technical-note-2017-23/[/URL_LINK][URL_TEXT]Piketty, Thomas; Zucman, Gabriel (2014). Capital is back: Wealth-Income ratios in Rich Countries 1700-2010. Series updated by Luis Bauluz.[/URL_TEXT][/URL]; " if series == 300000
-replace method = "estimated from other components; " if missing(series)
 
+
+replace method = "[URL][URL_LINK]https://wid.world/document/extending-wid-national-accounts-series-institutional-sectors-and-factor-shares-world-inequality-lab-technical-note-2025-03/[/URL_LINK][URL_TEXT] Dietrich, J., Nievas G., Odersky, M., Piketty, T. & Somanchi A (2025). Extending WID National Accounts Series: Institutional Sectors and Factor Shares [/URL_TEXT][/URL]; " if series==0
+
+replace method = "estimated from other components; " if missing(series)
 // Sources
 preserve
 	drop if missing(series) | series < 0

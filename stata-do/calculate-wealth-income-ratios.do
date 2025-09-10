@@ -59,6 +59,11 @@ replace flag = 1 if   inlist(substr(widcode,2,5),"revgo", "sacge", "sakge", "scg
 					| inlist(substr(widcode,2,5),"taxnx", "tbmpx", "tbnnx", "tbxrx", "tgmcx", "tgmmx", "tgmpx", "tgncx", "tgnmx")  
 replace flag = 1 if   inlist(substr(widcode,2,5),"tgnnx", "tgxcx", "tgxmx", "tgxrx", "tsmpx", "tsnnx", "tsonx", "tsopx", "tsorx")  ///
 					| inlist(substr(widcode,2,5),"tstnx", "tstpx", "tstrx", "tsvnx", "tsvpx", "tsvrx", "tsxrx")  
+replace flag= 1 if  inlist(substr(widcode, 2, 5), "ptxgo", "gvato", "gvago", "ceugo", "gsrgo", "nsrgo", "cfcgo", "gvaco") | ///
+				    inlist(substr(widcode, 2, 5), "ceuco", "gsrco", "nsrco", "cfcco", "gvahn", "ceuhn", "gmxhn", "nmxhn") | ///
+				    inlist(substr(widcode, 2, 5), "ccmhn", "gsrhn", "nsrhn", "ccshn")
+replace flag= 1 if  inlist(substr(widcode, 1, 6), "ylsgdp", "ylsndp", "ycsgdp", "ycsndp", "wlsgni", "wlsnni", "wcsgni") | ///
+						inlist(substr(widcode, 1, 6),"wcsnni", "ylscgv", "ylscnv", "ycscgv","ycscnv","yconfc")					
 keep if flag==1
 drop flag
 
@@ -127,7 +132,7 @@ drop if missing(value)
 duplicates drop iso year p widcode, force
 
 //0 values can be the result of missing info
-replace value=. if inlist(substr(widcode,1,1),"y", "w") & value==0
+replace value=. if inlist(substr(widcode,1,1),"y", "w") & value==0 //& year<1970
 drop if missing(value)
 
 compress

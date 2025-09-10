@@ -40,13 +40,13 @@ export delim "$output_dir/$time/wid-data-$time-core-macro.csv", delimiter(";") r
 
 clear all 
 **
-use "$work_data/merge-historical-aggregates.dta", clear
+use "$work_data/calculate-per-capita-series-output.dta", clear
 *use "/Users/rowaidamoshrif/Downloads/merge-historical-aggregates (22).dta", clear
 keep if (substr(widcode, 1, 1) == "m" | substr(widcode, 1, 1) == "w" | substr(widcode, 1, 1) == "y")
 generate fivelet = substr(widcode, 2, 5)
 levelsof fivelet, local(fivelet)
 **
-use "$work_data/merge-historical-aggregates.dta", clear
+use "$work_data/calculate-per-capita-series-output.dta", clear
 *use "/Users/rowaidamoshrif/Downloads/merge-historical-aggregates (22).dta", clear
 
 generate fivelet = substr(widcode, 2, 5)
@@ -169,6 +169,28 @@ rename iso Alpha2
 rename p   perc
 order Alpha2 year perc widcode
 
+
+preserve
+	*drop if Alpha2=="RU"
+	*keep if year==2024
+	gen flag=0
+	replace flag= 1 if  inlist(substr(widcode, 2, 5), "ptxgo", "gvato", "gvago", "ceugo", "gsrgo", "nsrgo", "cfcgo", "gvaco") | ///
+				    inlist(substr(widcode, 2, 5), "ceuco", "gsrco", "nsrco", "cfcco", "gvahn", "ceuhn", "gmxhn", "nmxhn") | ///
+				    inlist(substr(widcode, 2, 5), "ccmhn", "gsrhn", "nsrhn", "ccshn","confc")
+	replace flag= 1 if  inlist(substr(widcode, 1, 6), "ylsgdp", "ylsndp", "ycsgdp", "ycsndp", "wlsgni", "wlsnni", "wcsgni") | ///
+						inlist(substr(widcode, 1, 6),"wcsnni", "ylscgv", "ylscnv", "ycscgv","ycscnv")
+	keep if flag==1 
+	drop flag regions
+	export delim "$output_dir/$time/wid-data-$time-macro-var-$year-dietrischetal25.csv", delimiter(";") replace
+restore
+
+preserve
+	keep if Alpha2=="ZW"
+	keep if substr(widcode,1,3)=="xlc"
+	drop regions
+	export delim "$output_dir/$time/wid-data-$time-macro-var-$year-ZWconvFact.csv", delimiter(";") replace
+restore
+
 preserve
 	drop if Alpha2=="RU"
 	*keep if year==2024
@@ -189,7 +211,7 @@ preserve
 	keep if region==1
 	drop regions
 	*drop if strpos(Alpha2,"-MER") & !inlist(widcode,"xlceup999i","xlceux999i","xlcusp999i","xlcusx999i","xlcyup999i","xlcyux999i") 
-	export delim "$output_dir/$time/wid-data-$time-macro-var-$year-reg.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-macro-var-$year-reg.csv", delimiter(";") replace
 restore
 
 foreach onelet in a i m n  w y x { //   p

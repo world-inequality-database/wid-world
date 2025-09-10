@@ -14,14 +14,10 @@ save "`priceindex'"
 * Call Local currency unit change indicator 
 * Note: i.e. change in local currency unit: e.g. FF, DM, etc. become EUR in 1999, etc.)
 * Import Data
-use "$work_data/NievasPiketty2025WBOP.dta", clear
+use "$work_data/nievaspiketty2025_70.dta", clear
 drop if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso, "QL","QM","WO","QE")
-keep if origin =="I1d"
-generate p = "pall"
+keep if  widcode == "intlcu999i"
  
-drop origin concept
-* Generate Fivelets as defined in the Wid-Dictionary
-gen widcode = "intlcu999i"
 recast double value
 preserve
 	sort iso year 

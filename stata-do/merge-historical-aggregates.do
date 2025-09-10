@@ -5,467 +5,659 @@
 // Objetive: Integrate and calibrate the historical series on nninc and nopul to
 // the WID data  dataset.
 
-// Note 12 March 2025: Given the new series fo Federico Tena, the population is
-// is now complete from 1800. As so the correction made implied to keep FT pop 
-// series, use the ratio between them and the historical series as a benchmark 
-// for keep matching the series so the ultima result only provides new nninc obs.
-
-//---------- 1. Calling Long-run aggregates -------------------------------------
-
-// Prepare the historcal macro
-use "$wid_dir/Country-Updates/Historical_series/2022_December/long-run-aggregates.dta", clear
-renvars popsize992 popsize999 / npopul992i_hist npopul999i_hist
-renvars average992 average999 / anninc992i_hist anninc999i_hist
-
-//Correct data "OA" and "RU"
-replace anninc999i_hist = anninc999i_hist*2 if inlist(iso, "OA", "RU") & year == 1920
-
-// Re-construct mnninc
-generate mnninc999i_hist = anninc999i_hist*npopul999i_hist
-
-//Correct iso denominations
-replace iso = "QE" if iso == "WC"
-replace iso = "XR" if iso == "WA"
-replace iso = "QL" if iso == "WB"
-replace iso = "XL" if iso == "WD"
-replace iso = "XN" if iso == "WE" 
-replace iso = "QP" if iso == "WG"
-replace iso = "QF" if iso == "WH" 
-replace iso = "XS" if iso == "WI" 
-replace iso = "XF" if iso == "WJ" 
-replace iso = "QM" if iso == "OK" // QM is OK other easterm europe
-
-// Retain relevant countries
-keep if inlist(iso, "RU", "OA")  | ///
-	    inlist(iso, "CN", "JP", "OB")  | ///
-	    inlist(iso, "DE", "ES", "FR", "GB", "IT", "SE", "OC", "QM")  | ///
-	    inlist(iso, "AR", "BR", "CL", "CO", "MX", "OD")  | /// 
-	    inlist(iso, "DZ", "EG", "TR", "OE")  | ///
-	    inlist(iso, "CA", "US")  | ///
-	    inlist(iso, "AU", "NZ", "OH")  | ///
-	    inlist(iso, "IN", "ID", "OI")  | ///
-	    inlist(iso, "ZA", "OJ")  
-
-// Clean data
-replace npopul992i_hist = . if iso == "DE" & year == 1940
-replace npopul999i_hist = . if iso == "DE" & year == 1940
-		
-tempfile country_hist_agg
-save "`country_hist_agg'"
-
-//---------- 2. Combine with WID data ------------------------------------------
-
-// Call wid-data 
-use "$work_data/calculate-per-capita-series-output.dta", clear
-drop currency p
-
-// Keep relevant variables and countries
-keep if inlist(widcode, "npopul992i", "npopul999i", "anninc992i", "anninc999i", "mnninc999i")
-keep if inlist(iso, "RU", "OA")  | ///
-	    inlist(iso, "CN", "JP", "OB")  | ///
-	    inlist(iso, "DE", "ES", "FR", "GB", "IT", "SE", "OC", "QM")  | ///
-	    inlist(iso, "AR", "BR", "CL", "CO", "MX", "OD")  | /// 
-	    inlist(iso, "DZ", "EG", "TR", "OE")  | ///
-	    inlist(iso, "CA", "US")  | ///
-	    inlist(iso, "AU", "NZ", "OH")  | ///
-	    inlist(iso, "IN", "ID", "OI")  | ///
-	    inlist(iso, "ZA", "OJ")  
-
-reshape wide value, i(iso year) j(widcode) string
-renvars value*, pred(5)
-
-// Merge long-run aggregates
-merge 1:1 iso year using "`country_hist_agg'", nogen
-
-gsort iso year 
-
-//---------- 3.  Adjust particular cases ---------------------------------------
-** Specific 1950 ratio to correct CP populations pre-1950
-// OH
-generate t_pop992 = npopul992i/npopul992i_hist if iso == "OH" & year == 1950
-generate t_pop999 = npopul999i/npopul999i_hist if iso == "OH" & year == 1950
-generate t_mnninc = mnninc999i/mnninc999i_hist if iso == "OH" & year == 1970
-
-bys iso : egen ratio_pop992 = mode(t_pop992) if iso == "OH" 
-bys iso : egen ratio_pop999 = mode(t_pop999) if iso == "OH" 
-bys iso : egen ratio_mnninc = mode(t_mnninc) if iso == "OH" 
-replace ratio_pop992 = 1 if year<=1900 & iso == "OH" 
-replace ratio_pop999 = 1 if year<=1900 & iso == "OH" 
-replace ratio_mnninc = 1 if year<=1900 & iso == "OH" 
-drop t_pop992 t_pop999 t_mnninc
-
-replace npopul992i_hist = round(npopul992i_hist*ratio_pop992, 1) if iso == "OH" & year<=1970
-replace npopul999i_hist = round(npopul999i_hist*ratio_pop999, 1) if iso == "OH" & year<=1970
-replace mnninc999i_hist = round(mnninc999i_hist*ratio_mnninc, 1) if iso == "OH" & year<=1970
-drop ratio_pop992 ratio_pop999 ratio_mnninc
-
-replace anninc992i_hist = mnninc999i_hist/npopul992i_hist if iso == "OH" & year<=1970
-replace anninc999i_hist = mnninc999i_hist/npopul999i_hist if iso == "OH" & year<=1970
-
-// OA
-generate t_pop992 = npopul992i/npopul992i_hist if iso == "OA" & year == 1960
-generate t_pop999 = npopul999i/npopul999i_hist if iso == "OA" & year == 1960
-generate t_mnninc = mnninc999i/mnninc999i_hist if iso == "OA" & year == 1970
-
-bys iso : egen ratio_pop992 = mode(t_pop992) if iso == "OA" 
-bys iso : egen ratio_pop999 = mode(t_pop999) if iso == "OA" 
-bys iso : egen ratio_mnninc = mode(t_mnninc) if iso == "OA" 
-replace ratio_pop992 = 1 if year<=1900 & iso == "OA" 
-replace ratio_pop999 = 1 if year<=1900 & iso == "OA" 
-drop t_pop992 t_pop999 t_mnninc
-
-replace npopul992i_hist = round(npopul992i_hist*ratio_pop992, 1) if iso == "OA" & year<=1970
-replace npopul999i_hist = round(npopul999i_hist*ratio_pop999, 1) if iso == "OA" & year<=1970
-replace mnninc999i_hist = round(mnninc999i_hist*ratio_mnninc, 1) if iso == "OA" & year<=1970
-
-replace anninc992i_hist = mnninc999i_hist/npopul992i_hist if iso == "OA" & year<=1970
-replace anninc999i_hist = mnninc999i_hist/npopul999i_hist if iso == "OA" & year<=1970
-drop ratio_pop992 ratio_pop999 ratio_mnninc
-
-// QM
-generate t_pop992 = npopul992i/npopul992i_hist if iso == "QM" & year == 1970
-generate t_pop999 = npopul999i/npopul999i_hist if iso == "QM" & year == 1970
-generate t_mnninc = mnninc999i/mnninc999i_hist if iso == "QM" & year == 1970
-
-bys iso : egen ratio_pop992 = mode(t_pop992) if iso == "QM" 
-bys iso : egen ratio_pop999 = mode(t_pop999) if iso == "QM" 
-bys iso : egen ratio_mnninc = mode(t_mnninc) if iso == "QM" 
-drop t_pop992 t_pop999 t_mnninc
-
-replace npopul992i_hist = round(npopul992i_hist*ratio_pop992, 1) if iso == "QM" & year<=1970
-replace npopul999i_hist = round(npopul999i_hist*ratio_pop999, 1) if iso == "QM" & year<=1970
-replace mnninc999i_hist = round(mnninc999i_hist*ratio_mnninc, 1) if iso == "QM" & year<=1970
-drop ratio_pop992 ratio_pop999 ratio_mnninc
-
-//clean data
-*replace npopul999i = . if iso == "RU" & year<=1920 // Data is now comming from FedericoTena and its reliable.
-foreach x in anninc992i anninc999i mnninc999i { //  npopul992i npopul999i {
-	replace `x' = . if year <1970 & inlist(iso, "OA", "QM")
-}
-
-// for AR 
-generate t_pop992 = npopul992i/npopul992i_hist if iso == "AR" & year == 1950
-generate t_pop999 = npopul999i/npopul999i_hist if iso == "AR" & year == 1950
-generate t_mnninc = mnninc999i/mnninc999i_hist if iso == "AR" & year == 1950
-
-bys iso : egen ratio_pop992 = mode(t_pop992) if iso == "AR" 
-bys iso : egen ratio_pop999 = mode(t_pop999) if iso == "AR" 
-bys iso : egen ratio_mnninc = mode(t_mnninc) if iso == "AR" 
-
-replace npopul992i_hist = round(npopul992i_hist*ratio_pop992, 1) if iso == "AR" & year<=1970
-replace npopul999i_hist = round(npopul999i_hist*ratio_pop999, 1) if iso == "AR" & year<=1970
-replace mnninc999i_hist = round(mnninc999i_hist*ratio_mnninc, 1) if iso == "AR" & year<=1970
-
-replace anninc992i_hist = mnninc999i_hist/npopul992i_hist if iso == "AR" & year<=1970
-replace anninc999i_hist = mnninc999i_hist/npopul999i_hist if iso == "AR" & year<=1970
-drop ratio_pop992 ratio_pop999 ratio_mnninc
-
-//---------- 4. Complete series ------------------------------------------------
-
-// Complete missing data in WID series
-replace anninc992i = anninc992i_hist if missing(anninc992i) & !missing(anninc992i_hist) & year<1950
-replace anninc999i = anninc999i_hist if missing(anninc999i) & !missing(anninc999i_hist) & year<1950
-replace npopul992i = npopul992i_hist if missing(npopul992i) & !missing(npopul992i_hist) & year<1950
-replace npopul999i = npopul999i_hist if missing(npopul999i) & !missing(anninc999i_hist) & year<1950
-replace mnninc999i = mnninc999i_hist if missing(mnninc999i) & !missing(mnninc999i_hist) & year<1950
-
-** for Russia
-replace anninc992i = anninc992i_hist if missing(anninc992i) & !missing(anninc992i_hist) & year<=1960 & iso == "RU"
-replace anninc999i = anninc999i_hist if missing(anninc999i) & !missing(anninc999i_hist) & year<=1960 & iso == "RU"
-replace npopul992i = npopul992i_hist if missing(npopul992i) & !missing(npopul992i_hist) & year<=1960 & iso == "RU"
-replace npopul999i = npopul999i_hist if missing(npopul999i) & !missing(anninc999i_hist) & year<=1960 & iso == "RU"
-replace mnninc999i = mnninc999i_hist if missing(mnninc999i) & !missing(mnninc999i_hist) & year<=1960 & iso == "RU"
-
-** for OA (other central asia)
-replace anninc992i = anninc992i_hist if missing(anninc992i) & !missing(anninc992i_hist) & year<=1980 & iso == "OA"
-replace anninc999i = anninc999i_hist if missing(anninc999i) & !missing(anninc999i_hist) & year<=1980 & iso == "OA"
-replace npopul992i = npopul992i_hist if missing(npopul992i) & !missing(npopul992i_hist) & year<=1980 & iso == "OA"
-replace npopul999i = npopul999i_hist if missing(npopul999i) & !missing(anninc999i_hist) & year<=1980 & iso == "OA"
-replace mnninc999i = mnninc999i_hist if missing(mnninc999i) & !missing(mnninc999i_hist) & year<=1980 & iso == "OA"
-
-** for QM (Other Eastern Europe, Eastern Europe)
-replace anninc992i = . if iso == "QM" & year < 1970 
-replace anninc999i = . if iso == "QM" & year < 1970
-replace mnninc999i = . if iso == "QM" & year < 1970
-*replace npopul992i = . if iso == "QM" & year < 1970
-*replace npopul999i = . if iso == "QM" & year < 1970
-
-replace anninc992i = anninc992i_hist if missing(anninc992i) & !missing(anninc992i_hist) & year<1980 & iso == "QM"
-replace anninc999i = anninc999i_hist if missing(anninc999i) & !missing(anninc999i_hist) & year<1980 & iso == "QM"
-replace npopul992i = npopul992i_hist if missing(npopul992i) & !missing(npopul992i_hist) & year<1980 & iso == "QM"
-replace npopul999i = npopul999i_hist if missing(npopul999i) & !missing(anninc999i_hist) & year<1980 & iso == "QM"
-replace mnninc999i = mnninc999i_hist if missing(mnninc999i) & !missing(mnninc999i_hist) & year<1980 & iso == "QM"
-
-** for OH
-*replace anninc992i = . if iso == "OH" & year >= 1960 & year < 1970 
-*replace anninc999i = . if iso == "OH" & year >= 1960 & year < 1970
-*replace mnninc999i = . if iso == "OH" & year >= 1960 & year < 1970
-*replace npopul992i = . if iso == "OH" & year >= 1960 & year < 1970
-*replace npopul999i = . if iso == "OH" & year >= 1960 & year < 1970
-
-replace anninc992i = anninc992i_hist if missing(anninc992i) & !missing(anninc992i_hist) & iso == "OH"
-replace anninc999i = anninc999i_hist if missing(anninc999i) & !missing(anninc999i_hist) & iso == "OH"
-replace mnninc999i = mnninc999i_hist if missing(mnninc999i) & !missing(mnninc999i_hist) & iso == "OH"
-*replace npopul992i = npopul992i_hist if missing(npopul992i) & !missing(npopul992i_hist) & iso == "OH"
-*replace npopul999i = npopul999i_hist if missing(npopul999i) & !missing(anninc999i_hist) & iso == "OH"
-
-
-//---------- 5. Interpolate and integrate values -------------------------------
-// Format dataset
-keep iso year mnninc999i npopul992i npopul999i 
-renvars mnninc999i npopul992i npopul999i, postf("_")
-reshape wide mnninc999i_ npopul992i_ npopul999i_ ,  i(year) j(iso) string
-tsset year
-
-// Interpolate
-local var  mnninc999i_AR mnninc999i_AU mnninc999i_BR mnninc999i_CA mnninc999i_CL mnninc999i_CN mnninc999i_CO mnninc999i_DE mnninc999i_DZ mnninc999i_EG mnninc999i_ES mnninc999i_FR mnninc999i_GB mnninc999i_ID mnninc999i_IN mnninc999i_IT mnninc999i_JP mnninc999i_MX mnninc999i_NZ mnninc999i_OA mnninc999i_OB mnninc999i_OC mnninc999i_OD mnninc999i_OE mnninc999i_OH mnninc999i_OI mnninc999i_OJ mnninc999i_QM mnninc999i_RU mnninc999i_SE mnninc999i_TR mnninc999i_US mnninc999i_ZA // npopul992i_AR npopul999i_AR npopul992i_AU npopul999i_AU npopul992i_BR npopul999i_BR npopul992i_CA npopul999i_CA npopul992i_CL npopul999i_CL npopul992i_CN npopul999i_CN npopul992i_CO npopul999i_CO npopul992i_DE npopul999i_DE npopul992i_DZ npopul999i_DZ npopul992i_EG npopul999i_EG npopul992i_ES npopul999i_ES npopul992i_FR npopul999i_FR npopul992i_GB npopul999i_GB npopul992i_ID npopul999i_ID npopul992i_IN npopul999i_IN npopul992i_IT npopul999i_IT npopul992i_JP npopul999i_JP npopul992i_MX npopul999i_MX npopul992i_NZ npopul999i_NZ npopul992i_OA npopul999i_OA npopul992i_OB npopul999i_OB npopul992i_OC npopul999i_OC npopul992i_OD npopul999i_OD npopul992i_OE npopul999i_OE npopul992i_OH npopul999i_OH npopul992i_OI npopul999i_OI npopul992i_OJ npopul999i_OJ npopul992i_QM npopul999i_QM npopul992i_RU npopul999i_RU npopul992i_SE npopul999i_SE npopul992i_TR npopul999i_TR npopul992i_US npopul999i_US npopul992i_ZA npopul999i_ZA
-foreach l in `var' {
-	ipolate `l' year, generate(`l'_2)
-	replace `l'_2 = round(`l'_2, 1) 
-	replace `l' = `l'_2 if missing(`l') & !missing(`l'_2) & year>=1900
-	drop `l'_2
-}
-reshape long 
-renvars mnninc999i_ npopul992i_ npopul999i_, postd(1)
-
-// Recalculate average values
-generate anninc992i = mnninc999i/npopul992i
-generate anninc999i = mnninc999i/npopul999i
-
-// Drop missing observations
-egen mcount = rowmiss(mnninc999i npopul992i npopul999i anninc992i anninc999i)
-drop if mcount
-drop mcount
-
-//Retain desired years
-keep if (inlist(year, 1820, 1850, 1880) | year>=1900) 
-
-tempfile country_hist_agg_2
-save "`country_hist_agg_2'" 
-
-//---------- 6. Aggregate Regions (from 33 territories to regions) -------------
-
-// Call PPP index
-preserve
-	use if widcode == "xlceup999i" & year == $pastyear using "$work_data/calculate-per-capita-series-output.dta", clear
-	keep if inlist(iso, "RU", "OA")  | ///
-			inlist(iso, "CN", "JP", "OB")  | ///
-			inlist(iso, "DE", "ES", "FR", "GB", "IT", "SE", "OC", "QM")  | ///
-			inlist(iso, "AR", "BR", "CL", "CO", "MX", "OD")  | /// 
-			inlist(iso, "DZ", "EG", "TR", "OE")  | ///
-			inlist(iso, "CA", "US")  | ///
-			inlist(iso, "AU", "NZ", "OH")  | ///
-			inlist(iso, "IN", "ID", "OI")  | ///
-			inlist(iso, "ZA", "OJ")  
-
-	drop year p widcode currency 
-	rename value ppp2022
-
-	tempfile ppp2022
-	save `ppp2022'
-restore
-
-merge m:1 iso using "`ppp2022'", nogen 
-
-// Deflact national Income
-replace mnninc999i = mnninc999i/ppp2022
-gsort iso year 
-
-tempfile country_hist_agg_ppp
-save "`country_hist_agg_ppp'" 
-
-// Generate Region classification
-generate region = ""
-replace region = "XR" if inlist(iso, "RU", "OA")
-replace region = "QL" if inlist(iso, "CN", "JP", "OB")
-replace region = "QE" if inlist(iso, "DE", "ES", "FR", "GB", "IT", "SE", "OC", "QM")
-replace region = "XL" if inlist(iso, "AR", "BR", "CL", "CO", "MX", "OD") 
-replace region = "XN" if inlist(iso, "DZ", "EG", "TR", "OE")
-replace region = "XB" if inlist(iso, "CA", "US")
-replace region = "XB" if inlist(iso, "AU", "NZ", "OH")
-replace region = "XS" if inlist(iso, "IN", "ID", "OI")
-replace region = "XF" if inlist(iso, "ZA", "OJ") 
-
-// Calculate Regional aggregates
-collapse (sum) mnninc999i npopul992i npopul999i, by(region year)
-
-// Retain desired years
-keep if (inlist(year, 1820, 1850, 1880) | year>=1900)
-
-// Calculate averages
-generate anninc992i = mnninc999i/npopul992i
-generate anninc999i = mnninc999i/npopul999i
-
-rename region iso
-tempfile regions_hist_agg
-save "`regions_hist_agg'"
-	
-//---------- 6. Aggregate World (from 33 territories to World) -----------------
-//call estimated core territory data
-use "`country_hist_agg_ppp'", clear
-
-// Calculate world aggregates
-collapse (sum) mnninc999i npopul992i npopul999i, by(year)
-
-keep if (inlist(year, 1820, 1850, 1880) | year>=1900)
-generate iso = "WO"
-generate anninc992i = mnninc999i/npopul992i
-generate anninc999i = mnninc999i/npopul999i
-
-tempfile world_hist_agg
-save "`world_hist_agg'"
-
-//---------- 7. Finish and merge with the overall database ---------------------
-use "`country_hist_agg_2'", clear
-merge 1:1 iso year using "`regions_hist_agg'", nogen
-merge 1:1 iso year using "`world_hist_agg'"  , nogen
-
-renvars anninc992i anninc999i mnninc999i npopul992i npopul999i, pref("value")
-generate p = "pall"
-reshape long value, i(iso year p) j(widcode) string
-
-
-
-tempfile full
-save `full'
-
-use "$work_data/calculate-per-capita-series-output.dta", clear
-merge 1:1 iso year p widcode using "`full'", nogen update replace
-
-//---------- 8. Variable cleaning and checks -----------------------------------
-
-// Drop variables no longer included in the WID Dictionary
-drop if strpos(widcode, "fkfiw") 
-drop if strpos(widcode, "ptfor") | strpos(widcode, "ptfon") | strpos(widcode, "ptfop")
-drop if strpos(widcode, "comco") | strpos(widcode, "comfc") | strpos(widcode, "comnf") | strpos(widcode, "comgo")                         
-
-// Quality Checks
-assert value >= 0 if strpos(widcode, "nninc") > 0 | strpos(widcode, "gdpro") > 0
-
-
-** Saving
-save "$work_data/merge-historical-aggregates.dta", replace
-
-
-
+// Note 25/08/25: Following the availablility of complete poplation series 
+//      from Federico-tena and the long run series from Nievas Piketty(2025) and 
+//      Diertich et at.(2025) this new version of the file  appends the available 
+//      historical series of WBOP and Institutional sectors for the 58 core-
+//      territories.
+
+/// Note: while calcualtationf in aggregate-macro regions are mad efrom the 1970, the trught is that the small cotuntries presente missing data from during the 70's. That is why the merge of Diertrich et al happends from 1980, rewriting the data in 1970.
+
+// --------------- 0.  Index -------------------------------------------------//
+//  1. Call necessary data from WID
+//  2. Merge Historical regions from Nievas & Piketty (2025)
+//      2.1.  Bring wealth to product ratios (y)
+//		2.2.  Rebase the price index to the $pastyear
+//  	2.4.  Calculate mnninc999i and mndpro999i 
+//      2.3.  Generate constant $pastyear monetary values
+//      2.5.  Calculate wealth to income ratios (w)
+// 		2.6.  Extend exchange rate to regions-MER before 1970 
+// 		2.7.  Extend PPP to regions-MER before 1970
+//		2.8.  Extend exchange rate to regions-MER before 1970
+//      2.9.  Complete Price index for regions -PPP  
+//      2.10. Extend Population to regions-PPP  (obsolete)
+// 		2.11. Extend aggregates  to regions-PPP
+//      2.12. Complete intclu 
+//      2.13. Exclusion checks
+//  3. Merge Historical countries from Nievas & Piketty (2025)
+//  4. Final Formating and export
+//      4.1. Pile countries 
+//      4.2. Add regions
+//      4.3.  Save
+//  5. Create metadata
 //------------------------------------------------------------------------------
 
+
+// -------------------------------------------------------------------------- //
+* 	1. Call necessary data from WID
+// -------------------------------------------------------------------------- //
+use "$work_data/aggregate-regions-output.dta", clear
+
+keep if inlist(substr(widcode, 1, 6), "xlcusx", "xlcusp", "xlceux", "xlceup", "xlcyux", "xlcyup") /// 
+	  | inlist(substr(widcode, 1, 6), "inyixx","mgdpro","ynninc","mnnfin") // ,"npopul") // , "intlcu","xrerus") ///
+
+drop currency
+
+* Call historical population for regions
 /*
+preserve
+	keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE","QF","QP")
+	drop if inlist(iso,"OM")
+	keep if year<1970
+	keep  if strpos(widcode,"npopul")
+	rename iso region
+	 gen wid=1
+	
+	tempfile hist_pop_reg
+	save    `hist_pop_reg'
+restore
+*/
 
-tw (line value year if iso == "FR" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "US" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "CN" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "JP" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "SE" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "IT" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "AR" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "ID" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "IN" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "DZ" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "EG" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "QE" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "QP" & p == "p0p100" & widcode == "anninc999i", sort)
-tw (line value year if iso == "XF" & p == "p0p100" & widcode == "anninc999i", sort)
+reshape wide value, i(iso year p) j (widcode) string
 
-tw (line value year if iso == "EG" & p == "p0p100" & widcode == "npopul999i", sort)
-tw (line value year if iso == "FR" & p == "p0p100" & widcode == "npopul999i", sort)
-
-tw (line value year if iso == "US" & p == "p0p100" & widcode == "npopul999i", sort)
-
-
-
-tw (line value year if iso == "IN" & p == "p0p100" & widcode == "npopul999i", sort)
-tw (line value year if iso == "ID" & p == "p0p100" & widcode == "npopul999i", sort)
-tw (line value year if iso == "FR" & p == "p0p100" & widcode == "npopul999i", sort)
-tw (line value year if iso == "GB" & p == "p0p100" & widcode == "npopul999i", sort)
-tw (line value year if iso == "OA" & p == "p0p100" & widcode == "npopul999i", sort)
-tw (line value year if iso == "JP" & p == "p0p100" & widcode == "npopul999i", sort)
-tw (line value year if iso == "CN" & p == "p0p100" & widcode == "npopul999i", sort)
-tw (line value year if iso == "QE" & p == "p0p100" & widcode == "npopul999i", sort)
-tw (line value year if iso == "QP" & p == "p0p100" & widcode == "npopul999i", sort)
-tw (line value year if iso == "XF" & p == "p0p100" & widcode == "npopul999i", sort)
-
-tw (connected anninc992i year, sort) if iso == "AR"
-tw (connected anninc992i year, sort) if iso == "BR"
+* call updated price index for NP data in 2023 prices
+preserve	
+	keep if !strpos(iso,"-PPP") & year==2023 // last year of Nievas piketty
+	keep  iso valueinyixx999i
+	rename (iso valueinyixx999i) (region inyixx_23)
+	
+	tempfile  indx_xlc
+	save `indx_xlc'
+restore
 
 
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "AR"
-tw (connected average992 year, sort) (connected anninc992i year, sort) if iso == "AR"
-tw (connected average992 year, sort) (connected anninc999i year, sort) if iso == "AR"
-tw (connected popsize992 year, sort) (connected npopul992i year, sort) if iso == "AR"
-tw (connected popsize999 year, sort) if iso == "AR"
-tw (connected npopul999i year, sort) if iso == "AR"
+*call GDP and NNI for compleating W and Y calculations for Dietrischelal.(2025) 1970-1980
+preserve
+	keep if year>=1970 & year<=1980
+	drop if strpos(iso,"-PPP")
+	keep iso year valueinyixx999i valuemgdpro999i valueynninc999i //valuemnnfin999i
+	rename (valueinyixx999i valuemgdpro999i valueynninc999i) (valueinyixx999ib valuemgdpro999ib valueynninc999ib)
+	*tempfile agg_70s2
+	*save `agg_70s2'
+	
+	rename iso region
+	
+	tempfile agg_70s1
+	save `agg_70s1'
+restore
+
+
+* Call the MER conversion factors of the USD
+preserve
+	keep if iso=="US" 
+	rename value* *
+	keep year xlcusx999i xlceux999i xlcyux999i 
+	
+	tempfile xrateusd
+	save `xrateusd'		
+restore
+
+* Call the PPP conversion factors of the USD
+preserve
+	keep if iso=="US" 
+	keep iso year valueinyixx999i valuexlcusp999i
+	rename (iso) (region)
+	
+	tempfile pppusa
+	save `pppusa'		
+restore
+
+* Call price index and recent conversion rates for all the countries
+preserve
+	keep if year<=1980
+	keep  iso year valueinyixx999i valuexlcusp999i valuexlceup999i valuexlcyup999i valuexlcusx999i valuexlceux999i valuexlcyux999i
+	tempfile country_idx
+	save    `country_idx'
+restore
+
+* Keep only regions
+keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE","QF","QP")
+drop if inlist(iso,"OM")
+	
+* Call conversion factors PPP fo the $pastyear for regions
+preserve	
+	keep if !strpos(iso,"-PPP") & year==$pastyear 
+	keep  iso year valueinyixx999i valuexlcusp999i valuexlceup999i valuexlcyup999i
+	rename iso region
+	
+	tempfile  indx_pasty
+	save `indx_pasty'
+restore
+
+
+// -------------------------------------------------------------------------- //
+* 	2. Merge Historical Regions 
+// -------------------------------------------------------------------------- //
+* Note: This section integrates macroeconomic data from Nievas & Piketty(2025) 
+*		(except for the confc), the trade data from Nievas & Piketty(2025) and 
+* 		the confc and the intitutional sector historical data from Diertrich 
+*		et al. (2025) before 1970. Nievas & Piketty(2025) from 1800 and Diertrich 
+*		et al. (2025) from 1900.
+
+// --------- 2.1. Bring wealth to product ratios (y)  ----------------------- //
+use  "$work_data/nievaspiketty2025_hist.dta", clear
+gen np=1
+append using "$work_data/dietrichetal2025sectors_hist.dta"
+
+duplicates tag iso year widcode p, gen(dup)
+drop if np==1 & dup==1
+duplicates tag iso year widcode p, gen(dup2)
+assert dup2==0
+drop dup* np
+
+
+* keep relevant observations
+keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE","QF","QP")
+
+rename iso region
+*fillin region year widcode p
+*drop _fillin
+
+* Generate observations for OK
+expand 2 if region=="OH", gen(xpnd)
+replace region="OK" if xpnd==1 & region=="OH"
+drop xpnd
+* Generate observations for QL
+expand 2 if region=="OH", gen(xpnd)
+replace region="OL" if xpnd==1 & region=="OH"
+drop xpnd
+
+//-----------------------------------------------------------------------------------------------
+* Generate observations for  QF
+expand 2 if region=="XB", gen(xpnd)
+replace region="QF" if xpnd==1 & region=="XB"
+drop xpnd
+* Generate observations for  QP
+expand 2 if region=="XB", gen(xpnd)
+replace region="QP" if xpnd==1 & region=="XB"
+drop xpnd
+//------------------------------------------------------------------------------------------------
+
+* Adjust the GDP proportionally to the size od OK and OL in 1970
+merge m:1 region using "$work_data/ratioOKOL", nogenerate
+
+replace value= value*usx if widcode=="mgdpro999i" & inlist(region,"OK","OL")
+drop eux eup usx usp yux yup
+
+//------------------------------------------------------------------------------------------------
+merge m:1 region using "$work_data/ratioQPQF.dta", nogenerate
+
+replace value= value*usx if widcode=="mgdpro999i" & inlist(region,"QP","QF")
+drop eux eup usx usp yux yup
+//------------------------------------------------------------------------------------------------
+preserve
+	keep if substr(widcode,1,1)=="y"
+	replace region = region + "-PPP"
+	gen org=1
+	
+	tempfile y_agg_reg
+	save `y_agg_reg'
+restore
+
+
+// --------- 2.2.  Rebase the price index to the $pastyear ---------------------
+merge m:1 region using "`indx_xlc'" , nogenerate keep(master match)
+replace value = value/inyixx_23 if widcode=="inyixx999i" 
+drop inyixx_23
+
+reshape wide value, i(region year p) j(widcode) string
+
+
+// --------- 2.3.  Calculate mnninc999i and mndpro999i -------------------------
+gen double valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) // ygdpro999i==1
+*gen double valueyndpro999i= 1 - valueyconfc999i // ygdpro999i==1
+
+merge 1:1 region year using "`agg_70s1'", nogenerate keep(master match) 
+foreach v in mgdpro inyixx ynninc {
+	replace value`v'999i = value`v'999ib if missing(value`v'999i ) 
+}
+drop *b
+
+// --------- 2.4. Generate constant $pastyear monetary values (m)  ---------- //
+replace valuemgdpro999i= valuemgdpro999i/ valueinyixx999i
+ds region year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlcusx999i , not
+foreach v in `r(varlist)' {
+ gen double `v'_m = `v' *  valuemgdpro999i
+}
+
+// --------- 2.5. Calculate wealth to income ratios (w) --------------------- //
+ds *_m  valuemgdpro999i 
+foreach v of varlist `r(varlist)' {
+	 gen double `v'_w = `v' /  valueynninc999i_m
+}
+reshape long
+replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"_w")
+replace widcode = "m" + substr(widcode,2,9) if strpos(widcode,"_m")
+
+replace p ="pall" if missing(p)
+duplicates tag region year p widcode, gen(dup)
+drop if dup==1 & missing(value)
+drop dup
+drop if missing(value) & year<1900
+
+/*
+append using "`full_post_1970'"
+duplicates tag region year p widcode, gen(dup)
+assert dup==0
+drop dup 
+*/
+
+// --------- 2.6. Extend exchange rate to regions-MER before 1970 ----------- //
+
+preserve
+	drop if substr(region,4,3)=="PPP"
+	keep if inlist(widcode,"xlcusx999i")
+	foreach x in eu yu {
+		expand 2 if  year==1800, gen(xpnd)
+		replace widcode="xlc`x'x999i" if xpnd==1
+		drop xpnd
+	}
+	
+	keep widcode region year value
+	
+	fillin region year widcode 
+	drop _fillin
+	merge m:1 year using "`xrateusd'", nogenerate
+	
+	replace value = xlcusx999i if widcode == "xlcusx999i" 
+	replace value = xlceux999i if widcode == "xlceux999i" 
+	replace value = xlcyux999i if widcode == "xlcyux999i" 
+	
+	drop xlc*
+	keep if year<1970
+	gen new = 1
+	duplicates drop 
+	gen p="pall"
+	
+	tempfile xrate_pre70
+	save    `xrate_pre70'
+restore 
+
+append using "`xrate_pre70'"
+
+duplicates tag region year  p widcode, gen(dup)
+drop if dup==1 & new!=1
+
+duplicates tag region year p widcode, gen(dup2)
+assert dup2==0
+drop dup* new
+
+
+// --------- 2.7. Extend PPP to regions-MER before 1970 ----------- //
+
+preserve 
+	* Generate a ppp usd
+	*gen type_v=substr(region,3,4)
+
+	*keep if (type_v=="-PPP" & year>=1970) | (year<1970)
+	*drop type_v
+	*replace region = substr(region,1,2)
+	
+	drop if substr(region,4,3)=="PPP"
+	
+	keep if inlist(widcode,"inyixx999i", "xlcusp999i") // , "xlcyup999i")
+
+	reshape wide value, i(region year p) j(widcode) string
+	append using "`indx_pasty'"
+	append using "`pppusa'"
+	**PI home 2011
+	gen double localindex20210 = valueinyixx999i if year==$pastyear
+	egen localindex2021        = mode(localindex20210), by(region)
+	
+	foreach c in us { // yu { 
+		**PPP home 2011
+		gen double lcl`c'ppp20210 = valuexlc`c'p999i if year==$pastyear
+		egen lcl`c'ppp2021        = mode(lcl`c'ppp20210), by(region)
+		
+		** PI foreing current
+		gen double index`c'0 = valueinyixx999i      if region==cond("`c'"=="us", "US", "CN")
+		egen index`c'        = mode(index`c'0), by(year)
+		** PI foreing 2021
+		gen double index`c'20210 = valueinyixx999i if region==cond("`c'"=="us", "US", "CN") & year==$pastyear
+		egen index`c'2021         = mode(index`c'20210)
+		
+		drop *0
+		
+		**extendPPP
+		gen ppp= lcl`c'ppp2021*((valueinyixx999i/localindex2021)/(index`c'/index`c'2021))
+		
+		replace valuexlc`c'p999i=ppp if year<1970 & !inlist("US","CN")
+		
+		keep year /*currency*/ region p valueinyixx999i valuexlcusp999i  localindex2021  // valuexlcyup999i
+	}
+	drop localindex2021
+	
+	 keep if year<1970 	& !inlist(region,"US") // ,"CN")
+	 
+	 ** Convert to EUR and CNY
+	 merge m:1 year using "$work_data/ppp_ea_cn_weithgted.dta", nogenerate
+	 keep if year< 1970
+	 gen double valuexlcyup999i= valuexlcusp999i/ppp_cn
+	 gen double valuexlceup999i= valuexlcusp999i/ppp_ea
+	 
+	 drop ppp_* /*refyear*/ valueinyixx999i
+	 
+	 
+	reshape long value,i(region year p)j(widcode) string   
+	gen new=1
+	
+	*replace region= region+"-PPP"
+	replace p="pall"
+	tempfile ppp_complete
+	save`ppp_complete'
+restore
+
+
+append using "`ppp_complete'"
+duplicates tag region year p widcode, gen(dup)
+drop if dup==1 & new!=1
+drop dup new 
+
+// --------- 2.8. Extend exchange rate to regions-MER before 1970 ----------- //
+
+* Note: Given that we have already have the full convertion factors for the MER 
+*       regions, we can use them for calculating the conversion factors for the 
+*        regions-ppp 
+
+preserve
+	*Keep relevant values  
+	keep if year<1970
+	keep if substr(region,3,4)!="-PPP"
+	keep if widcode=="mnninc999i" | inlist(widcode,"xlcusp999i", 				/// "xlcusx999i",
+													"xlceup999i","xlceux999i", /// 
+													"xlcyup999i","xlcyux999i") // 
+	drop  p                                                                
+	reshape wide value, i(region year) j(widcode) string
+	rename value* *
+	rename *999i *
+	
+	* Generate mnnninc values in ppp, MER for USD, EUR and CNY
+	foreach c in  us eu yu {
+		if "`c'" != "us" {
+			replace xlc`c'x = mnninc / xlc`c'x
+		}
+		replace xlc`c'p  =mnninc/xlc`c'p
+	}
+	
+	rename mnninc xlcusx
+	rename xlc* mnninc_*
+	
+	* Calculate PPP convertions factors
+	gen xlcusx999i= mnninc_usp / mnninc_usx
+	gen xlceux999i= mnninc_usp / mnninc_eux
+	gen xlcyux999i= mnninc_usp / mnninc_yux
+	
+	gen xlcusp999i= 1 // mnninc_usp / mnninc_usp
+	gen xlceup999i= mnninc_usp / mnninc_eup
+	gen xlcyup999i= mnninc_usp / mnninc_yup
+	
+	* Format
+	drop mnninc_*
+	rename xlc* valuexlc*
+	replace region=region+"-PPP"
+	
+	reshape long value, i(region year) j(widcode) string
+	
+	gen p="pall"
+	gen new=1
+	tempfile ppp_mer_regppp_pre70
+	save `ppp_mer_regppp_pre70'
+restore
+
+
+append using "`ppp_mer_regppp_pre70'"
+
+duplicates tag region year p widcode, gen(dup)
+drop if dup==1 & new!=1
+duplicates tag region year p widcode, gen(dup2)
+assert dup2==0
+drop dup* new
+
+// --------- 2.9. Complete Price index for regions -PPP  ------------------- //
+preserve
+	* Retain relevant variables
+	keep if substr(region,3,4)!="-PPP"
+	keep if inlist(widcode,"mnninc999i","inyixx999i","xlcusp999i")
+	*drop currency
+	* Wide variables
+	reshape wide value, i(region year p) j(widcode) string
+	rename value* *
+	
+	* Gen PPP pastyear 	
+	merge m:1 region year using "`indx_pasty'", nogenerate keepusing(valuexlcusp999i)
+	
+	egen xlcusp999i_pasty = mode(valuexlcusp999i), by(region)
+	drop valuexlcusp999i
+	drop if year==$pastyear
+	
+	* gen Input variables
+	gen double mnninc999i_nomusp=(mnninc999i*inyixx999i)/xlcusp999i
+	gen double mnninc999i_pppusd=mnninc999i/xlcusp999i_pasty
+	
+	* Calculate Price index
+	generate double inyixx999i_ppp = mnninc999i_nomusp/mnninc999i_pppusd
+	
+	* Format
+	keep region year p  *_ppp
+	
+	rename inyixx999i_ppp value
+	
+	gen widcode = "inyixx999i"
+	replace region = region + "-PPP"
+	
+	gen new=1
+	tempfile idx_regpp_pre70
+	save    `idx_regpp_pre70'
+restore
+
+append using "`idx_regpp_pre70'"
+
+duplicates tag region year p widcode, gen(dup)
+drop if dup==1 & new!=1
+duplicates tag region year p widcode, gen(dup2)
+assert dup2==0
+drop dup* new
+
+// --------- 2.10.  Extend Population to regions-PPP  (obsolete)------------------------- //
+/*
+append using "`hist_pop_reg'"
+
+*expand 2 if substr(widcode,1,1)=="n", gen(xpnd)
+*replace region=region+"-PPP" if xpnd==1
+*drop xpnd
+replace region=region+"-PPP" if wid==1
+drop wid
+*/
+// --------- 2.11.  Extend aggregates  to regions-PPP ------------------------ //
+preserve
+	keep if substr(widcode,1,1)=="m" //| widcode=="xlcusp999i"
+	keep if substr(region,3,4)!="-PPP"
+	
+	//gen aux=value if widcode=="xlcusp999i" & year==$pastyear
+	//egen pppusd= mode(aux),by(region)
+	//drop aux // currency
+	merge m:1 region using "`indx_pasty'", nogenerate keepusing(valuexlcusp999i) keep(master match)
+	
+	*keep if year<1970
+	*drop if widcode=="xlcusp999i"
+	
+	replace value=value/valuexlcusp999i
+	drop valuexlcusp999i
+	
+	replace region= region + "-PPP"
+	
+	gen new=1
+	tempfile agg_regpp_pre70
+	save    `agg_regpp_pre70'
+restore
+
+append using "`agg_regpp_pre70'"
+duplicates tag region year p widcode, gen(dup)
+drop if dup==1 & new!=1
+duplicates tag region year p widcode, gen(dup2)
+assert dup2==0
+drop dup* new
+
+append using "`y_agg_reg'"
+duplicates tag region year p widcode, gen(dup)
+drop if dup==1 & org!=1
+duplicates tag region year p widcode, gen(dup2)
+assert dup2==0
+drop dup* org
+
+// --------- 2.12.  Complete intclu ------------------------------------------ //
+local n = 1+ ($pastyear - 2023)
+expand `n' if widcode=="intlcu999i" & year==2023, gen(xpnd)
+
+bysort region year widcode : gen year_plus = _n if xpnd==1
+replace year = year + year_plus -1 if xpnd==1
+drop xpnd year_plus
+
+// --------- 2.13. Format  ----------------------------------------- //
+rename region iso
+keep iso year widcode value 
+generate p = "pall"
+replace value = round(value, 1) if strpos(widcode, "npopul")
+
+gen currency="USD" if substr(widcode,1,1)=="m"
+
+gduplicates drop
+
+drop if missing(value)
+gen new=1
+
+gen regions=1
+tempfile regions_pre70
+save "`regions_pre70'"
+
+// -------------------------------------------------------------------------- //
+* 	3. Merge Historical Countries from Nievas & Piketty (2025)
+// -------------------------------------------------------------------------- //
+* Bring Wealth to product ratio (Y)
+use  "$work_data/nievaspiketty2025_hist.dta", clear
+gen np=1
+append using "$work_data/dietrichetal2025sectors_hist.dta"
+
+duplicates tag iso year widcode p, gen(dup)
+drop if np==1 & dup==1
+duplicates tag iso year widcode p, gen(dup2)
+assert dup2==0
+drop dup* np
+
+
+* Deep relevant observations
+keep if !inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"QL", "QM","WO","QE")
+
+drop if widcode=="inyixx999i"
+reshape wide value, i(iso year p) j(widcode) string
+
+* calcualte nninc and ndpro
+gen double valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) // valueygdpro999i==1
+*gen double valueyndpro999i= 1 - valueyconfc999i // valueygdpro999i==1
+
+merge 1:1 iso year using "`country_idx'", nogenerate keep(master match)
+/*
+merge 1:1 iso year using "`agg_70s2'", nogenerate keep(master match) 
+foreach v in mgdpro ynninc {
+	replace value`v'999i = value`v'999ib if missing(value`v'999i ) 
+}
+drop *b
+*/
+* Calculate LCU constant Prices $pastyear
+replace valuemgdpro999i= valuemgdpro999i/valueinyixx999i
 
 
 
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "BR"
-tw (connected average992 year, sort) (connected anninc992i year, sort) if iso == "BR"
-tw (connected average992 year, sort) (connected anninc999i year, sort) if iso == "BR"
+* Generate aggregates
+ds iso year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlcusx999i, not
+foreach v in `r(varlist)' {
+	gen double `v'_m = `v' *  valuemgdpro999i
+}
 
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "GB"
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "OA"
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "OB"
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "OC"
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "XR"
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "XL"
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "QP"
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "QE"
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "XN"
-tw (connected average999 year, sort) (connected anninc999i year, sort) if iso == "XN"
+* generate  wealth to income ratios (W)
+ds *_m valuemgdpro999i 
+foreach v of varlist `r(varlist)' {
+	gen double `v'_w = `v' /  valueynninc999i_m
+}
+reshape long value, i(iso year p) j(widcode) string
+replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"_w")
+replace widcode = "m" + substr(widcode,2,9) if strpos(widcode,"_m")
 
+drop if missing(value)
 
+gen new=1
 
-tw (connected popsize992 year, sort) (connected npopul992i year, sort) if iso == "FR"
-tw (connected popsize992 year, sort) (connected npopul992i year, sort) if iso == "ZA"
+// -------------------------------------------------------------------------- //
+* 	4. Final Formating and export
+// -------------------------------------------------------------------------- //
+ 
+// --------- 4.1. Pile regions and countries before 1970 if not Dietrisch et al.(2025) //
+append using  "`regions_pre70'"
 
+gen flag=0
+replace flag= 1 if  inlist(substr(widcode, 2, 5), "ptxgo", "gvato", "gvago", "ceugo", "gsrgo", "nsrgo", "cfcgo", "gvaco") | ///
+				    inlist(substr(widcode, 2, 5), "ceuco", "gsrco", "nsrco", "cfcco", "gvahn", "ceuhn", "gmxhn", "nmxhn") | ///
+				    inlist(substr(widcode, 2, 5), "ccmhn", "gsrhn", "nsrhn", "ccshn")
+replace flag= 1 if  inlist(substr(widcode, 1, 6), "ylsgdp", "ylsndp", "ycsgdp", "ycsndp", "wlsgni", "wlsnni", "wcsgni") | ///
+						inlist(substr(widcode, 1, 6),"wcsnni", "ylscgv", "ylscnv", "ycscgv","ycscnv","yconfc")
+drop if year>=1970 & flag==0 & regions!=1
+drop flag regions
 
-use "$work_data/calculate-gini-coef-output.dta", clear
+tempfile full_pre70
+save `full_pre70'
 
-keep if widcode == "xlceux999i" & year == 2019
-drop widcode p currency 
-rename value PPP2019
-drop year
+ 
+// --------- 4.2. Pile regions and countries before 1970 -------------------- //
+* Note: while nsrgo is assumed to be 0, this is not the exact case for all the 
+*		countries (probalbly because of meassuremnt mistakes). As so, by keepusing
+* 		what we had in the WID we avoid a suden pass from 0 until 1980 to not 0 
+*		afterwards for all the contries at the same time..
+append using  "$work_data/aggregate-regions-output.dta"
+duplicates tag iso year widcode p, gen(dup)
 
-tempfile ppp2019
-save `ppp2019'
+drop if new!=1 & dup==1 & !strpos(widcode,"nsrgo") 
+drop if new==1 & dup==1 &  strpos(widcode,"nsrgo")
 
-import excel "$wid_dir/Country-Updates/Historical_series/2022_December/ChancelPiketty2021.xlsx", sheet("data-income") clear first
-
-renvars WA RU OA WB CN JP OB WC DE ES FR GB IT SE OC OK WD AR BR CL CO MX OD WE DZ EG TR OE WG CA US WH AU NZ OH WI IN ID OI WJ ZA OJ WO, pref("mnninc999i")
-reshape long mnninc999i, i(year) j(iso) string
-replace iso = "QE" if iso == "WC"
-replace iso = "XR" if iso == "WA"
-replace iso = "QL" if iso == "WB"
-replace iso = "XL" if iso == "WD"
-replace iso = "XN" if iso == "WE" 
-replace iso = "QP" if iso == "WG"
-replace iso = "QF" if iso == "WH" 
-replace iso = "XS" if iso == "WI" 
-replace iso = "XF" if iso == "WJ" 
-replace iso = "QM" if iso == "OK"
-
-merge m:1 iso using "`ppp2019'", nogen keep(matched)
-
-gen mnninc999i_lcu = mnninc999i*PPP2019
-gsort iso year
-
-
-use "$work_data/calculate-gini-coef-output.dta", clear
-
-keep if widcode == "mnninc999i" & year == 2019
-keep if iso == "AR"
-//1820 1850 1880 1900 1910 1920 1930 1940 1950 1960 1970 1980 1990 2000 2010 2020
+duplicates tag iso year widcode p, gen(dup2)
+assert dup2==0
+drop dup* new
 
 
-use "$wid_dir/Country-Updates/Historical_series/2022_December/long-run-aggregates-lcu.dta", clear
-keep if inlist(iso, "AR", "BR")
-tempfile lcu
-save `lcu'
+// --------- 4.3.  Save ----------------------------------------------------- //
+compress
 
-use "$wid_dir/Country-Updates/Historical_series/2022_December/long-run-agg-eur.dta", clear
-keep if inlist(iso, "AR", "BR")
-renvars average992 average999, postf("_eu")
+sort iso year widcode p
+label data "Generated by merge-historical-aggregates.do"
+save "$work_data/merge-historical-aggregates-output.dta", replace
 
-merge 1:1 iso year using `lcu'
-gsort iso year
-gen ppp2019 = average992/average992_eu 
+// -------------------------------------------------------------------------- //
+* 5. Create metadata
+// -------------------------------------------------------------------------- //
+
+use "`full_pre70'", clear
+generate sixlet = substr(widcode, 1, 6)
+keep iso sixlet
+*drop if substr(sixlet, 1, 3) == "xlc"
+gduplicates drop
+*generate source = "WID.world (see individual countries for more details)" if missing(source)
+*generate method = "WID.world aggregations of individual country data"     if missing(source)
+gen newmeta=1
+append using "$work_data/aggregate-regions-metadata.dta"
+
+duplicates tag iso sixlet, gen(dup)
+drop if newmeta==1 & dup==1
+duplicates tag iso sixlet, gen(dup2)
+assert dup2==0
+drop dup* newmeta
+
+save "$work_data/merge-historical-aggregates-metadata.dta", replace

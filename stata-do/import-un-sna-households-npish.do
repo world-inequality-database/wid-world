@@ -46,7 +46,7 @@ replace widcode = "tap" 		if sub_group == "II.1.1 Generation of income account -
 replace widcode = "sbp" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Less: Other subsidies on production"
 replace widcode = "ceu" 		if sub_group == "II.1.1 Generation of income account - Uses" & item == "Compensation of employees"
 
-// Alloation of primary income account
+// Allocation of primary income account
 replace widcode = "com" 		if item == "Compensation of employees" & sub_group == "II.1.2 Allocation of primary income account - Resources"
 
 replace widcode = "prp_recv" 	if item == "Property income" & sub_group == "II.1.2 Allocation of primary income account - Resources"

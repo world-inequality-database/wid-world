@@ -67,7 +67,7 @@ merge 1:1 iso year using "$work_data/arklems-deflator.dta", ///
 	nogenerate update assert(using master match)
 merge 1:1 iso year using "$work_data/cbs-cpi.dta", ///
 	nogenerate update assert(using master match)
-merge 1:1 iso year using "$work_data/NP2025WBOP-deflactor.dta", ///
+merge 1:1 iso year using "$work_data/nievaspiketty2025_deflactor.dta", ///
 	nogenerate update assert(using master match)
 	
 order iso year def_np

@@ -48,7 +48,7 @@ merge 1:1 iso year using "$work_data/maddison-wu-gdp.dta", ///
 	nogenerate update assert(using master match) keepusing(gdp*)
 merge 1:1 iso year using "$input_data_dir/taxhavens-data/GDP-selected_countries.dta", ///
 	nogenerate update assert(using master match) keepusing(gdp*)
-merge 1:1 iso year using "$work_data/NP2025WBOP-gdp.dta", ///
+merge 1:1 iso year using "$work_data/nievaspiketty2025_gdp.dta", ///
 	nogenerate update assert(using master match) keepusing(gdp*)
 sort iso year
 

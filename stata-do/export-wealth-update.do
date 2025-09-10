@@ -1,5 +1,5 @@
 
-use "$work_data/merge-historical-main.dta", clear
+use "$work_data/calculate-per-capita-series-output.dta", clear
 
 keep if ///
 inlist(widcode, "mcwagr999i", "mcwbol999i", "mcwboo999i", "mcwbus999i", "mcwcud999i", "mcwdeb999i") | ///

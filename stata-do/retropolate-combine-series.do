@@ -92,7 +92,8 @@ replace cfchn = . 		if iso == "IN" & series == 200000
 replace cfcho = . 		if iso == "IN" & series == 200000
 replace cfcnp = . 		if iso == "IN" & series == 200000
 replace cfcgo = . 		if iso == "IN" & series == 200000
-
+* Exagerated nsrgo values
+replace nsrgo = . 		if iso == "MZ" & series == 12 
 
 foreach var in ceugo nsrco nmxhn nsrhn comhn ptxgo gsrco ceuco ceuhn cfcgo cfchn cfcco nsrgo gsmhn nsmhn gvbhn gvbco gvbgo {
 	* Drop values Irqq in 2002 to 2004, many implausabel values
@@ -557,36 +558,31 @@ drop av*
 
 //Fill missing with regional averages for non-tax havens countries 
 foreach v in compx comrx fsubx ftaxx { 
+	foreach level in undet un {
+		bys geo`level' year : egen av`level'`v' = mean(`v') if corecountry == 1 & TH == 0 
+	}
 	
- foreach level in undet un {
-		
-  bys geo`level' year : egen av`level'`v' = mean(`v') if corecountry == 1 & TH == 0 
-
-  }
-replace `v' = avundet`v' if missing(`v') & flagcountry`v' == 1 & corecountry == 1	 
-replace `v' = avun`v' if missing(`v') & flagcountry`v' == 1 & corecountry == 1	
+	replace `v' = avundet`v' if missing(`v') & flagcountry`v' == 1 & corecountry == 1	 
+	replace `v' = avun`v' if missing(`v') & flagcountry`v' == 1 & corecountry == 1	
 }
 drop av*
 
 //Fill missing with TH average for TH
 foreach v in compx comrx fsubx ftaxx { 
-	
-bys year : egen av`v' = mean(`v') if corecountry == 1 & TH == 1 
-
-replace `v' = av`v' if missing(`v') & flagcountry`v' == 1 & corecountry == 1	
-
+	bys year : egen av`v' = mean(`v') if corecountry == 1 & TH == 1 
+	replace `v' = av`v' if missing(`v') & flagcountry`v' == 1 & corecountry == 1	
 }
 drop av*
 
 //Carryforward 
 foreach v in compx comrx fsubx ftaxx { 
-replace `v' =. if year == $pastyear
+	replace `v' =. if year == $pastyear
 
-so iso year
-by iso: carryforward `v' if corecountry == 1, replace 
+	so iso year
+	by iso: carryforward `v' if corecountry == 1, replace 
 
-gsort iso -year 
-by iso: carryforward `v' if corecountry == 1, replace
+	gsort iso -year 
+	by iso: carryforward `v' if corecountry == 1, replace
 }
 
 foreach var in fsubx ftaxx taxnx { 
@@ -646,6 +642,8 @@ foreach v in compx comrx fdipx fdirx fsubx ftaxx pinpx pinrx ptfpx ptfrx ptfpx_d
 // -------------------------------------------------------------------------- //
 generate gdpro = 1
 
+*** Adjustment of Foreing income
+
 // dropped from line 484
 		// (fsubx = fpsub + fosub) ///
 		// (ftaxx = fptax + fotax) ///
@@ -670,13 +668,52 @@ enforce (comnx = comrx - compx) ///
 		(fdinx = fdirx - fdipx) ///
 		(ptfnx = ptfrx - ptfpx), fixed(nnfin) prefix(new) force
 
-foreach v in compx comrx fdipx fdirx finpx finrx fsubx ftaxx pinpx pinrx ptfpx ptfrx flcir flcip ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb {
+
+foreach v in compx comrx fdipx fdirx finpx finrx fsubx ftaxx pinpx pinrx ptfpx ptfrx flcir flcip ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb /**/ /*comnx fdinx taxnx pinnx ptfnx flcin ptfrx */{
 	replace `v' = new`v' if new`v' >= 0		
 	replace `v' = 0 if missing(`v') & !missing(new`v')
+	/*
+	Note: this makes the system impossible to solve
+	* Remove very atypic observations
+	sort iso year
+	bysort iso: gen growth1 = (new`v' - new`v'[_n-1]) / new`v'[_n-1]
+	bysort iso: egen mu1 = mean(growth1)
+	bysort iso: egen sd1 = sd(growth1)
+	
+		bysort iso: gen growth2 = (new`v' - new`v'[_n+1]) / new`v'[_n+1]
+	bysort iso: egen mu2 = mean(growth2)
+	bysort iso: egen sd2 = sd(growth2)
+
+	replace new`v' = . if (abs(growth1 - mu1) > 3*sd1) | (abs(growth2 - mu2) > 3*sd2) 
+	drop mu* sd* growth*
+	
+	* Complete missing observation in calibrated variables
+	by iso: ipolate new`v' year, generate(new`v'2) 
+	replace new`v' = new`v'2 if missing(new`v')
+	by iso: carryforward new`v', replace
+	drop new`v'2 
+
+	* inserted calibrated data into the variables
+	replace `v' = new`v'	//& !missing(new`v')	
+	replace `v' = 0 if missing(`v') | new`v' < 0 //& !missing(new`v')
+	*/
 }
 drop new*
+/*
+* Recalculate modified values
+replace taxnx = fsubx - ftaxx 
+replace comnx = comrx - compx
+replace fdinx = fdirx - fdipx
+replace nnfin = finrx - finpx
+replace pinnx = pinrx - pinpx
+replace ptfnx = ptfrx - ptfpx
+replace flcin = flcir - flcip
+replace ptfrx = ptfrx_eq + ptfrx_deb + ptfrx_res
+replace ptfpx = ptfpx_eq + ptfpx_deb
+*/
 
-// Foreign income
+*** General adjustment 
+		// Foreign income
 enforce (comnx = comrx - compx) ///
 		(pinnx = pinrx - pinpx) ///
 		(flcin = flcir - flcip) ///
@@ -750,7 +787,7 @@ enforce (comnx = comrx - compx) ///
 		(sagho = segho - conho) ///
 		(sagho = savho + cfcho) ///
 		/// NPISH
-        (prgnp = comnp + cagnp) ///
+        (prgnp =   cagnp) ///  + comnp
 		(cagnp = gsrnp + prpnp) ///
 		(capnp = nsrnp + prpnp) ///
 		(nsrnp = gsrnp - cfcnp) ///
@@ -762,7 +799,7 @@ enforce (comnx = comrx - compx) ///
 		(sagnp = savnp + cfcnp) ///
 		/// Combination of sectors
 		(prihn = priho + prinp) ///
-		(comhn = comho + comnp) ///
+		(comhn = comho) /// + comnp
 		(prphn = prpho + prpnp) ///
 		(caphn = capho + capnp) ///
 		(caghn = cagho + cagnp) ///
@@ -836,6 +873,7 @@ enforce (comnx = comrx - compx) ///
 		(fkpin = prphn + prico + nsrhn + prpgo), fixed(gdpro nnfin confc fkpin comhn nmxhn) replace
 
 
+
 foreach v in compx comrx fdipx fdirx fsubx ftaxx pinpx pinrx ptfpx ptfrx ptfpx_deb ptfpx_eq ptfrx_deb ptfrx_eq ptfrx_res {
 	replace `v' =. if `v' < 0
 }
@@ -859,10 +897,12 @@ egen auxptfpx = rowtotal(ptfpx_eq ptfpx_deb), missing
 replace ptfpx = auxptfpx if !missing(auxptfpx) & corecountry == 1
 
 egen auxpinrx = rowtotal(fdirx ptfrx)
-replace pinrx = auxpinrx if !missing(auxpinrx) & corecountry == 1
+replace auxpinrx=. if auxpinrx==0
+replace pinrx = auxpinrx if !missing(auxpinrx) & corecountry == 1 
 
 egen auxpinpx = rowtotal(fdipx ptfpx)
-replace pinpx = auxpinpx if !missing(auxpinpx) & corecountry == 1
+replace auxpinpx=. if auxpinpx==0
+replace pinpx = auxpinpx if !missing(auxpinpx) & corecountry == 1 
 
 replace pinnx = pinrx - pinpx
 drop aux* corecountry

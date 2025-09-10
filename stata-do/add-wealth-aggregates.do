@@ -2,26 +2,42 @@
 // Bauluz + W/I imputations and extrapolations provided by Thomas Blanchet 
 // dta file exist in BBM_wealthinequality
 
+// 1. Prepare the wealth aggreggates
+use "$wid_dir/Country-Updates/Wealth/2025_March/wealth-aggregates-2024.dta", clear
+replace iso="KS" if iso=="XK"
+	
+* Completing data of last year in case it is not available
+summarize year
+local maximo = r(max)
+local n_expand =  ($pastyear - `maximo') + 1
+	
+if `n_expand'!=0 {  // Loop for filling missing recent years
+	* Expand 
+	expand `n_expand' if year==`maximo'
+	sort iso year 
+	
+	duplicates tag iso year, gen(dup)
+	bysort iso year: gen n = _n
+	replace year = year+(n-1)
+	drop dup n
+	} 
 
+tempfile wealth_aggregates
+save `wealth_aggregates'
+
+// 2. Append the wealth aggregates
 use "$work_data/add-populations-output.dta", clear
 
 keep if inlist(widcode, /* "mnweal999i", "mhweal999i", "mpweal999i", "mgweal999i",*/ "mnninc999i")
 drop p currency 
 reshape wide value, i(iso year) j(widcode) string
 
-preserve
-	*merge 1:1 iso year using "$wid_dir/Country-Updates/Wealth/2023_December/wealth-aggregates-2023.dta", nogen
-	use "$wid_dir/Country-Updates/Wealth/2025_March/wealth-aggregates-2024.dta", clear
-	replace iso="KS" if iso=="XK"
-	
-	tempfile wealth_aggregates
-	save `wealth_aggregates'
-restore
 
+*merge 1:1 iso year using "$wid_dir/Country-Updates/Wealth/2023_December/wealth-aggregates-2023.dta", nogen
 merge 1:1 iso year using "`wealth_aggregates'", nogen
 
 
-drop nwoff  
+drop nwoff  gwdec
 foreach var in nwnxa nwgxd nwgxa {
 	replace `var' =. if year >= 1970
 }

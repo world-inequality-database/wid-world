@@ -234,7 +234,7 @@ merge 1:1 iso year using "$work_data/USS-exchange-rates.dta", nogen keepusing(ex
 merge 1:1 iso year using "$work_data/price-index.dta", nogen keep(master matched)
 * Call data of Nievas&Piketty(2025) for residual regions
 merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogen keepusing(corecountry region2)
-merge m:1 region2 year using "$work_data/NP2025WBOP-gdp-reg.dta", nogen  keepusing(gdp_usd_np)
+merge m:1 region2 year using "$work_data/nievaspiketty2025_gdp-reg.dta", nogen  keepusing(gdp_usd_np)
 drop if missing(iso)
 sort iso year
 

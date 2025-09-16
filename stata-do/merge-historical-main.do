@@ -7,9 +7,9 @@
 
 //--------------- Index --------------------------------------------------------
 // A. Import Historical Series 
-//      1. Import Country series 
-//      2. Import Regions percapita data
-//      3. Import Regions Adult data
+//      1. Import Core-territories 992 series 
+//      2. Import Regions 999 series (percapita)
+//      3. Import Regions 992 series (Adults)
 //      4. Import World estimates
 // 		5. Extend Regions to -PPP
 // B. Merge Historical Series 
@@ -21,7 +21,9 @@
 // -----------------------------------------------------------------------------
 //             A. Import Historical Series 
 // -----------------------------------------------------------------------------
-// --------- 1. Import Country series 
+
+// --------- 1. Import Core-territories 9992 series 
+
 ** Countries and Other regions distributiosn (we duplicate from per-adult to get per-capita) - 33 main territories and 8 or 9 other regions
 *use "$wid_dir/Country-Updates/Historical_series/2022_December/gpinterize/merge-gpinterized", clear
 *use "$wid_dir/Country-Updates/Historical_series/2025_April/merge-gpinterized_2025.dta", clear
@@ -95,10 +97,10 @@ gduplicates drop
 
 *replace iso = "QM" if iso == "OK"
 
-
 tempfile historical
 save `historical'
-// --------- 2. Import Regions percapita data
+
+// --------- 2. Import Regions 999 series (percapita)
 
 use "$wid_dir/Country-Updates/Historical_series/2022_December/regions-percapita", clear
 
@@ -156,7 +158,7 @@ gduplicates drop
 tempfile percapita
 save `percapita'
 
-// --------- 3. Import Regions Adult data
+// --------- 3. Import Regions 992 series (Adults)
 use "$wid_dir/Country-Updates/Historical_series/2022_December/regions-peradults", clear
 
 gen widcode = "sptinc992j"
@@ -277,9 +279,8 @@ duplicates drop iso year widcode p, force
 
 // drop if iso == "OH" // other North America & Oceania
 
-// --------- 5. Extend Regions to -PPP
-*Note: Extending the historical shares to the pp regions allow to be able to 
-//      calculate averages and thresholds also homogenize-all-distributions.do
+// --------- 5. Assign Regions to -PPP
+*Note: The estimations here were done in PPP.
 gen region=1 if inlist(iso,"WA", "WB", "WC", "WD", "WD", "WG", "WH", "WI", "WJ") | ///
 				inlist(iso,"OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") | ///
 				inlist(iso,"OK", "OL" ,"WO","QM","WE")
@@ -298,7 +299,7 @@ save `completehistorical'
 use "$work_data/calculate-gini-coef-output.dta", clear
 rename value value_base
 
-merge 1:1 iso year widcode p using `completehistorical', nogen // This dataset adds top and bottom Top and bottom percentiles for shares. The 
+merge 1:1 iso year widcode p using "`completehistorical'", nogen // This dataset adds top and bottom Top and bottom percentiles for shares. The 
 rename value value_comp
 merge 1:1 iso year widcode p using "$wid_dir/Country-Updates/Historical_series/2023_December/0H_OD_CL_ptinc_post1980.dta", nogen // This dataset contains data for OH and OD already existing in calculate-gini-coef-output.dta except for the bottom percentiles p0pXX in averages and shares , top percentiles pXXp100 in thresholds .
 rename value value_oocp
@@ -334,14 +335,14 @@ replace iso = "XF-PPP" if iso == "WJ-PPP"
 **       only retain the years before the overlap. While this implies loosing 
 **       observations on of the p0pXX or pXXp100, this will be recalculated in 
 **       homogenize do-file.
-replace value_base= value_comp if mi(value_base)  & year< 1980 & !inlist(iso,"AU","FR","IN","NZ","US")
-replace value_base= value_comp if !mi(value_comp) & year< 1910 & iso=="AU"
+replace value_base= value_comp if  mi(value_base) & year<  1980 & !inlist(iso,"AU","FR","IN","NZ","US")
+replace value_base= value_comp if !mi(value_comp) & year<  1910 & iso=="AU"
 replace value_base= value_comp if !mi(value_comp) & year<= 1910 & iso=="FR"
-replace value_base= value_comp if !mi(value_comp) & year<=1950 & iso=="IN" // We replace the top percentiles in order to gain a complete distribution in the decade years.
-replace value_base= value_comp if !mi(value_comp) & year<1920  & iso=="NZ"
-replace value_base= value_comp if !mi(value_comp) & year<1920  & iso=="US"
+replace value_base= value_comp if !mi(value_comp) & year<= 1950 & iso=="IN" // We replace the top percentiles in order to gain a complete distribution in the decade years.
+replace value_base= value_comp if !mi(value_comp) & year<  1920 & iso=="NZ"
+replace value_base= value_comp if !mi(value_comp) & year<  1920 & iso=="US"
 ** Note: For the data from OH_OD_CL_ptinc_post1980, this data is no longer needed since the regions can be now calculated from the complete 2016 core countries.
-
+replace value_base= value_oocp if !mi(value_oocp) & year==1970 & iso=="CL"
 
 * Cleanning
 rename value_base value

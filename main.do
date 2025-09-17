@@ -254,7 +254,7 @@ do "$do_dir/commodities-decomposition.do"
 do "$do_dir/import-income-researchers.do"
 do "$do_dir/reformat-wid-data.do"
 
-// Retropolate, combine, impute and calibrate series
+// Retropolate, combine, impute, calibrate and decompose series
 do "$do_dir/retropolate-combine-series.do"
 do "$do_dir/estimate-fki.do"
 do "$do_dir/impute-confc.do"

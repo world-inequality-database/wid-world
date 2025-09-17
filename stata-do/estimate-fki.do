@@ -984,7 +984,7 @@ save "$work_data/estimated-fki.dta", replace
 keep iso year fdirx fdipx ptfrx ptfpx pinrx pinpx ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb
 
 *merging with retropolate
-u "$work_data/sna-combined-prefki.dta", clear
+use "$work_data/sna-combined-prefki.dta", clear
 
 merge 1:1 iso year using "$work_data/estimated-fki.dta", nogen update replace
 
@@ -1062,7 +1062,7 @@ enforce (comnx = comrx - compx) ///
 		(sagho = segho - conho) ///
 		(sagho = savho + cfcho) ///
 		/// NPISH
-        (prgnp = comnp + cagnp) ///
+        /// (prgnp = comnp + cagnp) ///
 		(cagnp = gsrnp + prpnp) ///
 		(capnp = nsrnp + prpnp) ///
 		(nsrnp = gsrnp - cfcnp) ///
@@ -1074,7 +1074,7 @@ enforce (comnx = comrx - compx) ///
 		(sagnp = savnp + cfcnp) ///
 		/// Combination of sectors
 		(prihn = priho + prinp) ///
-		(comhn = comho + comnp) ///
+		/// (comhn = comho + comnp) ///
 		(prphn = prpho + prpnp) ///
 		(caphn = capho + capnp) ///
 		(caghn = cagho + cagnp) ///

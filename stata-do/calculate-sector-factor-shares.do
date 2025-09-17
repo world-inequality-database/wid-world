@@ -81,7 +81,7 @@ gen mgdpro_pppeur = (mgdpro_lcu)/xlceup
 gen agdpro_pppeur = ((mgdpro_lcu)/xlceup)/npopul
 
 // Load SNA Data (UN, OECD and WITD) and Bachas and PZ2017
-merge  1:1 iso year using "$work_data/sna-combined-prefki.dta", nogen
+merge  1:1 iso year using "$work_data/sna-combined.dta", nogen
 drop flag*
 
 // Merge WID regions

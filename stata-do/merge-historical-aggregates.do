@@ -224,7 +224,7 @@ foreach v in mgdpro inyixx ynninc {
 drop *b
 
 // --------- 2.4. Generate constant $pastyear monetary values (m)  ---------- //
-replace valuemgdpro999i= valuemgdpro999i/ valueinyixx999i
+replace valuemgdpro999i= valuemgdpro999i/ valueinyixx999i if year<1970
 ds region year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlcusx999i , not
 foreach v in `r(varlist)' {
  gen double `v'_m = `v' *  valuemgdpro999i

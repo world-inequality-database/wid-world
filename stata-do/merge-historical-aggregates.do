@@ -172,7 +172,6 @@ expand 2 if region=="OH", gen(xpnd)
 replace region="OL" if xpnd==1 & region=="OH"
 drop xpnd
 
-//-----------------------------------------------------------------------------------------------
 * Generate observations for  QF
 expand 2 if region=="XB", gen(xpnd)
 replace region="QF" if xpnd==1 & region=="XB"
@@ -181,7 +180,6 @@ drop xpnd
 expand 2 if region=="XB", gen(xpnd)
 replace region="QP" if xpnd==1 & region=="XB"
 drop xpnd
-//------------------------------------------------------------------------------------------------
 
 * Adjust the GDP proportionally to the size od OK and OL in 1970
 merge m:1 region using "$work_data/ratioOKOL", nogenerate
@@ -189,12 +187,12 @@ merge m:1 region using "$work_data/ratioOKOL", nogenerate
 replace value= value*usx if widcode=="mgdpro999i" & inlist(region,"OK","OL")
 drop eux eup usx usp yux yup
 
-//------------------------------------------------------------------------------------------------
+* Adjust the GDP proportionally to the size of QF and QP in 1970
 merge m:1 region using "$work_data/ratioQPQF.dta", nogenerate
 
 replace value= value*usx if widcode=="mgdpro999i" & inlist(region,"QP","QF")
 drop eux eup usx usp yux yup
-//------------------------------------------------------------------------------------------------
+
 preserve
 	keep if substr(widcode,1,1)=="y"
 	replace region = region + "-PPP"

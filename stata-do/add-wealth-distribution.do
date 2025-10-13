@@ -242,6 +242,57 @@ drop dup*
 ******
 drop if missing(value)
 
+/*
+* Completing data of last year in case it is not available
+summarize year
+local maximo = r(max)
+local n_expand =  ($pastyear - `maximo') + 1
+di "expanding `maximo' for (`n_expand'-1) years"
+
+if `n_expand'!=0 {  // Loop for filling missing recent years
+	* Expand 
+	di "Expanding `maximo' for `n_expand' years"
+	expand `n_expand' if year==`maximo' & inlist(substr(widcode,1,1),"a","s","t"), gen(dup)
+	sort iso year widcode p dup
+	
+	bysort iso year widcode p: gen n = _n
+	replace year = year+(n-1)
+	drop n
+	
+	* Call macroeconomic wealth to distribute in the expanded years
+	preserve
+		use "$work_data/add-researchers-data-real-output.dta", clear
+		keep if year>= `maximo' 
+		keep if widcode=="ahweal992i" & (p=="pall" | p=="p0p100")
+		
+		keep iso year value
+		rename value rat
+		greshape wide rat, i(iso) j(year)
+		
+		gen rat`maximo'_org=rat`maximo'
+		
+		* The expanded years distribute `maximo' wealth, Lets calcualte a ratio for adjusting them to the levels of the expanded years
+		forvalues i=`maximo'/$pastyear {
+			replace rat`i' = rat`i' / rat`maximo'_org
+		}
+		drop rat`maximo'_org
+		greshape long rat, i(iso) j(year)
+		
+		tempfile  aggregates
+		save     `aggregates'
+	restore
+	
+	merge n:1 iso year using "`aggregates'", nogen keep (master match)
+	
+	*Adjust a and t of the expanded years
+	replace value=value*rat if inlist(substr(widcode,1,1),"a","t") & dup==1
+	
+	drop dup rat
+} 
+*/
+
+sort iso year widcode p 
+
 compress
 tempfile final
 save `final'

@@ -34,6 +34,11 @@ replace confc = . if iso == "UZ" & year != 1990
 replace nnfin = . if iso == "SV" & series == 1
 replace confc = . if iso == "GY" & year >= 1985
 replace confc = . if iso == "BD" & year == 2019
+// Dropping anomalic data (17Jul2025)
+replace comnx = . if iso == "PK" & series == 1100 & year < 2004 // 6000 are available and 100 dont match well 
+replace comrx = . if iso == "PK" & series == 1100 & year < 2003 // 6000 are available and 100 dont match well 
+replace compx = . if iso == "PK" & series == 1100 & year < 2004 // 6000 are available and 100 dont match well 
+
 drop if iso == "BF" & series == 10
 
 foreach wx in comrx compx comnx fsubx ftaxx taxnx finpx finrx pinpx pinrx { 
@@ -80,8 +85,8 @@ replace confc = . 		if iso == "CL" & (series == 2 | series == 20 ) & year <= 196
 replace ceuco = . 		if iso == "AR" & series == 1000
 replace ceuhn = . 		if iso == "AU" & series == 100
 replace comhn = . 		if iso == "BT" & series == 200
-replace nsrhn =. 		if iso == "CA" & (series == 1000 | series == 10000 | series == 20000)
-replace gsrhn =. 		if iso == "CA" & (series == 100 |  series == 1000  |  series == 10000 | series == 20000)
+replace nsrhn = . 		if iso == "CA" & (series == 1000 | series == 10000 | series == 20000)
+replace gsrhn = . 		if iso == "CA" & (series == 100 |  series == 1000  |  series == 10000 | series == 20000)
 replace ceuco = . 		if iso == "JP" & series == 1000
 *replace nmxhn = . 		if iso == "NZ" & series == 7
 replace gmxhn = . 		if iso == "RS" & series == 200
@@ -96,7 +101,7 @@ replace cfcgo = . 		if iso == "IN" & series == 200000
 replace nsrgo = . 		if iso == "MZ" & series == 12 
 
 foreach var in ceugo nsrco nmxhn nsrhn comhn ptxgo gsrco ceuco ceuhn cfcgo cfchn cfcco nsrgo gsmhn nsmhn gvbhn gvbco gvbgo {
-	* Drop values Irqq in 2002 to 2004, many implausabel values
+	* Drop values Iraq in 2002 to 2004, many implausabel values
 	    replace `var' = . if iso == "IQ" & series == 20 & year >=2002 & year <= 2004
 		* Norway huge profit increase for 2021 and 2022, does not appear in National source (maybe not in new Macro update)
 		replace `var' = . if iso == "NO" & year > 2020 & series == 1000
@@ -129,10 +134,6 @@ glevelsof series, local(series_list)
 greshape wide value, i(iso year widcode) j(series)
 
 
-// Dropping anomalic data (17Jul2025)
-replace value1100=. if iso=="PK" & widcode=="comnx"  & year< 2004 // 6000 are available and 100 dont match well
-replace value1100=. if iso=="PK" & widcode=="comrx"  & year< 2003 // 6000 are available and 100 dont match well
-replace value1100=. if iso=="PK" & widcode=="compx"  & year< 2004 // 6000 are available and 100 dont match well
 
 // Remove old CFC series if there is the update from Luis
 replace value200000 =. if widcode == "confc" & ! missing(value300000)
@@ -181,7 +182,6 @@ gen much= (dif -(mean + 3*sd)) if !missing(dif)
 
 */
 
-
 /*
 //--- Code for future improvement of the selection of series for series --------
 
@@ -224,8 +224,6 @@ by iso widcode : ipolate calc_growth year, generate(calc_growth_ipo)
 replace calc_growth = calc_growth_ipo if missing(calc_growth) & !missing(calc_growth_ipo)
 drop  *ipo
 
-
-
 * Generate base value years for compleating the years with the "non last" series
 gsort iso widcode -year
 bysort iso widcode: carryforward calc_value, gen(ref_value)
@@ -233,8 +231,6 @@ sort iso widcode year
 bysort iso widcode: carryforward calc_value, gen(ref_value2)
 replace ref_value= ref_value2 if missing(ref_value)
 drop ref_value2
-
-
 
 * Aggregate sequentially the growth rates
 gen double aux1 = calc_growth if year<ref_year1
@@ -328,47 +324,47 @@ so iso year
 // 1st: pinrx/pinpx as a share of flcir/flcip or finrx/finpx
 *flcir/flcip
 foreach x in r p {
-gen nonmiss`x' = pin`x'x + flci`x'
-bys iso : gen auxyear`x' = year if abs(nonmiss`x') > 0 & !missing(nonmiss`x')
-bys iso : egen minyear`x' = min(auxyear`x') 
-bys iso : egen maxyear`x' = max(auxyear`x')
+	gen nonmiss`x' = pin`x'x + flci`x'
+	bys iso : gen auxyear`x' = year if abs(nonmiss`x') > 0 & !missing(nonmiss`x')
+	bys iso : egen minyear`x' = min(auxyear`x') 
+	bys iso : egen maxyear`x' = max(auxyear`x')
 }
 
 // shares
 foreach x in r p {
-gen share_pin`x' = pin`x'x/flci`x' if nonmiss`x' > 0 & !missing(nonmiss`x')
-so iso year
-by iso : carryforward share_pin`x' if corecountry == 1, replace
-gsort iso -year
-by iso : carryforward share_pin`x' if corecountry == 1, replace
+	gen share_pin`x' = pin`x'x/flci`x' if nonmiss`x' > 0 & !missing(nonmiss`x')
+	so iso year
+	by iso : carryforward share_pin`x' if corecountry == 1, replace
+	gsort iso -year
+	by iso : carryforward share_pin`x' if corecountry == 1, replace
 }
 so iso year
 
 foreach x in r p {
-replace pin`x'x = share_pin`x'*flci`x' if missing(pin`x'x) & corecountry == 1
+	replace pin`x'x = share_pin`x'*flci`x' if missing(pin`x'x) & corecountry == 1
 }
 drop minyear* maxyear* aux* share* nonmiss*
 
 *finrx/finpx
 foreach x in r p {
-gen nonmiss`x' = pin`x'x + fin`x'x
-bys iso : gen auxyear`x' = year if abs(nonmiss`x') > 0 & !missing(nonmiss`x')
-bys iso : egen minyear`x' = min(auxyear`x') 
-bys iso : egen maxyear`x' = max(auxyear`x')
+	gen nonmiss`x' = pin`x'x + fin`x'x
+	bys iso : gen auxyear`x' = year if abs(nonmiss`x') > 0 & !missing(nonmiss`x')
+	bys iso : egen minyear`x' = min(auxyear`x') 
+	bys iso : egen maxyear`x' = max(auxyear`x')
 }
 
 // shares
 foreach x in r p {
-gen share_pin`x' = pin`x'x/fin`x'x if nonmiss`x' > 0 & !missing(nonmiss`x')
-so iso year
-by iso : carryforward share_pin`x' if corecountry == 1, replace
-gsort iso -year
-by iso : carryforward share_pin`x' if corecountry == 1, replace
+	gen share_pin`x' = pin`x'x/fin`x'x if nonmiss`x' > 0 & !missing(nonmiss`x')
+	so iso year
+	by iso : carryforward share_pin`x' if corecountry == 1, replace
+	gsort iso -year
+	by iso : carryforward share_pin`x' if corecountry == 1, replace
 }
 so iso year
 
 foreach x in r p {
-replace pin`x'x = share_pin`x'*fin`x'x  if missing(pin`x'x) & corecountry == 1
+	replace pin`x'x = share_pin`x'*fin`x'x  if missing(pin`x'x) & corecountry == 1
 }
 drop minyear* maxyear* aux* share* nonmiss*
 
@@ -461,9 +457,9 @@ gen other = 1 if inlist(iso, "ER", "EH", "CS", "CZ", "SK", "SD", "SS", "TL") ///
 
 // pinnx/nnfin
 gen share_pinnx = pinnx/nnfin
-	foreach level in undet un {
-bys geo`level' year : egen sh`level'_pinnx = mean(share_pinnx) if corecountry == 1 & TH == 0
-	}
+foreach level in undet un {
+	bys geo`level' year : egen sh`level'_pinnx = mean(share_pinnx) if corecountry == 1 & TH == 0
+}
 gen sh_pinnx = shundet_pinnx
 replace sh_pinnx = shun_pinnx if missing(sh_pinnx)
 // to make sure that signs hold consistent
@@ -534,11 +530,11 @@ foreach var in comnx compx comrx {
 
 //Carryforward 
 foreach v in compx comrx fsubx ftaxx { 
-so iso year
-by iso: carryforward `v' if corecountry == 1, replace 
+	so iso year
+	by iso: carryforward `v' if corecountry == 1, replace 
 
-gsort iso -year 
-by iso: carryforward `v' if corecountry == 1, replace
+	gsort iso -year 
+	by iso: carryforward `v' if corecountry == 1, replace
 }
 
 /*
@@ -640,9 +636,11 @@ foreach v in compx comrx fdipx fdirx fsubx ftaxx pinpx pinrx ptfpx ptfrx ptfpx_d
 // -------------------------------------------------------------------------- //
 // Perform re-calibration
 // -------------------------------------------------------------------------- //
-generate gdpro = 1
+
 
 *** Adjustment of Foreing income
+
+generate gdpro = 1
 
 // dropped from line 484
 		// (fsubx = fpsub + fosub) ///
@@ -669,36 +667,28 @@ enforce (comnx = comrx - compx) ///
 		(ptfnx = ptfrx - ptfpx), fixed(nnfin) prefix(new) force
 
 
-foreach v in compx comrx fdipx fdirx finpx finrx fsubx ftaxx pinpx pinrx ptfpx ptfrx flcir flcip ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb /**/ /*comnx fdinx taxnx pinnx ptfnx flcin ptfrx */{
+
+foreach v in compx comrx fdipx fdirx finpx finrx fsubx ftaxx pinpx pinrx ptfpx ptfrx flcir flcip ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb {
 	replace `v' = new`v' if new`v' >= 0		
 	replace `v' = 0 if missing(`v') & !missing(new`v')
-	/*
-	Note: this makes the system impossible to solve
-	* Remove very atypic observations
-	sort iso year
-	bysort iso: gen growth1 = (new`v' - new`v'[_n-1]) / new`v'[_n-1]
-	bysort iso: egen mu1 = mean(growth1)
-	bysort iso: egen sd1 = sd(growth1)
-	
-		bysort iso: gen growth2 = (new`v' - new`v'[_n+1]) / new`v'[_n+1]
-	bysort iso: egen mu2 = mean(growth2)
-	bysort iso: egen sd2 = sd(growth2)
-
-	replace new`v' = . if (abs(growth1 - mu1) > 3*sd1) | (abs(growth2 - mu2) > 3*sd2) 
-	drop mu* sd* growth*
-	
-	* Complete missing observation in calibrated variables
-	by iso: ipolate new`v' year, generate(new`v'2) 
-	replace new`v' = new`v'2 if missing(new`v')
-	by iso: carryforward new`v', replace
-	drop new`v'2 
-
-	* inserted calibrated data into the variables
-	replace `v' = new`v'	//& !missing(new`v')	
-	replace `v' = 0 if missing(`v') | new`v' < 0 //& !missing(new`v')
-	*/
 }
 drop new*
+
+// Drop values that were unable to be adjusted (17/Sep/25)
+sort iso year 
+foreach v in  taxnx ftaxx fsubx {
+	bysort iso: gen growth = (`v' - `v'[_n-1]) / `v'[_n-1]
+	bysort iso: egen mu = mean(growth)
+	bysort iso: egen sd = sd(growth)
+
+	replace `v' = . if (abs(growth - mu) > 3*sd) & year==$pastyear
+	drop mu sd growth	
+}
+ 
+replace fsubx= . if missing(ftaxx) & year==$pastyear
+replace ftaxx= . if missing(fsubx) & year==$pastyear
+replace taxnx= . if (missing(fsubx) | missing(ftaxx)) & year==$pastyear
+
 /*
 * Recalculate modified values
 replace taxnx = fsubx - ftaxx 
@@ -787,7 +777,7 @@ enforce (comnx = comrx - compx) ///
 		(sagho = segho - conho) ///
 		(sagho = savho + cfcho) ///
 		/// NPISH
-        (prgnp =   cagnp) ///  + comnp
+        /// (prgnp =   cagnp + comnp)
 		(cagnp = gsrnp + prpnp) ///
 		(capnp = nsrnp + prpnp) ///
 		(nsrnp = gsrnp - cfcnp) ///
@@ -799,7 +789,7 @@ enforce (comnx = comrx - compx) ///
 		(sagnp = savnp + cfcnp) ///
 		/// Combination of sectors
 		(prihn = priho + prinp) ///
-		(comhn = comho) /// + comnp
+		//// (comhn = comho + comnp) 
 		(prphn = prpho + prpnp) ///
 		(caphn = capho + capnp) ///
 		(caghn = cagho + cagnp) ///

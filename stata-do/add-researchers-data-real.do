@@ -36,7 +36,9 @@ append using `kr'
 
 // Europe (East & West) Countries and Aggregates
 append using "$wid_dir/Country-Updates/Europe/2024_09/Data submission_nov18/europe-long-ptinc-cainc-nov18.dta" //Modif: 18 Nov 2024 by Manuel Esteban
-
+drop if inlist(iso,"QX,QY")
+replace iso="QE-PPP" if iso=="QE"
+replace iso="QM-PPP" if iso=="QM"
 
 // Latin America Aggregates and countries with regional averages
 drop if inlist(iso, "XL", "XL-MER")

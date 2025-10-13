@@ -23,6 +23,7 @@ drop if mi(index) & iso == "IN" & year<1900 & substr(widcode,1,1) == "m"
 
 merge n:1 iso using "$work_data/import-region-codes-output.dta", keepusing(iso) keep(master match)
 generate is_region = (_merge == 3)
+assert is_region==0
 drop _merge
 
 replace value = value/index if inlist(substr(widcode, 1, 1), "a", "m", "t", "o") ///

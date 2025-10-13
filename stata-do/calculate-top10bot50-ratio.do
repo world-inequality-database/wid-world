@@ -1,6 +1,6 @@
 // Calculate Top10/Bottom50 ratio for all available income concepts
 
-use "$work_data/World-and-regional-aggregates-output.dta", clear
+use  "$work_data/homogenize-all-distributions-output.dta", clear
 keep if substr(widcode, 1, 1) == "a"
 keep if (p == "p90p100" | p == "p0p50")
 
@@ -21,7 +21,7 @@ tempfile ratio
 save "`ratio'"
 
 // Put pop(i) to pop(j) hweal for GB before 1995
-use "$work_data/World-and-regional-aggregates-output.dta", clear
+use  "$work_data/homogenize-all-distributions-output.dta", clear
 
 keep if inlist(widcode, "shweal992i", "shweal992j") & iso == "GB"
 reshape wide value, i(iso year p currency) j(widcode) string
@@ -33,7 +33,7 @@ tempfile shweal992j
 save "`shweal992j'"
 
 // save
-use "$work_data/World-and-regional-aggregates-output.dta", clear
+use  "$work_data/homogenize-all-distributions-output.dta", clear
 append using "`ratio'"
 merge 1:1 iso year p widcode using "`shweal992j'", nogen
 

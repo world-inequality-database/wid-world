@@ -3,6 +3,7 @@
 use "$work_data/calculate-top10bot50-ratio.dta", clear
 
 // Keep thresholds and top averages only
+keep if inlist(substr(widcode, 1, 1), "a","t")
 keep if (substr(widcode, 1, 1) == "a" & regexm(p, "^p([0-9\.]+)p100$")) | ///
 	    (substr(widcode, 1, 1) == "t" & regexm(p, "^p([0-9\.]+)p100$"))
 
@@ -27,6 +28,8 @@ drop vartype
 generate p = "p" + string(perc/1e3) + "p100"
 drop perc
 
+gen new=1
+
 tempfile bp
 save "`bp'"
 
@@ -38,6 +41,12 @@ use "$work_data/calculate-top10bot50-ratio.dta", clear
 drop if substr(widcode, 1, 1) == "b"
 
 append using "`bp'"
+duplicates tag iso year widcode p, gen (dup)
+drop if dup==1 & new!=1
+duplicates tag iso year widcode p, gen (dup2)
+asser dup2==0
+drop dup* new
+
 
 drop if year > $pastyear
 

@@ -1,0 +1,142 @@
+//----------------------------------------------------------------------------//
+//------------------ export-distributions.do ---------------------------------//
+//----------------------------------------------------------------------------//
+
+
+//----------------------------------------------------------------------------//
+//         1.  Export Distributions                                           //
+//----------------------------------------------------------------------------//
+
+u "$work_data/calculate-gini-coef-output.dta", clear
+
+
+// ------- 7. Export the distributions to data to CSV --------------------------
+replace value = round(value, 0.1)    if inlist(substr(widcode, 1, 1), "a", "t")
+replace value = round(value, 1)      if inlist(substr(widcode, 1, 1), "m", "n")
+replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s")
+					  
+drop if missing(value)
+keep iso year p widcode value 
+
+rename iso Alpha2
+rename p   perc
+order Alpha2 year perc widcode
+
+
+//------------- 7.1 Generating pretax income data .csv
+preserve
+	keep if strpos(widcode,"ptinc")
+	keep if inlist(substr(widcode, 1, 1), "a", "t", "s")
+	keep if strpos(widcode,"999j") 
+	export delim "$output_dir/$time/wid-data-$time-ptinc2025Update-999.csv", delimiter(";") replace
+restore
+preserve
+	keep if strpos(widcode,"ptinc")
+	keep if inlist(substr(widcode, 1, 1), "a", "t", "s")
+	keep if strpos(widcode,"992j") 
+	export delim "$output_dir/$time/wid-data-$time-ptinc2025Update-992.csv", delimiter(";") replace
+restore
+
+//------------- 7.2 Generating posttax income data .csv
+preserve
+	keep if strpos(widcode,"diinc")
+	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
+	keep if strpos(widcode,"999j") 
+	export delim "$output_dir/$time/wid-data-$time-diinc2025Update-999.csv", delimiter(";") replace
+restore
+preserve
+	keep if strpos(widcode,"diinc")
+	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
+	keep if strpos(widcode,"992j") 
+	export delim "$output_dir/$time/wid-data-$time-diinc2025Update-992.csv", delimiter(";") replace
+restore
+
+//------------- 7.3 Generating wealth distribution data .csv
+preserve
+	keep if strpos(widcode,"hweal")
+	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
+	keep if strpos(widcode,"999j") 
+	export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-999.csv", delimiter(";") replace
+restore
+preserve
+	keep if strpos(widcode,"hweal")
+	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
+	keep if strpos(widcode,"992j") 
+	export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-992.csv", delimiter(";") replace
+restore
+
+//------------- 7.4 Generating factor income data .csv
+preserve
+	keep if strpos(widcode,"fainc")
+	keep if strpos(widcode,"999j") | strpos(widcode,"992j") 
+	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
+	*export delim "$output_dir/$time/wid-data-$time-fainc2025_Update.csv", delimiter(";") replace
+restore
+
+
+//----------------------------------------------------------------------------//
+//         2.  Indexes                                                        //
+//----------------------------------------------------------------------------//
+
+u "$work_data/calculate-gini-coef-output.dta", clear
+drop if missing(value)
+keep iso year p widcode value 
+
+replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "r","b","g")
+drop if iso=="XX"
+
+
+//-------- 8.1  Generating the population data CSV 
+preserve
+	// Extract relevant observations
+	rename iso Alpha2
+	rename p   perc
+	order Alpha2 year perc widcode
+
+	keep if strpos(widcode,"npopul") 
+
+	// Export
+	*export delim "$output_dir/$time/wid-data-$time-npopul2024Update.csv", delimiter(";") replace
+restore
+//-------- 8.2  Generating the trasnparency index csv
+preserve
+	// Extract relevant observations
+	rename iso Alpha2
+	rename p   perc
+	order Alpha2 year perc widcode
+
+	keep if widcode=="iquali999i"	
+	// Export
+	*export delim "$output_dir/$time/wid-data-$time-iquali2024Update.csv", delimiter(";") replace
+restore
+
+//-------- 8.3  Generating the R, B and G data CSV for pitinc and diinc
+preserve
+	// Extract relevant observations
+	rename iso Alpha2
+	rename p   perc
+	order Alpha2 year perc widcode
+
+	keep if inlist(substr(widcode, 1, 1), "r", "b", "g")
+	keep if strpos(widcode,"992j")  |  strpos(widcode,"999j") 
+	keep if strpos(widcode,"diinc") | strpos(widcode,"ptinc") | strpos(widcode,"hweal") //| strpos(widcode,"fainc")
+	replace value = round(value, 0.0001)
+	
+
+	// Export
+	export delim "$output_dir/$time/wid-data-$time-RGB_ptinc_diinc_hweal2024Update.csv", delimiter(";") replace
+restore
+
+//-------- 8.4  Generating the Gini data CSV for pitinc and diinc
+preserve
+	// Extract relevant observations
+	rename iso Alpha2
+	rename p   perc
+	order Alpha2 year perc widcode
+
+
+	keep if inlist(substr(widcode, 1, 1), "g")
+	// Export
+	*export delim "$output_dir/$time/wid-data-$time-gini2024Update.csv", delimiter(";") replace
+restore
+

@@ -54,18 +54,6 @@ tempfile regions_rest
 save    `regions_rest', emptyok
 
 
-
-/*
-preserve
-	u "$work_data/Dietrishetal2025.dta", clear
-	gen widcode="yconfc999i" if origin=="C1"
-	drop if missing(widcode)
-	keep is year value widcode
-	rename value value_d
-	tempfile dietrish
-	save `dietrish'
-restore 
-*/
 // -------------------------------------------------------------------------- //
 * 	1. Get Macroeconomic data 
 // -------------------------------------------------------------------------- //
@@ -107,14 +95,16 @@ gen     flag= 0
 * Keep populations
 replace flag= 1 if  (substr(widcode, 1, 6) == "npopul" & inlist(substr(widcode, 10, 1), "i", "f", "m"))
 * keep wealth aggregates		
-replace flag= 1 if  inlist(widcode, "mnninc999i", "mndpro999i", "mgdpro999i", "mnweal999i", "mpweal999i") ///
-					| inlist(widcode, "mgweal999i", "mhweal999i") 
-				
-replace flag= 1	if (inlist(substr(widcode, 1, 6), "mnwnfa","mnwhou","mnwbus","mnwagr","mnwnxa","mnwgxd","mnwgxa","mnwboo") ///  "mnweal",
-				| inlist(substr(widcode, 1, 6), "mnwdka","mcwres","micwtoq","mgwass","mpwnfa","mpwhou","mpwbus","mpwagr") ///  ,"mpweal"
-				| inlist(substr(widcode, 1, 6), "mpwodk","mpwfin","mpwfiw","mpweqi","mpwpen","mpwdeb","miweal","mcwboo") ///  ,"mhweal"
-				| inlist(substr(widcode, 1, 6), "mcwnfa","mcwhou","mcwbus","mcwfin","mcwdeb","mcwdeq","mgwnfa","mgwhou") ///  ,"mgweal"
-				| inlist(substr(widcode, 1, 6), "mgwbus","mgwfin","mgwdeb"))  & year>=1980 //
+replace flag= 1 if  inlist(widcode, "mnninc999i", "mndpro999i", "mgdpro999i") | ///
+				   (inlist(widcode, "mgweal999i", "mhweal999i","mnweal999i", "mpweal999i")  & year>=1980) 
+
+replace flag= 1	if inlist(substr(widcode, 1, 6),"mnwnxa","mnwgxd","mnwgxa")
+					
+replace flag= 1	if (inlist(substr(widcode, 1, 6),        "mnwnfa","mnwhou","mnwbus", "mnwagr", "mnwboo")                   | /// 
+				  inlist(substr(widcode, 1, 6), "mnwdka","mcwres","mgwass", "mpwnfa","mpwhou","mpwbus","mpwagr") | ///  
+				  inlist(substr(widcode, 1, 6), "mpwodk","mpwfin","mpwfiw", "mpweqi", "mpwpen","mpwdeb","miweal","mcwboo") | ///  
+				  inlist(substr(widcode, 1, 6), "mcwnfa","mcwhou","mcwbus", "mcwfin", "mcwdeb","mcwdeq","mgwnfa","mgwhou") | ///  
+				  inlist(substr(widcode, 1, 6), "mgwbus","mgwfin","mgwdeb"))  & year>=1980 //  "mnweal"  ,"mpweal","mhweal" ,"mgweal" "icwtoq",
 * Keep Macro variables
 replace flag= 1 if inlist(substr(widcode, 1, 6), "mnnfin", "mfinrx", "mfinpx", "mcomnx", "mpinnx", "mnwnxa", "mnwgxa", "mnwgxd") ///
 				 | inlist(substr(widcode, 1, 6), "mcomhn", "mfkpin", "mconfc", "mcomrx", "mcompx", "mpinrx", "mpinpx", "mfdinx") ///
@@ -134,9 +124,10 @@ replace flag= 1 if 	inlist(substr(widcode, 1, 6), "mfdixa", "mfdixd", "mfdixn", 
 					inlist(substr(widcode, 1, 6), "mscopx", "mscorx", "mscrnx", "mscrpx", "mscrrx", "mtsonx", "mtsopx", "mtsorx") | ///
 					inlist(substr(widcode, 1, 6), "mtstnx", "mtstpx", "mtstrx", "mtsvnx", "mtsvpx", "mtsvrx") // New set of variables  16/JUL/25
 
-replace flag= 1 if  inlist(substr(widcode, 1, 6), "mptxgo", "mgvato", "mgvago", "mceugo", "mgsrgo", "mnsrgo", "mcfcgo", "mgvaco") | ///
+replace flag= 1 if (inlist(substr(widcode, 1, 6), "mptxgo", "mgvato", "mgvago", "mceugo", "mgsrgo", "mnsrgo", "mcfcgo", "mgvaco") | ///
 				    inlist(substr(widcode, 1, 6), "mceuco", "mgsrco", "mnsrco", "mcfcco", "mgvahn", "mceuhn", "mgmxhn", "mnmxhn") | ///
-				    inlist(substr(widcode, 1, 6), "mccmhn", "mgsrhn", "mnsrhn", "mccshn")
+				    inlist(substr(widcode, 1, 6), "mccmhn", "mgsrhn", "mnsrhn", "mccshn")) & year>=1980 
+					
 * Keep exchange rates and indexes
 replace flag= 1 if inlist(substr(widcode, 1, 6), "xlcusx", "xlcusp", "xlceux", "xlceup", "xlcyux", "xlcyup") /// 
 				 | inlist(substr(widcode, 1, 6), "inyixx") // , "intlcu","xrerus") ///
@@ -216,7 +207,7 @@ foreach l in x p {
 // ----->> Data in MER (USD, EUR, CNY) and PPP (USD, EUR, CNY) Current Prices
 
 *drop mcitgr999i-mtaxnx999i pppeur-exccny inyixx999i xlc*
-drop mcitgr999i-mtsxrx999i pppeur-exccny  xlc*   inyixx999i // xrerus999i intlcu999i
+drop mccmhn999i-mtsxrx999i pppeur-exccny  xlc*   inyixx999i // xrerus999i intlcu999i
 
 tempfile countries
 save `countries'  
@@ -228,15 +219,7 @@ save `countries'
 // --------- 2.1  Call the region definition
 merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogen keep(matched)
 drop titlename shortname TH corecountry 
-//-----------------------------------------------------------------------------
-gen     region4 = "QP" if inlist(iso,"BM","BQ","CA","GL","PM","UM","US")
 
-
-replace region4 = "QF" if inlist(iso,"AS","AU","CC","CK","CX","FJ","FM","GU","HM") | ///
-						  inlist(iso,"KI","MH","MP","NC","NF","NR","NU","NZ","PF") | ///
-						  inlist(iso,"PG","PN","PW","SB","TK","TO","TV","VU","WF") | ///
-						  inlist(iso,"WS")
-//------------------------------------------------------------------------------
 preserve
 	collapse (firstnm) region*, by(iso year)
 	generate region7 = "World"
@@ -298,7 +281,7 @@ gsort region year
 
 
 // --------- 2.3.1 Expansion of the macro variables to the subregions OL and OK
-* Following the simplifaction of the WID region in 2021, only OK(NorthAmerica) 
+* Following the simplifaction of the WID region in 2025, only OK(NorthAmerica) 
 *       and OL(Occeania) were retained as subregions of NAOC (OH). In order to 
 *       complete the data for these regions,  we used the ratio between the GDP
 *       percapita of OL and the one of OH (assigning 1- ratio to OK) for cacluating 
@@ -312,7 +295,7 @@ preserve
 	*drop  *_curr
 	foreach p in eu us yu {
 		foreach c in p x {
-			replace mgdpro999i_xlc`p'`c'_curr= mgdpro999i_xlc`p'`c'_curr /npopul999i
+			*replace mgdpro999i_xlc`p'`c'_curr= mgdpro999i_xlc`p'`c'_curr /npopul999i
 			rename  mgdpro999i_xlc`p'`c'_curr `p'`c'
 			}
 	}
@@ -335,6 +318,7 @@ preserve
 	foreach v in eux eup usx usp yux yup {
 		replace `v'=1-`v' if region=="OK"
 	}
+	label data "Generated by aggregate-macro-regions.do"
 	save "$work_data/ratioOKOL.dta",replace
 restore
 
@@ -383,10 +367,9 @@ foreach v in mtgncx999i mtgxcx999i mtgmcx999i mtgnmx999i mtgxmx999i mtgmmx999i {
 
 drop OH* eux eup usx usp yux yup
 
-//----------------------------------------------------------------------------------------------------------------------------------------------
-//------------------ Transitory!! --------------------------------------------------------------------------------------------------------------
+
 // --------- 2.3.1 Expansion of the macro variables to the subregions OL and OK
-* Following the simplifaction of the WID region in 2021, only OK(NorthAmerica) 
+* Following the simplifaction of the WID region in 2025, only OK(NorthAmerica) 
 *       and OL(Occeania) were retained as subregions of NAOC (OH). In order to 
 *       complete the data for these regions,  we used the ratio between the GDP
 *       percapita of OL and the one of OH (assigning 1- ratio to OK) for cacluating 
@@ -400,7 +383,7 @@ preserve
 	*drop  *_curr
 	foreach p in eu us yu {
 		foreach c in p x {
-			replace mgdpro999i_xlc`p'`c'_curr= mgdpro999i_xlc`p'`c'_curr /npopul999i
+			*replace mgdpro999i_xlc`p'`c'_curr= mgdpro999i_xlc`p'`c'_curr /npopul999i
 			rename  mgdpro999i_xlc`p'`c'_curr `p'`c'
 			}
 	}
@@ -423,7 +406,7 @@ preserve
 	foreach v in eux eup usx usp yux yup {
 		replace `v'=1-`v' if region=="QP"
 	}
-
+	label data "Generated by aggregate-macro-regions.do"
 	save "$work_data/ratioQPQF.dta", replace
 restore
 
@@ -469,9 +452,7 @@ foreach v in mtgncx999i mtgxcx999i mtgmcx999i mtgnmx999i mtgxmx999i mtgmmx999i {
         }
     }
 }
-
 drop XB* eux eup usx usp yux yup
-//----------------------------------------------------------------------------------------------------------------------------------------------
 
 // -------------------------------------------------------------------------- //
 * 	3. Generate World Aggregations
@@ -709,17 +690,8 @@ preserve
 	keep if year>=1970
 	keep if widcode=="intlcu999i" 
 	keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE")
-	* Complete data for OK and OL
-	expand 2 if iso=="OH",gen(xpnd)
-	replace iso="OK" if xpnd==1
-	drop xpnd
 	
-	expand 2 if iso=="OH",gen(xpnd)
-	replace iso="OL" if xpnd==1
-	drop xpnd
-	
-	//------------------------------------------------------------------------------------
-	* Complete data for OK and OL
+	* Complete data for QF and QP (North america and Oceania)
 	expand 2 if iso=="XB",gen(xpnd)
 	replace iso="QF" if xpnd==1
 	drop xpnd
@@ -728,7 +700,17 @@ preserve
 	replace iso="QP" if xpnd==1
 	drop xpnd
 	
-	//------------------------------------------------------------------------------------
+	* Complete data for OK and OL (Other North america and other Oceania)
+	expand 2 if iso=="OH",gen(xpnd)
+	replace iso="OK" if xpnd==1
+	drop xpnd
+	
+	expand 2 if iso=="OH",gen(xpnd)
+	replace iso="OL" if xpnd==1
+	drop xpnd
+	
+
+	
 	
 	rename iso region
 
@@ -753,6 +735,22 @@ gen new=1
 replace p="pall" if missing(p)
 rename region iso
 drop if missing(value)
+
+* clean variables that were unavailable 1970-1980 ( they values should be 0 anyways)
+gen flag= 1    if  (inlist(substr(widcode, 2, 5), "gweal", "hweal", "nweal", "pweal")  & year<1980) 
+
+replace flag= 1	if (inlist(substr(widcode, 2, 5), "nwnfa", "nwhou", "nwbus", "nwagr", "nwboo") ///  "mnweal",
+				| 	inlist(substr(widcode, 2, 5), "nwdka", "cwres", "cwtoq", "gwass", "pwnfa", "pwhou", "pwbus", "pwagr") ///  ,"mpweal"
+				| 	inlist(substr(widcode, 2, 5), "pwodk", "pwfin", "pwfiw", "pweqi", "pwpen", "pwdeb", "iweal", "cwboo") ///  ,"mhweal"
+				| 	inlist(substr(widcode, 2, 5), "cwnfa", "cwhou", "cwbus", "cwfin", "cwdeb", "cwdeq", "gwnfa", "gwhou") ///  ,"mgweal"
+				| 	inlist(substr(widcode, 2, 5), "gwbus", "gwfin", "gwdeb"))  & year<1980 //
+
+replace flag= 1 if (inlist(substr(widcode, 2, 5), "ptxgo", "gvato", "gvago", "ceugo", "gsrgo", "nsrgo", "cfcgo", "gvaco") | ///
+				    inlist(substr(widcode, 2, 5), "ceuco", "gsrco", "nsrco", "cfcco", "gvahn", "ceuhn", "gmxhn", "nmxhn") | ///
+				    inlist(substr(widcode, 2, 5), "ccmhn", "gsrhn", "nsrhn", "ccshn")) & year<1980 
+
+drop if flag==1
+drop flag
 
 tempfile full_post_1970
 save `full_post_1970'

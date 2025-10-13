@@ -78,12 +78,12 @@ append using "$wid_dir/Country-Updates/Norway/2021_August/Norway_fiscal2021.dta"
 // Middle East (AAP2017 § Moshrif 2020 & BM2021 & HM2022) - ptinc series - 
 append using "$wid_dir/Country-Updates/Middle-East/2024/Data submission/DINA_MiddleEast_AUG2024_data.dta" //Modif: 10 Oct 2024 by Manuel Esteban
 
-// Asia (MCY 2020 & BM 2021 & SZ 2022 & SZ 2023) - many macro variables + fiinc + ptinc series - YES
+// Asia (MCY 2020 & BM 2021 & SZ 2022 & SZ 2023) - many macro variables + fiinc + ptinc series 
 append using "$wid_dir/Country-Updates/Asia/2024_9/Data submission/Asia-full-2024.dta"                    //Modif: 11 Oct 2024 by Manuel
 drop if iso=="TH" & widcode=="rptinc992j"
 
 // Russia (Neef 2022) -  ptinc series - 
-append using "$wid_dir/Country-Updates/Russia/2022/Russia2022.dta"
+append using "$wid_dir/Country-Updates/Russia/2024/Russia2024.dta"										//Modif: 07 Oct 2025 by Manuel Esteban
 
 // Africa (ccgm & Robillard 2022) - ptinc - 
 append using "$wid_dir/Country-Updates/Africa/2024_09/africa-ptinc-Sept2024.dta"                          //Modif: 10 Oct 2024 by Manuel Esteban
@@ -105,10 +105,10 @@ drop if iso == "IN" & author == "kumar2019"   & inlist(widcode, "npopul999i") & 
 *      combinations. As so, this file is no longer necessary.
 */
 
-// Australia, New Zealand & Canada (Matt 2022 & Matt 2023) - ptinc & fiinc series - YES
+// Australia, New Zealand & Canada (Matt 2022 & Matt 2023) - ptinc & fiinc series
 append using "$wid_dir/Country-Updates/North_America/2024_09/AUCANZ_all_2024.dta"                        //Modif: 10 Oct 2024 by Manuel Esteban
 
-// US (PSZ + BSZ 2022 + BSZ 2023) - YES
+// US (PSZ + BSZ 2022 + BSZ 2023)
 append using "$wid_dir/Country-Updates/US/2024/US_all_2024.dta"                                          //Modif: 10 Oct 2024 by Manuel Esteban
 
 // South Africa 2020 (ccg2020) - wealth distribution series
@@ -119,6 +119,9 @@ append using "$wid_dir/Country-Updates/Hong Kong/HongKong_ptinc_2021.dta"
 
 // Georgia 2021 (Neef & BMN 2021) - ptinc series
 append using "$wid_dir/Country-Updates/Georgia/2021_08/dina_georgia_8sep2021.dta"
+
+// Other Russia and central Asia countries  1980-1990 (extension of RU series following Neef 2022) -  ptinc series - 
+append using "$wid_dir/Country-Updates/OtherRussia_CentralAsia/2025/otherrussia-ptinct-8090-2025.dta"				//Modif: 07 Oct 2025 by Manuel Esteban
 
 // Wealth Aggregates (Bauluz & Brassac 2020 + update 2021 for all countries) - wealth macro series 
 append using "$wid_dir/Country-Updates/Wealth/2021_July/macro-wealth-Jul2021.dta"

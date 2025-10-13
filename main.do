@@ -325,7 +325,6 @@ do "$do_dir/calculate-per-capita-series.do"
 
 //------------------- END OF MACRO PART---------------------------------------//
 
-
 // -------------------------------------------------------------------------- //
 // Add distribution data from researchers and WIL coordinators
 // -------------------------------------------------------------------------- //
@@ -361,8 +360,17 @@ do "$do_dir/extrapolate-wid-forward.do"
 // Clean up percentiles, etc.
 do "$do_dir/clean-up.do"
 
+// Merge longrun series with main data, update metadata
+do "$do_dir/merge-historical-main.do"
+
+// Extend series from 992 to 999
+do "$do_dir/extend-distributions-999.do"
+
 // Compute World and Regional Aggregates
 do "$do_dir/aggregate-distribution-regions.do"
+
+// Homogeneize all pre-tax, post-tax and wealth series 
+do "$do_dir/homogenize-all-distributions.do"
 
 // Compute Top10/Bottom50 ratio 
 do "$do_dir/calculate-top10bot50-ratio.do"
@@ -373,11 +381,7 @@ do "$do_dir/calculate-pareto-coef.do"
 // calculate gini coefficients
 do "$do_dir/calculate-gini-coef.do"
 
-// Merge longrun series with main data, update metadata
-do "$do_dir/merge-historical-main.do"
-
-// Homogeneize all pre-tax and wealth series 
-do "$do_dir/homogenize-all-distributions.do"
+etime
 
 // Import carbon series (independent) - to be activated when updated!
 // do "$do_dir/add-carbon-series.do"
@@ -393,8 +397,12 @@ do "$do_dir/homogenize-all-distributions.do"
 capture mkdir "$output_dir/$time"
 capture mkdir "$output_dir/$time/metadata"
 
+// Export distributions
+do "$do_dir/export-distributions.do"
+
 // Export the metadata
 do "$do_dir/export-metadata-source-method.do"
+
 // do "$do_dir/export-metadata-other.do"
 
 // Create flag variables to indicate extrapolation/interpolations
@@ -406,7 +414,7 @@ do "$do_dir/export-metadata-source-method.do"
 // Export the main database
 do "$do_dir/create-main-db.do"
 
-etime
+
 
 // do "$do_dir/export-main-db.do"
 //

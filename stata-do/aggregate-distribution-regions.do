@@ -15,13 +15,19 @@ save `combined', emptyok
 // -------------------------------------------------------------------------- //
 // 1. Bring National income, wealth, population and prices by year
 // -------------------------------------------------------------------------- //
-use "$work_data/clean-up-output.dta", clear
+use "$work_data/extend-distributions-999-output.dta", clear
 
-keep if inlist(widcode, "ahweal992i", "anninc992i", "npopul992i", "inyixx999i", "xlcusp999i", "xlcusx999i")
+gen     tokeep = 1 if inlist(widcode, "npopul992i", "npopul999i", "inyixx999i", "xlcusp999i", "xlcusx999i")
+replace tokeep = 1 if inlist(widcode, "ahweal992i", "anninc992i", "ahweal999i", "anninc999i")
+
+keep if tokeep==1
 keep if p == "p0p100"
+drop tokeep
 
 reshape wide value, i(iso year) j(widcode) string
 renvars value*, predrop(5)
+
+drop if missing(anninc992i) & year<1970
 
 replace xlcusp999i = . if year != $pastyear
 replace xlcusx999i = . if year != $pastyear
@@ -36,6 +42,7 @@ replace xlcusx999i = xlcusp999i if iso == "CU"
 
 drop p currency
 
+
 tempfile aggregates
 save "`aggregates'"
 
@@ -43,14 +50,17 @@ save "`aggregates'"
 // 2. Bring World countries distribution (pre-tax and wealth)
 // -------------------------------------------------------------------------- //
 * Import Distributions 
-use "$work_data/clean-up-output.dta", clear
+use "$work_data/extend-distributions-999-output.dta", clear
 
-drop if (substr(iso, 1, 1) == "X" | substr(iso, 1, 1) == "Q") & iso != "QA"
-drop if (substr(iso, 1, 1) == "O") & iso != "OM"
-drop if strpos(iso, "-")
-drop if iso == "WO"
+* keep relevant years
+drop if year<1980 & !inlist(year,1820, 1850, 1880, 1900, 1910, 1920) & !inlist(year,1930, 1940, 1950, 1960, 1970, 1980)
 
-keep if inlist(widcode, "aptinc992j", "sptinc992j", "adiinc992j", "sdiinc992j", "ahweal992j", "shweal992j")
+		
+*Keep relevant variables
+keep if inlist( substr(widcode,1,1),"a","s")
+keep if inlist( substr(widcode,10,1),"j")
+keep if strpos(widcode,"ptinc") | strpos(widcode,"diinc") | strpos(widcode,"hweal") 
+keep if inlist( substr(widcode,7,3),"992","999")
 
 // Parse percentiles
 generate long p_min = round(1000*real(regexs(1))) if regexm(p, "^p([0-9\.]+)p([0-9\.]+)$")
@@ -88,25 +98,37 @@ drop if iso == "VE" & strpos(widcode, "hweal992j") //// temporary!! until we res
 // Format
 reshape wide value, i(iso year p) j(widcode) string
 
-rename valueaptinc992j ai
-rename valuesptinc992j si
-rename valueadiinc992j ad
-rename valuesdiinc992j sd
-rename valueahweal992j aw
-rename valueshweal992j sw
+rename valueaptinc992j ai2
+rename valuesptinc992j si2
+rename valueadiinc992j ad2
+rename valuesdiinc992j sd2
+rename valueahweal992j aw2
+rename valueshweal992j sw2
+
+rename valueaptinc999j ai9
+rename valuesptinc999j si9
+rename valueadiinc999j ad9
+rename valuesdiinc999j sd9
+rename valueahweal999j aw9
+rename valueshweal999j sw9
 
 // Cal macroeconomic aggregates
 merge n:1 iso year using "`aggregates'", nogenerate keep(master match)
 
 // Format
 * Macro aggregates
-rename anninc992i itot
-rename ahweal992i wtot
-generate dtot = itot
+rename anninc992i itot2
+rename ahweal992i wtot2
 
-drop if year<1980
+rename anninc999i itot9
+rename ahweal999i wtot9
 
-generate pop = n*npopul992i
+generate dtot2 = itot2
+generate dtot9 = itot9
+
+
+generate pop2 = n*npopul992i
+generate pop9 = n*npopul999i 
 gen keep = 0
 
 
@@ -114,101 +136,131 @@ gen keep = 0
 rename xlcusp999i PPP
 rename xlcusx999i MER
 
+//--- Checkpoint 1 -----------------//
+*save "$work_data/aux.dta", replace
+*clear all
+*tempfile combined
+*save `combined', emptyok
+*use "$work_data/aux.dta", clear
+//----------------------------------//
 // -------- 3.2 Calculate aggregations
 ** Call the regions designation
-merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogenerate
-gen region7="WO" if corecountry==1
-drop titlename shortname TH corecountry 
-//-----------------------------------------------------------------------------
-gen     region4 = "QP" if inlist(iso,"BM","BQ","CA","GL","PM","UM","US")
+merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogenerate keepusing(corecountry region*)
+rename region1 region1_core
+merge m:1 iso using "$work_data/import-region-currency-codes-output.dta", nogenerate keep(master match) keepusing(region1) 
+replace region1=region1_core if missing(region1)
+drop region1_core
 
+*Define WO
+gen     region7="WO" if (corecountry==1 | !missing(region1)) & year <  1980
+replace region7="WO" if  corecountry==1 					 & year >= 1980
 
-replace region4 = "QF" if inlist(iso,"AS","AU","CC","CK","CX","FJ","FM","GU","HM") | ///
-						  inlist(iso,"KI","MH","MP","NC","NF","NR","NU","NZ","PF") | ///
-						  inlist(iso,"PG","PN","PW","SB","TK","TO","TV","VU","WF") | ///
-						  inlist(iso,"WS")
-//------------------------------------------------------------------------------
-
-foreach z in i w d {
-
-	foreach y in MER PPP {
+foreach u in 2 9 {
 	
-		foreach v of varlist a`z' `z'tot  {
-			gen `v'_`y' = `v'/`y'
-			}
-			
-		foreach x of varlist region* {
-			levelsof `x', local(regions)
-			
-			foreach r of local regions {
-				preserve
-					keep if `x' =="`r'"
-					levelsof iso
-					drop if missing(a`z')
-					gsort year -a`z'_`y' 
-					by year: generate rank = sum(pop)
-					by year: replace rank = 1e5*(1 - rank/rank[_N])
+	foreach z in i w d {
 
-					egen bracket = cut(rank), at(0(1000)99000 99100(100)99900 99910(10)99990 99991(1)99999 200000)
+		foreach y in MER PPP {
+			foreach v of varlist a`z'`u' `z'tot`u'  {
+				gen `v'_`y' = `v'/`y'
+				}
+				
+			foreach x of varlist region* {
+				levelsof `x', local(regions)
+				
+				foreach r of local regions {
+					preserve
+						di "Calculating region `r'-`y' for 99`u'..."
+						
+						* Retain only the residual regions  in the searched denomination
+						drop if substr(iso,3,1)=="-" & substr(iso,4,3)!="`y'"
+						*retain desired years
+						if "`z'" == "w" {
+							keep if year >= 1995
+						}
+						if "`z'" == "d" {
+							keep if year >= 1980
+						}
 
-					collapse (mean) a`z'_`y' [pw=pop], by(year bracket)
+						* Retain region-specific cotre-territoires
+						keep if `x' =="`r'"
+							
+						levelsof iso
+						drop if missing(a`z'`u')
+						gsort year -a`z'`u'_`y' 
+							
+						by year: generate rank = sum(pop`u')
+						by year: replace rank = 1e5*(1 - rank/rank[_N])
 
-					generate iso = "`r'-`y'"
-					levelsof iso  
-					
-					rename bracket p  
-					
-					rename a`z'_`y' a`z'
-					
-					*tempfile `x'_`y'_`z'
-					append using `combined'
-					save "`combined'", replace
-				restore
-			}
+						egen bracket = cut(rank), at(0(1000)99000 99100(100)99900 99910(10)99990 99991(1)99999 200000)
+						
+						collapse (mean) a`z'`u'_`y' [pw=pop`u'], by(year bracket)
+						
+						generate iso = "`r'-`y'"
+						levelsof iso  
+						
+						rename bracket p  
+						
+						rename a`z'`u'_`y' a`z'`u'
+						
+						*tempfile `x'_`y'_`z'
+						append using `combined'
+						save "`combined'", replace
+					restore
+				}
+				}
+
 			}
 
 		}
-
 	}
 
 use "`combined'", clear
-
-bys iso year p (aw): replace aw = aw[1]
-bys iso year p (ai): replace ai = ai[1]
-bys iso year p (ad): replace ad = ad[1]
+//--- Checkpoint 2 -----------------//
+*save "$work_data/aux2.dta", replace
+*use "$work_data/aux2.dta", clear
+//---------------------------------//
+foreach u in 2 9 {
+	bys iso year p (aw`u'):  replace aw`u' = aw`u'[1]
+	bys iso year p (ai`u'):  replace ai`u' = ai`u'[1]
+	bys iso year p (ad`u'):  replace ad`u' = ad`u'[1]
+}
 
 duplicates drop iso year p, force
 
-reshape long a, i(iso year p) j(concept i w d)
+reshape long a, i(iso year p) j(concept i2 w2 d2 i9 w9 d9)
 
 
-gen x = substr(iso, 4, 3)
-replace iso = substr(iso, 1, 2)
+*gen x = substr(iso, 4, 3)
+*replace iso = substr(iso, 1, 2)
 
-bys iso year concept x (p): gen test = a==a[_n-1] & _n!=1
-bys iso year concept x (p): drop if test
+bys iso year concept (p): gen test = a==a[_n-1] & _n!=1
+bys iso year concept (p): drop if test
 drop test 
 
-bys iso year concept x (p): egen minp = min(p)
+bys iso year concept (p): egen minp = min(p)
 replace p = 0 if p == minp 
 drop minp
 
-replace a = 0 if a == . & p == 0 & concept != "w"
-bys concept x iso year(p): replace a = a[_n+1]-1 if a==. & a[_n+1]<0 & p==0 & concept=="w"
-bys concept x iso year (p): replace a = . if a==0 & a[_n-1]==a
+replace a = 0 if a == . & p == 0 & substr(concept,1,1) != "w"
+bys concept iso year(p): replace a = a[_n+1]-1 if a==. & a[_n+1]<0 & p==0 & substr(concept,1,1)=="w"
+bys concept iso year (p): replace a = . if a==0 & a[_n-1]==a
 
-sort concept x iso year
+sort concept iso year
 
 *drop if iso == "OD"
 
 // Rectangularize
-fillin concept iso x year p 
+fillin concept iso year p 
 drop _fillin
-sort iso year concept x p
-drop if concept == "w" & year<1995
+sort iso year concept p
+drop if substr(concept,1,1) == "i" & year<1980 & substr(iso, 1, 1)== "O"
+drop if substr(concept,1,1 )== "i" & year<1980 & strpos(iso, "-MER")
+drop if substr(concept,1,1) == "d" & year<1980
+drop if substr(concept,1,1) == "w" & year<1995
+
 
 // Fill in missing values
-bys concept x iso year (p): ipolate a p, gen(y)
+bys concept iso year (p): ipolate a p, gen(y)
 replace a = y
 drop y
 
@@ -217,23 +269,23 @@ replace n=100 if p > 98000
 replace n=10 if p>99800
 replace n=1 if p>99980
 
-egen average = total(a*n/1e5), by(iso year concept x)
+egen average = total(a*n/1e5), by(iso year concept)
 
-bys concept x iso year (p) : generate t = ((a - a[_n - 1] )/2) + a[_n - 1] 
-bys concept x iso year (p) : replace t = min(0, 2*a) if missing(t) 
+bys concept iso year (p) : generate t = ((a - a[_n - 1] )/2) + a[_n - 1] 
+bys concept iso year (p) : replace t = min(0, 2*a) if missing(t) 
 
 generate s = a*n/1e5/average 
 
-gsort concept x iso year -p
-bys concept x iso year  : generate ts = sum(s)
-bys concept x iso year  : generate ta = sum(a*n)/(1e5 - p)
-bys concept x iso year  : generate bs = 1-ts
+gsort concept iso year -p
+bys concept iso year  : generate ts = sum(s)
+bys concept iso year  : generate ta = sum(a*n)/(1e5 - p)
+bys concept iso year  : generate bs = 1-ts
 
-gsort concept x iso year  p
-by concept x iso year  : generate ba = bs*average/(0.5) if p == 50000
+gsort concept iso year  p
+by concept iso year  : generate ba = bs*average/(0.5) if p == 50000
 
 // Export
-bys concept x iso year (p): gen p2 = "p"+string(p/1000)+"p"+string(p[_n+1]/1000)
+bys concept iso year (p): gen p2 = "p"+string(p/1000)+"p"+string(p[_n+1]/1000)
 
 expand 2, gen(new)
 replace p2 = "p"+string(p/1000)+"p100" if new == 1
@@ -246,56 +298,78 @@ expand 2 if p == 90000 & new == 0, gen(new3)
 replace p2 = "p50p90" if new3 == 1
 
 
-	* top shares
-	replace a = ta if new == 1
-	replace s = ts if new == 1
+* top shares
+replace a = ta if new == 1
+replace s = ts if new == 1
 	
-	* bottom 50
-	replace a = ba if new2 == 1
-	replace s = bs if new2 == 1
+* bottom 50
+replace a = ba if new2 == 1
+replace s = bs if new2 == 1
 	
-	bys iso  year (bot50): gen bot50s = s[_N]
-	bys iso  year (bot50): gen bot50a = a[_N]
+bys iso  year (bot50): gen bot50s = s[_N]
+bys iso  year (bot50): gen bot50a = a[_N]
 	
-	* middle 40
-	replace s = bs-bot50s if new3 == 1
-	replace a = s*1e5*average/n/40 if new3 == 1
+* middle 40
+replace s = bs-bot50s if new3 == 1
+replace a = s*1e5*average/n/40 if new3 == 1
 
-	* get right thresholds for p0p50 & p50p90
-	bys iso year (p2): replace t = t[_n-1] if new2 == 1 | new3 == 1
+* get right thresholds for p0p50 & p50p90
+bys iso year (p2): replace t = t[_n-1] if new2 == 1 | new3 == 1
 
 
 drop if p2 == "p99.999p."
 
-keep t s a year iso p2 concept x
+keep t s a year iso p2 concept 
 ren p2 p
 
-replace concept = "ptinc992j" if concept == "i"
-replace concept = "hweal992j" if concept == "w"
-replace concept = "diinc992j" if concept == "d"
+replace concept = "ptinc992j" if concept == "i2" 
+replace concept = "ptinc999j" if concept == "i9" 
+replace concept = "hweal992j" if concept == "w2" 
+replace concept = "hweal999j" if concept == "w9" 
+replace concept = "diinc992j" if concept == "d2" 
+replace concept = "diinc999j" if concept == "d9" 
 
 renvars t s a, prefix(value)
-reshape wide valuea valuet values, i(iso year p x) j(concept) string
-reshape long value, i(iso year p x) j(widcode) string
+reshape wide valuea valuet values, i(iso year p) j(concept) string
+reshape long value, i(iso year p) j(widcode) string
 
 drop if (p == "p0p50" | p == "p50p90") & substr(widcode,1,1) == "t"
 
 drop if year == . | value == .
+
+drop if strpos(widcode, "diinc") & year<1980
+drop if strpos(widcode, "hweal") & year<1995
 *drop p4
 
-replace iso = iso+"-"+upper(x) if x=="PPP"
+*replace iso = iso+"-"+upper(x) if x=="PPP"
 *drop if x=="PPP"
-drop x
+*drop x
+
+//--- Checkpoint 3 -----------------//
+*save"$work_data/aux3.dta", replace
+*u "$work_data/aux3.dta", clear
+//----------------------------------//
+
+* Drop $pastyear data if series are no yet available
+generate tag=value if p=="p99p100"
+egen gen avg_tag=mode(tag), by( iso year widcode)
+assert !missing(avg_tag)
+drop if avg_tag==0
+drop *tag
 
 tempfile final
 save `final'
 //-----Append-------//
 
-use "$work_data/clean-up-output.dta", clear
+use "$work_data/extend-distributions-999-output.dta", clear
 
-drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") & ((inlist(substr(iso, 1, 1), "X", "O") & iso!="OM") | inlist(iso, "QL","QM","WO","QE"))
-drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") & strpos(iso, "-PPP")
-drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") & iso == "WO"
+drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j", "aptinc999j", "sptinc999j", "tptinc999j") ///
+    & ((substr(iso, 1, 1)== "O" & iso != "OM") | substr(iso,1,2)=="QM") & year >=1980
+	
+drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j", "aptinc999j", "sptinc999j", "tptinc999j") ///
+    & ((inlist(substr(iso, 1, 1), "X", "Q") & iso !="QA" & substr(iso,1,2)!="QM") ///
+        | substr(iso,1,2)== "WO")
+		
 append using "`final'"
 
 save "$work_data/World-and-regional-aggregates-output.dta", replace
@@ -381,7 +455,7 @@ drop dup
 tempfile meta 
 save `meta'
 
-use "$work_data/distribute-national-income-metadata.dta", clear
+use "$work_data/merge-historical-main-metadata.dta", clear 
 
 drop if (substr(iso, 1, 1) == "X" | substr(iso, 1, 1) == "Q") & iso != "QA" & inlist(sixlet, "ptinc", "diinc", "hweal") 
 drop if (substr(iso, 1, 1) == "O") & iso != "OM" & inlist(sixlet, "ptinc", "diinc", "hweal")

@@ -80,7 +80,7 @@ do "$do_dir/import-sectorfactor-shares-papers.do"
 // Import the WBoP data from Nievas & Piketty(2025) paper
 do "$do_dir/import-nievaspiketty2025.do" 
 
-// Import the sector factor sshares data from Diertrisch et al.(2025) paper
+// Import the sector factor shares data from Diertrisch et al.(2025) paper
 do "$do_dir/import-dietrichetal2025.do" 
 
 // -------------------------------------------------------------------------- //

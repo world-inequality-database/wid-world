@@ -174,9 +174,7 @@ foreach u in 2 9 {
 						* Retain only the residual regions  in the searched denomination
 						drop if substr(iso,3,1)=="-" & substr(iso,4,3)!="`y'"
 						*retain desired years
-						if "`z'" == "w" {
-							keep if year >= 1995
-						}
+
 						if "`z'" == "d" {
 							keep if year >= 1980
 						}
@@ -256,7 +254,8 @@ sort iso year concept p
 drop if substr(concept,1,1) == "i" & year<1980 & substr(iso, 1, 1)== "O"
 drop if substr(concept,1,1 )== "i" & year<1980 & strpos(iso, "-MER")
 drop if substr(concept,1,1) == "d" & year<1980
-drop if substr(concept,1,1) == "w" & year<1995
+drop if substr(concept,1,1) == "w" & year<1980 & substr(iso, 1, 1)== "O"
+drop if substr(concept,1,1 )== "w" & year<1980 & strpos(iso, "-MER")
 
 
 // Fill in missing values
@@ -338,7 +337,6 @@ drop if (p == "p0p50" | p == "p50p90") & substr(widcode,1,1) == "t"
 drop if year == . | value == .
 
 drop if strpos(widcode, "diinc") & year<1980
-drop if strpos(widcode, "hweal") & year<1995
 *drop p4
 
 *replace iso = iso+"-"+upper(x) if x=="PPP"

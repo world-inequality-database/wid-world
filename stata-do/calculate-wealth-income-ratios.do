@@ -8,8 +8,7 @@
 
 use "$work_data/complete-variables-output.dta", clear
 
-keep if inlist(substr(widcode, 1, 6), "mpweal", "mhweal", "miweal", ///
-	"mgweal", "mnweal", "mnninc")
+keep if inlist(substr(widcode, 1, 6), "mpweal", "mhweal", "miweal", "mgweal", "mnweal", "mnninc")
 replace p="pall" if p=="p0p100"
 
 drop currency
@@ -42,28 +41,32 @@ keep if strpos(iso, "-PPP")
 *Keep only relevant aggregates
 keep if substr(widcode,1,1)=="m"
 gen     flag=0
-replace flag = 1 if   inlist(substr(widcode,2,5),"citgr", "comhn", "comnx", "compx", "comrx", "confc", "cwboo", "cwbus", "cwdeb")  ///
-					| inlist(substr(widcode,2,5),"cwdeq", "cwfin", "cwhou", "cwnfa", "cwres", "defge", "ecoge", "edpge", "edsge")  ///
-					| inlist(substr(widcode,2,5),"edtge", "eduge", "envge", "expgo", "fdinx", "fdipx", "fdirx", "fdixa", "fdixd")  
-replace flag = 1 if   inlist(substr(widcode,2,5),"fdixn", "finpx", "finrx", "fkanx", "fkapx", "fkarx", "fkpin", "flcin", "flcip")  ///
-					| inlist(substr(widcode,2,5),"flcir", "fsubx", "ftaxx", "gdpro", "gpsge", "gwbus", "gwdeb", "gweal", "gwfin")  ///
-					| inlist(substr(widcode,2,5),"gwhou", "gwnfa", "heage", "houge", "hweal", "intgr", "iweal", "ncanx", "ndpro")  
-replace flag = 1 if   inlist(substr(widcode,2,5),"nnfin", "nninc", "ntlcu", "ntrgr", "nwagr", "nwboo", "nwbus", "nwdka", "nweal")  ///
-					| inlist(substr(widcode,2,5),"nwgxa", "nwgxd", "nwhou", "nwnfa", "nwnxa", "ottgr", "pinnx", "pinpx", "pinrx")  ///
-					| inlist(substr(widcode,2,5),"pitgr", "polge", "psugo", "ptdpx", "ptdrx", "ptdxa", "ptdxd", "ptepx", "pterx")  
-replace flag = 1 if   inlist(substr(widcode,2,5),"ptexa", "ptexd", "ptfnx", "ptfpx", "ptfrn", "ptfrp", "ptfrr", "ptfrx", "ptfxa")  ///
-					| inlist(substr(widcode,2,5),"ptfxd", "ptfxn", "ptrrx", "ptrxa", "pwagr", "pwbus", "pwdeb", "pweal", "pweqi")  ///
-					| inlist(substr(widcode,2,5),"pwfin", "pwfiw", "pwhou", "pwnfa", "pwodk", "pwpen", "pwtgr", "recge", "retgo")  
-replace flag = 1 if   inlist(substr(widcode,2,5),"revgo", "sacge", "sakge", "scgnx", "scgpx", "scgrx", "scinx", "scipx", "scirx")  ///
-					| inlist(substr(widcode,2,5),"scogr", "sconx", "scopx", "scorx", "scrnx", "scrpx", "scrrx", "sopge", "spige")  ///
-					| inlist(substr(widcode,2,5),"taxnx", "tbmpx", "tbnnx", "tbxrx", "tgmcx", "tgmmx", "tgmpx", "tgncx", "tgnmx")  
-replace flag = 1 if   inlist(substr(widcode,2,5),"tgnnx", "tgxcx", "tgxmx", "tgxrx", "tsmpx", "tsnnx", "tsonx", "tsopx", "tsorx")  ///
-					| inlist(substr(widcode,2,5),"tstnx", "tstpx", "tstrx", "tsvnx", "tsvpx", "tsvrx", "tsxrx")  
-replace flag= 1 if  inlist(substr(widcode, 2, 5), "ptxgo", "gvato", "gvago", "ceugo", "gsrgo", "nsrgo", "cfcgo", "gvaco") | ///
-				    inlist(substr(widcode, 2, 5), "ceuco", "gsrco", "nsrco", "cfcco", "gvahn", "ceuhn", "gmxhn", "nmxhn") | ///
-				    inlist(substr(widcode, 2, 5), "ccmhn", "gsrhn", "nsrhn", "ccshn")
-replace flag= 1 if  inlist(substr(widcode, 1, 6), "ylsgdp", "ylsndp", "ycsgdp", "ycsndp", "wlsgni", "wlsnni", "wcsgni") | ///
-						inlist(substr(widcode, 1, 6),"wcsnni", "ylscgv", "ylscnv", "ycscgv","ycscnv","yconfc")					
+replace flag = 1 if   inlist(substr(widcode, 2, 5), "citgr", "comhn", "comnx", "compx", "comrx", "confc", "cwboo", "cwbus", "cwdeb")  ///
+					| inlist(substr(widcode, 2, 5), "cwdeq", "cwfin", "cwhou", "cwnfa", "cwres", "defge", "ecoge", "edpge", "edsge")  ///
+					| inlist(substr(widcode, 2, 5), "edtge", "eduge", "envge", "expgo", "fdinx", "fdipx", "fdirx", "fdixa", "fdixd")  
+replace flag = 1 if   inlist(substr(widcode, 2, 5), "fdixn", "finpx", "finrx", "fkanx", "fkapx", "fkarx", "fkpin", "flcin", "flcip")  ///
+					| inlist(substr(widcode, 2, 5), "flcir", "fsubx", "ftaxx", "gdpro", "gpsge", "gwbus", "gwdeb", "gweal", "gwfin")  ///
+					| inlist(substr(widcode, 2, 5), "gwhou", "gwnfa", "heage", "houge", "hweal", "intgr", "iweal", "ncanx", "ndpro")  
+replace flag = 1 if   inlist(substr(widcode, 2, 5), "nnfin", "nninc", "ntlcu", "ntrgr", "nwagr", "nwboo", "nwbus", "nwdka", "nweal")  ///
+					| inlist(substr(widcode, 2, 5), "nwgxa", "nwgxd", "nwhou", "nwnfa", "nwnxa", "ottgr", "pinnx", "pinpx", "pinrx")  ///
+					| inlist(substr(widcode, 2, 5), "pitgr", "polge", "psugo", "ptdpx", "ptdrx", "ptdxa", "ptdxd", "ptepx", "pterx")  
+replace flag = 1 if   inlist(substr(widcode, 2, 5), "ptexa", "ptexd", "ptfnx", "ptfpx", "ptfrn", "ptfrp", "ptfrr", "ptfrx", "ptfxa")  ///
+					| inlist(substr(widcode, 2, 5), "ptfxd", "ptfxn", "ptrrx", "ptrxa", "pwagr", "pwbus", "pwdeb", "pweal", "pweqi")  ///
+					| inlist(substr(widcode, 2, 5), "pwfin", "pwfiw", "pwhou", "pwnfa", "pwodk", "pwpen", "pwtgr", "recge", "retgo")  
+replace flag = 1 if   inlist(substr(widcode, 2, 5), "revgo", "sacge", "sakge", "scgnx", "scgpx", "scgrx", "scinx", "scipx", "scirx")  ///
+					| inlist(substr(widcode, 2, 5), "scogr", "sconx", "scopx", "scorx", "scrnx", "scrpx", "scrrx", "sopge", "spige")  ///
+					| inlist(substr(widcode, 2, 5), "taxnx", "tbmpx", "tbnnx", "tbxrx", "tgmcx", "tgmmx", "tgmpx", "tgncx", "tgnmx")  
+replace flag = 1 if   inlist(substr(widcode, 2, 5), "tgnnx", "tgxcx", "tgxmx", "tgxrx", "tsmpx", "tsnnx", "tsonx", "tsopx", "tsorx")  ///
+					| inlist(substr(widcode, 2, 5), "tstnx", "tstpx", "tstrx", "tsvnx", "tsvpx", "tsvrx", "tsxrx")  
+
+replace flag= 1 if    inlist(substr(widcode, 2, 5), "ptxgo", "gvato", "gvago", "ceugo", "gsrgo", "nsrgo", "cfcgo", "gvaco") | ///
+				      inlist(substr(widcode, 2, 5), "ceuco", "gsrco", "nsrco", "cfcco", "gvahn", "ceuhn", "gmxhn", "nmxhn") | ///
+				      inlist(substr(widcode, 2, 5), "ccmhn", "gsrhn", "nsrhn", "ccshn")
+					  
+replace flag= 1 if    inlist(substr(widcode, 1, 6), "ylsgdp", "ylsndp", "ycsgdp", "ycsndp", "wlsgni", "wlsnni", "wcsgni") | ///
+					  inlist(substr(widcode, 1, 6), "wcsnni", "ylscgv", "ylscnv", "ycscgv", "ycscnv", "yconfc")	
+					  
+replace flag= 1 if 	  inlist(substr(widcode, 1, 6), "mpweal", "mhweal", "miweal", "mgweal", "mnweal", "mnninc")
 keep if flag==1
 drop flag
 

@@ -29,7 +29,7 @@ u "$work_data/merge-historical-main.dta", clear
 *Retain desired data
 * Note: Notmally we should have ptinc since 1820 fro the core territories. Ptinc and Diinc from 1980 for all the countries,and hweal since 1995.
 *drop if p=="p0p100"
-keep if strpos(widcode, "ptinc992j") | strpos(widcode, "diinc992j")| (strpos(widcode, "hweal992j")  & year>=1985)
+keep if strpos(widcode, "ptinc992j") | strpos(widcode, "diinc992j")| strpos(widcode, "hweal992j") 
 keep if inlist(substr(widcode, 1, 1), "s", "t", "a")
 
 * Generate widcode sections

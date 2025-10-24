@@ -83,6 +83,9 @@ do "$do_dir/import-nievaspiketty2025.do"
 // Import the sector factor shares data from Diertrisch et al.(2025) paper
 do "$do_dir/import-dietrichetal2025.do" 
 
+// Import the wealth aggregates data from Bauluz et al.(2025) paper
+do "$do_dir/import-bauluzetal2025.do" 
+
 // -------------------------------------------------------------------------- //
 // Import external GDP data
 // -------------------------------------------------------------------------- //
@@ -308,7 +311,7 @@ do "$do_dir/add-wealth-aggregates.do"
 // Aggregate by regions & Merge Historical series (NP2025)
 do "$do_dir/aggregate-macro-regions.do" 
 
-// Merge Nievas&Piketty(2025) and DietrichEtAl.(2025) historical aggregates to WID
+// Merge Nievas&Piketty(2025), DietrichEtAl.(2025) and BauluzEtAl.(2025) historical aggregates to WID
 do "$do_dir/merge-historical-aggregates.do"
 
 // Generate the real exchange rate

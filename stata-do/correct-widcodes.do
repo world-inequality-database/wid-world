@@ -10,6 +10,7 @@ forvalues i = 1/6 {
 	replace changed = 1 if substr(widcode, 2, 5) == "`old'"
 	replace widcode = substr(widcode, 1, 1) + "`new'" + substr(widcode, 7, 4) if substr(widcode, 2, 5) == "`old'"
 }
+gsort iso year p widcode -changed
 duplicates tag iso year p widcode, generate(dup)
 // We remove the duplicate that hasn't changed because the last updates
 // of the data follow the old codes, while the old WTID data have been

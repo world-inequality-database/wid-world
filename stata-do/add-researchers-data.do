@@ -70,7 +70,7 @@ append using "$wid_dir/Country-Updates/US_states/2021_April/us-states-Apr2021.dt
 
 // Ivory Coast 2017 (Czajka2017 + update 2020) - fiinc series 
 append using "$wid_dir/Country-Updates/Ivory_Coast/2022/ivory_coast_2022.dta"
-// ptinc series from this file is redundant as it has been more recently updated in Section 2 (africa file)
+// ptinc series from this file is redundant as it has been more recently updated in Section 2 (Africa file)
 drop if iso == "CI" & author == "czajka2017+update" & strpos(widcode, "ptinc")
 
 // Netherlands 2019 (Salverda2019) - fiinc series
@@ -158,14 +158,14 @@ append using "$wid_dir/Country-Updates/Asia/2025/asia-other-macro-dist-2025.dta"
 
 //======================= 1.4. Dropping wealth aggregates ======================
 
-// gen is_wealth_agg = regexm(lower(widcode), "^(m[cghinp]w[a-z]{3}(999)i)$") ///
-//     | regexm(lower(widcode), "^wweal[cgnph](999)i$")
-// drop if is_wealth_agg
-// drop if widcode == "wincta992i"
-// drop is_wealth_agg
+gen is_wealth_agg = regexm(lower(widcode), "^(m[cghinp]w[a-z]{3}(999)i)$") ///
+    | regexm(lower(widcode), "^wweal[cgnph](999)i$")
+drop if is_wealth_agg
+drop if widcode == "wincta992i"
+drop is_wealth_agg
 
 assert !missing(iso, year, widcode)
-//isid iso year p widcode, missok 
+isid iso year p widcode, missok 
 
 // -----------------------------------------------------------------------------
 // --------------------- 2.1. Import updated ptinc series  ---------------------
@@ -200,7 +200,8 @@ append using "$wid_dir/Country-Updates/Africa/2025_09/africa-ptinc-2025.dta"
 // 				- ptinc series 
 // 				- updated macro series (nninc, inyxx)
 append using "$wid_dir/Country-Updates/North_America/2025_10/aucanz-2025.dta"
-// drop if widcode == "mhweal999i"
+// drop wealth aggs
+drop if widcode == "mhweal999i"
 
 // US (PSZ + BSZ 2022 + BSZ 2023 + Matt 2025) 
 // 				- ptinc series 
@@ -209,11 +210,11 @@ append using "$wid_dir/Country-Updates/North_America/2025_10/aucanz-2025.dta"
 append using "$wid_dir/Country-Updates/US/2025/us-2025.dta"
 // 7 observations missing year in this file 
 drop if missing(year) & iso == "US"
-// wealth aggs
-// drop if widcode == "mhweal999i"
+// drop wealth aggs
+drop if widcode == "mhweal999i"
 
 assert !missing(iso, year, widcode)
-//isid iso year p widcode, missok 
+isid iso year p widcode, missok 
                         		                       
 /*
 // India (Chancel 2020) - 
@@ -226,7 +227,7 @@ drop if iso == "IN" & author == "kumar2019"   & inlist(widcode, "npopul999i") & 
 */
 
 assert !missing(iso, year, widcode)
-//isid iso year p widcode, missok 
+isid iso year p widcode, missok 
 
 //======================= 2.2. Saving researchers data (tempfile) ===============
 
@@ -272,10 +273,10 @@ merge 1:1 iso sixlet using "$wid_dir/Country-Updates/Wealth/2021_July/macro-weal
 
 //======================= 3.2. Dropping wealth aggregate sixlets ===============
 
-// gen is_wealth_agg = regexm(lower(sixlet), "^(m[cghinp]w[a-z]{3})$") ///
-//     | regexm(lower(sixlet), "^wweal[cgnph]$")
-// drop if is_wealth_agg
-// drop is_wealth_agg    
+gen is_wealth_agg = regexm(lower(sixlet), "^(m[cghinp]w[a-z]{3})$") ///
+    | regexm(lower(sixlet), "^wweal[cgnph]$")
+drop if is_wealth_agg
+drop is_wealth_agg    
 
 gduplicates drop iso sixlet, force
 
@@ -293,11 +294,11 @@ drop if iso == "NL" & widcode == "mnninc999i"
 drop if missing(value)
 
 // New from Oct 2025: dropping wealth aggregates from old file 
-// gen is_wealth_agg = regexm(lower(widcode), "^(m[cghinp]w[a-z]{3}(999)i)$") ///
-//     | regexm(lower(widcode), "^wweal[cgnph](999)i$")
-// drop if is_wealth_agg
-// drop if inlist(widcode, "wincta992i", "wincta992t")
-// drop is_wealth_agg 
+gen is_wealth_agg = regexm(lower(widcode), "^(m[cghinp]w[a-z]{3}(999)i)$") ///
+    | regexm(lower(widcode), "^wweal[cgnph](999)i$")
+drop if is_wealth_agg
+drop if inlist(widcode, "wincta992i", "wincta992t")
+drop is_wealth_agg 
 
 generate oldobs = 1
 
@@ -327,24 +328,24 @@ drop if (inlist(widcode, "ahweal992j", "shweal992j", "afainc992j", "sfainc992j",
 // run but it changes nothing to the file, 0 observations are dropped at the end. 
 
 // Bauluz 2017 updates: drop all old series (widcode-years combinations), except for "n" and "i" where we fill gaps. 
-preserve
-	keep if author == "BBM2021"
-	keep iso widcode
-	duplicates drop
-	gen todrop = 1
-	
-	tempfile todrop
-	save "`todrop'"
-restore
-merge m:1 iso widcode using "`todrop'", assert(master matched) nogen
-drop if todrop == 1 & author!= "BBM2021" & !inlist(substr(widcode, 1, 1), "n", "i")
+// preserve
+// 	keep if author == "BBM2021"
+// 	keep iso widcode
+// 	duplicates drop
+// 	gen todrop = 1
+//	
+// 	tempfile todrop
+// 	save "`todrop'"
+// restore
+// merge m:1 iso widcode using "`todrop'", assert(master matched) nogen
+// drop if todrop == 1 & author!= "BBM2021" & !inlist(substr(widcode, 1, 1), "n", "i")
 // ------------------------------------------------------------------------------   
 
 *gduplicates tag iso year widcode p, gen(usdup) // solve conflict between bauluz and psz2017 (npopul, inyixx)
 *drop if usdup & iso == "US" & author!= "BBM2021"
 
 // India 2017: drop duplicates and old fiscal income data
-drop if substr(widcode, 2, 5) == "fiinc" & oldobs == 1 & iso == "IN"
+// drop if substr(widcode, 2, 5) == "fiinc" & oldobs == 1 & iso == "IN"
 
 // Korea 2018: drop all old variables present in updates
 drop if iso == "KR" & oldobs == 1 ///

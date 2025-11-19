@@ -56,7 +56,7 @@ append using `kr'
 
 //================= 1.2 Import updated pre-tax series (2025 update) ============
 
-									//Below Modif: 24 Oct 2025 by A.Van Der Ree
+									//Below Modif: 14 Nov 2025 by A.Van Der Ree
 
 // Europe (East & West) Countries and Aggregates
 // 		- ptinc series 2025 update
@@ -69,7 +69,9 @@ drop if inlist(iso, "QX", "QY")
 replace iso="QE-PPP" if iso=="QE"
 replace iso="QM-PPP" if iso=="QM"
 
-// Latin America 							
+									//Below Modif: 18 Nov 2025 by A.Van Der Ree
+
+// Latin America 						
 drop if inlist(iso, "XL", "XL-MER")
 append using "$wid_dir/Country-Updates/Latin_America/2025/latin-america-2025.dta"     
 

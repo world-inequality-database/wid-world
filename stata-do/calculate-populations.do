@@ -981,7 +981,7 @@ replace method = method + "; Adult and total population estimated as a differenc
 *		"population subcategories also come from the UN World Population " + ///
 *		"Prospects (2015), rescaled when necessary to match the source data." if (haswid)
 
-replace method = method + "; Total $pastyear population is an projection included in the UN World Population Prospects (2024). Data on other years comes from the UN World Population Prospects (2015)." if year==$pastyear 	
+replace method = method + "; Total $pastyear population is an projection included in the UN World Population Prospects (2024). Data on other years comes from the UN World Population Prospects (2015)." //if year==$pastyear (New from Nov 2025: condition commented out to ensure no iso-sixlet duplicates due to different "method" values, by A. Van Der Ree)
 
 drop year
 keep iso sixlet method

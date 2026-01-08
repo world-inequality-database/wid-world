@@ -141,7 +141,8 @@ generate source = "WID.world computations using fiscal and net national income."
 tempfile meta
 save "`meta'"
 
-use "$work_data/calculate-wealth-income-ratio-metadata.dta", clear
+// Modification Nov 2025: correct file below to call the latest metadata that includes LATM and Europe 
+use "$work_data/add-wealth-distribution-metadata.dta", clear
 
 merge 1:1 iso sixlet using "`meta'", nogenerate update
 

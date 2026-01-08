@@ -1,6 +1,6 @@
-// -----------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // IMPORT ALL FILES
-// -----------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 // Objective: This file adds new data provided by researchers to WID, 
 // pre-cleaned in their respective folders.
@@ -13,7 +13,7 @@
 
 // Latest modifications: A. Van Der Ree, 23 Oct 2025
 
-//--------------------- INDEX ------------------------------------------------//
+//--------------------- INDEX ----------------------------------------------//
 //       1. Import data
 //       	  1.1 import individual country cases 
 //       	  1.2 Import updated pre-tax series (2025 update)
@@ -21,9 +21,11 @@
 //       	  1.4. Import 40 additional pre-tax countries 
 //       	  1.5. Saving researchers data (tempfile)
 //       2. Import meta data
-//       	  2.1 Import updated pre-tax series (2025 update)
-//       	  2.2 Import updated post-tax series
-//       	  2.3. Saving researchers meta data (tempfile)
+//       	  2.1 Import individual country cases
+//       	  2.2 Set up meta data variables
+//       	  2.3 Import updated pre-tax series (2025 update)
+//       	  2.4 Import updated post-tax series
+//       	  2.5. Saving researchers meta data (tempfile)
 //       3. Add data to WID 
 // 		 4. Combine National Accounts and Distributional Meta datas
 
@@ -54,6 +56,10 @@ restore
 drop if iso == "KR"
 append using `kr'
 
+keep iso year p widcode value author old
+
+assert !missing(iso, year, widcode)
+isid iso year p widcode
 //================= 1.2 Import updated pre-tax series (2025 update) ============
 
 									//Below Modif: 14 Nov 2025 by A.Van Der Ree
@@ -73,20 +79,27 @@ replace iso="QM-PPP" if iso=="QM"
 
 // Latin America 						
 drop if inlist(iso, "XL", "XL-MER")
-append using "$wid_dir/Country-Updates/Latin_America/2025/latin-america-2025.dta"     
+append using "$wid_dir/Country-Updates/Latin_America/2025/latin-america-2025.dta" 
+
+assert !missing(iso, year, widcode)
+duplicates tag iso year p widcode, gen(dup)
+drop if dup == 1 & old == 1
+drop dup
+isid iso year p widcode
 
 //================= 1.3 Import updated post-tax series =========================
 
 // Post-tax series (Fisher-Post & Gethin 2023)	
-										//Modif: 17 Jan 2025 by Manuel Esteban 
-append using "$wid_dir/Country-Updates/posttax/12_2024/global-posttax-012025.dta" 
+										//Modif: 16 Dec 2025 by A.Van Der Ree 
+append using "$wid_dir/Country-Updates/posttax/12_2025/post-tax-2025.dta" 
 
 //================= 1.4 Import 40 additional pre-tax countries ===================
 
 // 40 new additional countries accoding to the 2024 extension of the database
 append using "$wid_dir/Country-Updates/Historical_series/2024_May/forty_additional_countries_ptinc.dta"
 
-
+assert !missing(iso, year, widcode)
+isid iso year p widcode
 //==================== 1.5 Saving researchers data (tempfile) ==================
 
 compress, nocoalesce 
@@ -100,13 +113,23 @@ compress, nocoalesce
 tempfile researchers
 save "`researchers'"
 
-
-
 // -----------------------------------------------------------------------------
 // ------------------------- 2. Import Meta Data  ------------------------------
 // -----------------------------------------------------------------------------
+
+//================= 2.1 Import individual countries metadata ===================
+// retrieving source and method columns 
+
+merge 1:1 iso year p widcode using"$wid_dir/Country-Updates/France/2024-ggp/france-ggp2017.dta", keepusing(source method) update replace nogen
+
+merge 1:1 iso year p widcode using"$wid_dir/Country-Updates/Germany/2018/May/bartels2018.dta", keepusing(source method) update replace nogen
+
+merge 1:1 iso year p widcode using `kr', keepusing(source method) update replace nogen
+
+//====================== 2.2 Set up metadata variables =========================
+
 generate sixlet = substr(widcode, 1, 6)
-ds year p widcode value currency author, not
+ds year p widcode value currency author old, not
 keep `r(varlist)'
 order iso sixlet source method
 drop if iso == "FR" & missing(source) & strpos(sixlet, "ptinc")
@@ -114,12 +137,12 @@ drop if iso == "FR" & strpos(sixlet, "pllin")
 duplicates drop
 // drop if missing(source) & missing(method)
 
-//================= 2.1 Import updated pre-tax series (2025 update) ============
+//================= 2.3 Import updated pre-tax series (2025 update) ============
 									
 									//Below Modif: 24 Oct 2025 by A.Van Der Ree
 // Europe 
 // 		- ptinc (updated 2025)
-// 		- cainc & diinc (pulled from 2023 metadata, the most recent metadata upload for Europe)
+// 		- cainc & diinc (pulled from 2023 metadata)
 merge 1:1 iso sixlet using "$wid_dir/Country-Updates/Europe/2025_10/europe-2025-metadata", update replace nogen
 
 drop if iso == "FR" & method == "" & inlist(sixlet, "scainc", "sdiinc", "tptinc")
@@ -129,11 +152,10 @@ drop if iso == "FR" & method == "" & strpos(sixlet, "pllin")
 // Latin America                   
 merge 1:1 iso sixlet using "$wid_dir/Country-Updates/Latin_America/2025/latin-america-2025-metadata.dta", force update replace nogen 
 
-//================= 2.2 Import updated post-tax series =========================
+//================= 2.4 Import updated post-tax series =========================
 
 // Post-tax series 
-merge 1:1 iso sixlet using "$wid_dir/Country-Updates/posttax/12_2024/posttax-jan2025-metadata.dta", force update replace nogen //Modif: 17 Jan 2025 by Manuel Esteban
-
+merge 1:1 iso sixlet using "$wid_dir/Country-Updates/posttax/12_2025/post-tax-2025-metadata.dta", force update replace nogen //Modif: 5 Jan 2026 by A. Van Der Ree
 duplicates drop
 
 
@@ -143,7 +165,7 @@ drop dup
 
 replace method = " " if method == ""
 
-//================= 2.3 Saving researchers meta data (tempfile) ================
+//================= 2.5 Saving researchers meta data (tempfile) ================
 
 // ==== Checkpoint 2: (to reduce running time can run after here)
 // label data "Checkpoint file generated by add-researchers-data-real.do"
@@ -200,11 +222,9 @@ compress
 label data "Generated by add-researchers-data-real.do"
 save "$work_data/add-researchers-data-real-output.dta", replace
 
-
 // -----------------------------------------------------------------------------
 // ------- 4. Combine National Accounts and Distributional Meta datas ----------
 // -----------------------------------------------------------------------------
-
 
 // use "$work_data/aggregate-regions-metadata-output.dta", clear
 use "$work_data/metadata-no-duplicates.dta", clear
@@ -212,7 +232,7 @@ drop if iso == "CN" & mi(source) & inlist(sixlet, "xlcusx", "xlcyux")
 
 merge 1:1 iso sixlet using "`meta'", force nogenerate update replace 
 replace method = "" if method == " "
-replace method = "" if iso == "FR" & substr(sixlet, 2, 5) == "ptinc"
+*replace method = "" if iso == "FR" & substr(sixlet, 2, 5) == "ptinc"
  
 gduplicates tag iso sixlet, gen(duplicate)
 assert duplicate == 0
@@ -220,3 +240,4 @@ drop duplicate
 
 label data "Generated by add-researchers-data-real.do"
 save "$work_data/add-researchers-data-real-metadata.dta", replace
+

@@ -61,7 +61,8 @@ save `hist'
 // 
 ** calling updated data:
 *use "$wid_dir/Country-Updates/Wealth/2025_March/wealth-distributions-2024-lcu-final.dta", clear
-use "$wid_dir/Country-Updates/Historical_series/2025_Oct/wealth-distributions-1820-2024-lcu-final.dta", clear
+*use "$wid_dir/Country-Updates/Historical_series/2025_Oct/wealth-distributions-1820-2024-lcu-final.dta", clear
+use "$wid_dir/Country-Updates/Wealth/2025_December/wealth-distributions-1980-2024-lcu-final.dta", clear
 keep if year>=1980
 drop if substr(iso,1,1)=="O" & iso!="OM"
 drop if iso=="QM"
@@ -327,7 +328,7 @@ if iso == "FR"
 * UK
 replace source = source + ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/f-alvaredo-b-atkinson-s-morelli-2017-top-wealth-shares-uk-century-wid-world-working-paper/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Alvaredo, Facundo; Atkinson, Anthony B. and Morelli, Salvatore (2016). Top Wealth Shares in the UK over more than a century; "' + `"[/URL_TEXT][/URL]; "' ///
+`"[URL_TEXT]"' + `"Alvaredo, Facundo; Atkinson, Anthony B. and Morelli, Salvatore (2016). Top Wealth Shares in the UK over more than a century; "' + `"[/URL_TEXT][/URL] "' ///
 if iso == "GB" 
 
 * Korea
@@ -425,6 +426,12 @@ replace source = source + ///
 `"[URL_TEXT]"' + `"Bajard, F., Chancel, L., Moshrif, R., Piketty, T. (2021). “Global Wealth Inequality on WID.world: Estimates and Imputations”"' + `"[/URL_TEXT][/URL]"' ///
 if missing(source) & strpos(sixlet, "hweal")
 
+*Adding technote that is updated annually
+replace source = source + ///
+`"Technote for the update: "' + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/global-wealth-inequality-on-wid-world-estimates-and-imputations-world-inequality-lab-technical-note-2025-01/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Bajard, F., Bauluz, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Piketty, T., Sodano, A. (2025), "Global wealth inequality on WID.world: Estimates and imputations""' + `"[/URL_TEXT][/URL]"'
+
 tempfile meta
 save `meta'
 
@@ -432,8 +439,8 @@ use "$work_data/add-researchers-data-real-metadata.dta", clear
 
 drop if sixlet == "ohweal"
 merge 1:1 iso sixlet using "`meta'", nogenerate update replace
-replace extrapolation = "[[1923, 1995]]" if iso == "PL" & inlist(sixlet, "ahweal", "shweal", "thweal")
-replace data_points = "[1923]"           if iso == "PL" & inlist(sixlet, "ahweal", "shweal", "thweal")
+*replace extrapolation = "[[1923, 1995]]" if iso == "PL" & inlist(sixlet, "ahweal", "shweal", "thweal")
+*replace data_points = "[1923]"           if iso == "PL" & inlist(sixlet, "ahweal", "shweal", "thweal")
 
 gduplicates tag iso sixlet, gen(duplicate)
 assert duplicate == 0

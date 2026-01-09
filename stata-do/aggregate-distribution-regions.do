@@ -383,63 +383,78 @@ ds year p value, not
 keep `r(varlist)'
 duplicates drop
 generate source = ""
-replace source = ///
-`"[URL][URL_LINK]"' + `"http://wid.world/document/2021-dina-regional-update-for-middle-east-world-inequality-lab-technical-note-2021-4/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Bajard, F., Moshrif, R. (2021), “Regional DINA update for Middle East”"' + `"[/URL_TEXT][/URL]"' ///
-if inlist(iso, "XN", "XN-MER", "XM", "XM-MER") & strpos(sixlet, "ptinc")
 
+// Adding DINA Guidelines to explain how we aggregate regions
 replace source = ///
-`"[URL][URL_LINK]"' + `"http://wid.world/document/2021-dina-regional-update-for-africa-world-inequality-lab-technical-note-2021-5/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Robilliard, (2021), “Regional DINA update for Africa”"' + `"[/URL_TEXT][/URL]"' ///
-if (iso == "XF" | iso == "XF-MER") & strpos(sixlet, "ptinc")
+`"Regional aggregation based on Chapter 8 of "' + ///
+`"[URL][URL_LINK]"' + ///
+`"https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/"' + ///
+ `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + ///
+`"Chancel, L., Flores, I., Moshrif, R., Nievas, G., Piketty, T. (2025), "Distributional National Accounts Guidelines: Methods and concepts used in the World Inequality Database"; "' + ///
+ `"[/URL_TEXT][/URL]"' ///
+if missing(source) & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc"))
 
-replace source = ///
-`"[URL][URL_LINK]"' + `"http://wid.world/document/2021-dina-regional-update-for-asia-world-inequality-lab-technical-note-2021-6/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Bajard, F., Moshrif, R. (2021), “Regional DINA Update for Asia”"' + `"[/URL_TEXT][/URL]"' ///
-if (iso == "XA" | iso == "XA-MER") & strpos(sixlet, "ptinc")
+replace source =  source + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-mena/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"El Hariri, D. (2025), “2025 Regional DINA update for the Middle East”"' + `"[/URL_TEXT][/URL]"' ///
+if inlist(iso, "XN-PPP", "XN-MER", "OE-PPP", "OE-MER") & strpos(sixlet, "ptinc")
 
-replace source = ///
-`"[URL][URL_LINK]"' + `"http://wid.world/document/2020-dina-update-for-the-russian-federation-world-inequality-lab-technical-note-2020-05/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Neef, T., (2021) “Regional DINA update for Russia”"' + `"[/URL_TEXT][/URL]"' ///
-if (iso == "XR" | iso == "XR-MER") & strpos(sixlet, "ptinc")
+replace source = source + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-africa/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Robilliard, A.-S. (2025), “2025 DINA Update for countries of the Sub-Saharan Africa Region”"' + `"[/URL_TEXT][/URL]"' ///
+if inlist(iso, "XF-PPP", "XF-MER", "OJ-PPP", "OJ-MER") & strpos(sixlet, "ptinc")
 
-replace source = ///
+replace source = source + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-asia/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Bharti, N., Mo, Z. (2025), “Technical note for update of Asia - 2025”"' + `"[/URL_TEXT][/URL]"' ///
+if inlist(iso, "QL-PPP", "QL-MER", "OB-PPP", "OB-MER", "XS-PPP", "XS-MER", "OI-PPP", "OI-MER") & strpos(sixlet, "ptinc")
+
+replace source = source + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/2022-dina-regional-update-for-russia-world-inequality-lab-technical-note-2022-03/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Neef, T., (2022) “2022 DINA Regional update for Russia”"' + `"[/URL_TEXT][/URL]"' ///
+if inlist(iso, "XR-PPP", "XR-MER", "OA-PPP", "OA-MER") & strpos(sixlet, "ptinc")
+
+replace source = source + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/2022-dina-regional-update-for-australia-canada-and-new-zealand-world-inequality-lab-technical-note-2022-07/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Fisher-Post, M. (2022) 2022 DINA Regional Update for North America and Oceania”"' + `"[/URL_TEXT][/URL]"' ///
+if inlist(iso, "XB-PPP", "XB-MER", "OH-PPP", "OH-MER", "QF-PPP", "QF-MER", "OL-PPP", "OL-MER") & strpos(sixlet, "ptinc")
+
+replace source = source + ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/simplified-dina-for-australia-canada-and-new-zealand-world-inequality-lab-technical-note-2020-10/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Fisher-Post, M. (2021) “Regional DINA Update for North America and Oceania”"' + `"[/URL_TEXT][/URL]"' ///
-if (iso == "QF" | iso == "QF-MER") & strpos(sixlet, "ptinc")
+if inlist(iso, "QP-PPP", "QP-MER", "OK-PPP", "OK-MER") & strpos(sixlet, "ptinc")
 
-replace source = ///
-`"[URL][URL_LINK]"' + `"http://wid.world/document/simplified-dina-for-australia-canada-and-new-zealand-world-inequality-lab-technical-note-2020-10/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Fisher-Post, M. (2021) “Regional DINA Update for North America and Oceania”"' + `"[/URL_TEXT][/URL]"' ///
-if (iso == "QP" | iso == "QP-MER") & strpos(sixlet, "ptinc")
+replace source = source + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-latin-america/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Flores, I., Zuniga-Cordero, A., (2025) “Income inequality series for Latin America”"' + `"[/URL_TEXT][/URL]"' ///
+if inlist(iso, "XL-PPP", "XL-MER", "OD-PPP", "OD-MER") & strpos(sixlet, "ptinc")
 
-replace source = ///
-`"[URL][URL_LINK]"' + `"http://wid.world/document/income-inequality-series-for-latin-america-world-inequality-lab-technical-note-2020-02/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"De Rosa, M., Flores, I.,Morgan, M., (2021) “Regional DINA update for Latin America”"' + `"[/URL_TEXT][/URL]"' ///
-if (iso == "XL" | iso == "XL-MER") & strpos(sixlet, "ptinc")
+replace source = source + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-mena/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"El Hariri, D. (2025), "2025 Regional DINA update for the Middle East""' + `"[/URL_TEXT][/URL]"' ///
+if inlist(iso, "QE-PPP", "QE-MER", "OC-PPP", "OC-MER", "QM-PPP", "QM-MER") & strpos(sixlet, "ptinc")
 
-replace source = ///
+replace source = source + ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/update-of-global-income-inequality-estimates-on-wid-world-world-inequality-lab-technical-note-2020-11/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Chancel, L., Moshrif, R. (2020) “Update of global income inequality estimates on WID.world”"' + `"[/URL_TEXT][/URL]"' ///
 if /*(iso == "WO" | iso == "WO-MER")*/ missing(source) & strpos(sixlet, "ptinc")
 
+replace source = source + ///
+`"[URL][URL_LINK]"' + `"http://wid.world/document/preliminary-estimates-of-global-posttax-income-distributions-world-inequality-lab-technical-note-2023-02/"' + `"[/URL_LINK]"' + `"[URL_TEXT]"' + `"Fisher-Post, M., Gethin, A. (2023), "Preliminary Estimates of Global Posttax Income Distributions" "' + `"[/URL_TEXT][/URL]"' ///
+if strpos(sixlet, "diinc")
+
+replace source = ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/global-wealth-inequality-on-wid-world-estimates-and-imputations-world-inequality-lab-technical-note-2025-01/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Bajard, F., Bauluz, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Piketty, T., Sodano, A. (2025). “Global Wealth Inequality on WID.world: Estimates and Imputations”"' + `"[/URL_TEXT][/URL]"' ///
+if missing(source) & strpos(sixlet, "hweal")
 
 replace source = source + ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/distributional-financial-accounts-in-europe-world-inequality-lab-technical-note-2021-12/[/URL_LINK]"' + ///
-`"[URL_TEXT]Blanchet, T., Martinez-Toledano, C. (2021), Distributional Financial Accounts in Europe[/URL_TEXT][/URL]; "' ///
-if inlist(iso, "QE", "QE-MER") & strpos(sixlet, "hweal")
+`"[URL_TEXT]; Blanchet, T., Martinez-Toledano, C. (2021), Distributional Wealth Accounts in Europe[/URL_TEXT][/URL]"' ///
+if inlist(iso, "QE-PPP", "QE-MER") & strpos(sixlet, "hweal")
 
-replace source = source + ///
-`"[URL][URL_LINK]"' + `"http://wid.world/document/preliminary-estimates-of-global-posttax-income-distributions-world-inequality-lab-technical-note-2023-02/"' + `"[/URL_LINK]"' + `"[URL_TEXT]"' + `"Durrer de la Sota, Fisher-Post and Gethin (2023), "Preliminary Estimates of Global Posttax Income Distributions" "' + `"[/URL_TEXT][/URL]"' ///
-if strpos(sixlet, "diinc")
-
-
-replace source = ///
-`"[URL][URL_LINK]"' + `"https://wid.world/document/global-wealth-inequality-on-wid-world-estimates-and-imputations-wid-world-technical-note-2023-11/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Chancel, L., Piketty, T. (2023). “Global Wealth Inequality on WID.world: Estimates and Imputations”"' + `"[/URL_TEXT][/URL]"' ///
-if missing(source) & strpos(sixlet, "hweal")
-
-generate method = "WID.world aggregations of individual country data"
+generate method = "WID.world regional aggregations of individual country data"
 generate data_quality = "3" if strpos(sixlet, "ptinc")
 
 order iso sixlet source // method

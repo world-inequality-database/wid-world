@@ -30,13 +30,11 @@
 
 ** Countries and Other regions distributions (we duplicate from per-adult to get per-capita) - 33 main territories and 8 or 9 other regions
 
-use "$wid_dir/Country-Updates/Historical_series/2025_sept/output3_merge-gpinterized_2025_extended.dta", clear
+use "$wid_dir/Country-Updates/Historical_series/2025_Nov/output3_Hist_ptinc_benchmark_nobenchmark.dta", clear
 keep if name == "historical_sptinc992j"
 
-drop if inlist(year,1920,1930,1940,1950,1960) & iso=="US"
-
 * Keep only the 48 countries + (9+2) residual regions = core-territories
-keep if ( inlist(iso, "AE", "AR", "AU", "BD", "BR", "CA", "CD", "CI", "CL") ///
+*keep if ( inlist(iso, "AE", "AR", "AU", "BD", "BR", "CA", "CD", "CI", "CL") ///
 		| inlist(iso, "CN", "CO", "DE", "DK", "DZ", "EG", "ES", "ET", "FR") ///
 		| inlist(iso, "GB", "ID", "IN", "IR", "IT", "JP", "KE", "KR", "MA") /// 
 		| inlist(iso, "ML", "MM", "MX", "NE", "NG", "NL", "NO", "NZ", "OA") /// 
@@ -44,22 +42,23 @@ keep if ( inlist(iso, "AE", "AR", "AU", "BD", "BR", "CA", "CD", "CI", "CL") ///
 		| inlist(iso, "PH", "PK", "QM", "RU", "RW", "SA", "SD", "SE", "TH") ///
 		| inlist(iso, "TR", "TW", "US", "VN", "ZA")) 
 
+drop if iso=="US" & year> 1910 // inlist(year,1920,1930,1940,1950,1960) 
 
 // --------- 2. Import US 992 series 1920-1960
 append using  "$wid_dir/Country-Updates/US/2025/US_historical-gpinterized_2025_sept.dta"
 
 // keeping only until 1970 for historical series non percapita
-drop if year > 1970 
+drop if year > 1979 
 
 
 // --------- 5. Assign Regions to -PPP 
 *Note: The estimations here were done in PPP.
-gen region=1 if inlist(iso,"OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") | ///
+*gen region=1 if inlist(iso,"OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") | ///
 				inlist(iso,"OK", "OL","QM")
 
 *expand 2 if region==1, gen(xpnd)
-replace iso = iso + "-PPP" if region==1 
-drop region
+*replace iso = iso + "-PPP" if region==1 
+*drop region
 
 
 // --------- 2. Calibrate monetary amounts using nninc 
@@ -70,7 +69,6 @@ preserve
 	keep iso year widcode value 
 	reshape wide value,i(iso year) j(widcode) string
 	rename value* *
-
 	tempfile anninc
 	save "`anninc'"
 restore
@@ -147,9 +145,9 @@ save `completehistoricalpretax'
 //             B. Import Historical wealth Series 
 // -----------------------------------------------------------------------------
 
-// --------- 1. Import Core-territories 992 series 
+// --------- 1. Import Core-territories 992 series (Residual regions in PPP)
 
-** Countries and Other regions distributions (we duplicate from per-adult to get per-capita) - 33 main territories and 8 or 9 other regions
+** Countries and Other regions distributions (we duplicate from per-adult to get per-capita) - 58 main territories and 8 or 9 other regions
 
 use "$wid_dir/Country-Updates/Historical_series/2025_Oct/wealth-distributions-1820-2024-lcu-final.dta", clear
 
@@ -170,7 +168,7 @@ order iso year p t ts bs s a
 
 
 
-// --------- 5. Assign Regions to -PPP 
+// --------- 2. Assign Regions to -PPP 
 *Note: The estimations here were done in PPP.
 gen region=1 if inlist(iso,"OA", "OB", "OC", "OD", "OE", "OH", "OI", "OJ") | ///
 				inlist(iso,"OK", "OL","QM")
@@ -187,8 +185,12 @@ foreach r in OK OL {
 replace iso = iso + "-PPP" if region==1 
 drop region
 
+// --------- 3. Import residual regions 992 series MER
+append using "$wid_dir/Country-Updates/Historical_series/2025_Nov/output4_Hist_hweal_benchmark.dta"
+// keeping only until 1980 for historical series 
+drop if year >= 1980 
 
-// --------- 2. Calibrate monetary amounts using nninc 
+// --------- 4. Calibrate monetary amounts using nninc 
 preserve
 	use "$work_data/clean-up-output.dta", clear
 
@@ -282,9 +284,8 @@ rename value value_base
 
 merge 1:1 iso year widcode p using "`completehistoricalpretax'", nogen 
 rename value value_comp
-merge 1:1 iso year widcode p using "$wid_dir/Country-Updates/Historical_series/2023_December/0H_OD_CL_ptinc_post1980.dta", nogen // This dataset contains data for OH and OD, calculated in aggregate-distribtion-regions.do except for the bottom percentiles p0pXX in averages and shares , top percentiles pXXp100 in thresholds .
-rename value value_oocp
-
+*merge 1:1 iso year widcode p using "$wid_dir/Country-Updates/Historical_series/2023_December/0H_OD_CL_ptinc_post1980.dta", nogen // This dataset contains data for OH and OD, calculated in aggregate-distribtion-regions.do except for the bottom percentiles p0pXX in averages and shares , top percentiles pXXp100 in thresholds .
+*rename value value_oocp
 
 // Matching the historical series for core-countries
 
@@ -294,18 +295,21 @@ rename value value_oocp
 **       only retain the years before the overlap. While this implies loosing 
 **       observations on of the p0pXX or pXXp100, this will be recalculated in 
 **       homogenize do-file.
-replace value_base = value_comp if  mi(value_base) & year < 1980  & !inlist(iso,"AU","FR","IN","NZ","US")
+replace value_base = value_comp if  mi(value_base) & year < 1980  & !inlist(iso,"AU","FR","IN","NZ","US","SG")
 replace value_base = value_comp if !mi(value_comp) & year < 1910  & iso== "AU"
 replace value_base = value_comp if !mi(value_comp) & year<= 1910  & iso== "FR"
 replace value_base = value_comp if !mi(value_comp) & year<= 1950  & iso== "IN" // We replace the top percentiles in order to gain a complete distribution in the decade years.
 replace value_base = value_comp if !mi(value_comp) & year <  1920 & iso== "NZ"
 replace value_base = value_comp if !mi(value_comp) & year <= 1960 & iso== "US"
+replace value_base = value_comp if !mi(value_comp) & year <  1969 & iso== "SG"
+
 ** Note: For the data from OH_OD_CL_ptinc_post1980, this data is no longer needed since the regions can be now calculated from the complete 2016 core countries.
-replace value_base = value_oocp if !mi(value_oocp) & year == 1970 & iso== "CL"
+*replace value_base = value_oocp if !mi(value_oocp) & year == 1970 & iso== "CL"
+
 
 * Cleanning
 rename value_base value
-drop  value_comp value_oocp // dup corrected
+drop  value_comp // value_oocp // dup corrected
 drop if missing(value)
 
 * Keep only one observation per iso-year-widcode-p
@@ -356,6 +360,10 @@ gr export "$wid_dir/Country-Updates/Historical_series/2022_December/temp/gr`c'`p
 // D. Change metadata to indicate extrapolation
 // -------------------------------------------------------------------------- //
 
+// [NOTE Dec 2025] The "source" part of this section is commented-out because 
+// now the source for historical series is updated directly in the import files 
+// of each region.
+
 *Long-run metadata
 use "$wid_dir/Country-Updates/Historical_series/2022_December/merge-longrun-all-output.dta", clear
 *use "$wid_dir/Country-Updates/Historical_series/2025_sept/output3_merge-gpinterized_2025_extended.dta", clear 
@@ -367,20 +375,19 @@ drop is_long_run
 drop if source =="long-run"
 collapse (firstnm) year, by(iso)
 generate method1 = "Before " + string(year) + ", pretax income shares estimated based on methodology in long-run paper: see source."
-gen source1 = "[URL][URL_LINK]https://wid.world/document/longrunpaper/[/URL_LINK][URL_TEXT]Chancel, L., Piketty, T. (2021). Global Income Inequality, 1820-2020: The Persistence and Mutation of Extreme Inequality[/URL_TEXT][/URL]"
-keep iso method1 source1
+*gen source1 = "[URL][URL_LINK]https://wid.world/document/longrunpaper/[/URL_LINK][URL_TEXT]Chancel, L., Piketty, T. (2021). Global Income Inequality, 1820-2020: The Persistence and Mutation of Extreme Inequality[/URL_TEXT][/URL]"
+keep iso method1 //source1
 
 tempfile longrun
-save "`longrun'"
+save "`longrun'" 
 
 *Imputed metadata
 use "$wid_dir/Country-Updates/Historical_series/2022_December/merge-longrun-all-output.dta", clear
-
 collapse (min) year, by(iso source)
 keep if source == "historical inequality technical note"
 generate method2 = string(year) + " based on methodology described in source"
-gen source2 = "[URL][URL_LINK]https://wid.world/document/historical-inequality-series-on-wid-world-updates-world-inequality-lab-technical-note-2023-01/[/URL_LINK][URL_TEXT]Chancel, L., Moshrif, R., Piketty, T., Xuereb, S. (2021). Historical Inequality Series in WID.world: 2022 updates[/URL_TEXT][/URL]" //NEED TO ADD LINK TO TECH NOTE WHEN IT IS ONLINE
-keep iso method2 source2
+*gen source2 = "[URL][URL_LINK]https://wid.world/document/historical-inequality-series-on-wid-world-updates-world-inequality-lab-technical-note-2023-01/[/URL_LINK][URL_TEXT]Chancel, L., Moshrif, R., Piketty, T., Xuereb, S. (2021). Historical Inequality Series in WID.world: 2022 updates[/URL_TEXT][/URL]" //NEED TO ADD LINK TO TECH NOTE WHEN IT IS ONLINE
+keep iso method2 //source2
 
 tempfile technote
 save "`technote'"
@@ -396,12 +403,12 @@ generate newmethod = method1 if m1==3 & strpos(sixlet, "ptinc")
 replace newmethod = method2 if m2==3 & strpos(sixlet, "ptinc") 
 replace method = method + ". " + newmethod if !missing(newmethod) & strpos(sixlet, "ptinc")
 
-replace source = rtrim(source)
-generate newsource = source1 if m1==3 & strpos(sixlet, "ptinc") 
-replace newsource = source2 if m2==3 & strpos(sixlet, "ptinc")
-replace source = source + " " + newsource if !missing(newsource) & strpos(sixlet, "ptinc")
+*replace source = rtrim(source)
+*generate newsource = source1 if m1==3 & strpos(sixlet, "ptinc") 
+*replace newsource = source2 if m2==3 & strpos(sixlet, "ptinc")
+*replace source = source + " " + newsource if !missing(newsource) & strpos(sixlet, "ptinc")
 
-drop m1 m2 newmethod method1 method2 newsource source1 source2
+drop m1 m2 newmethod method1 method2 // newsource source1 source2
 
 gduplicates tag iso sixlet, gen(duplicate)
 assert duplicate == 0

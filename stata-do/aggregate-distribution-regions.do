@@ -252,10 +252,10 @@ fillin concept iso year p
 drop _fillin
 sort iso year concept p
 drop if substr(concept,1,1) == "i" & year<1980 & substr(iso, 1, 1)== "O"
-drop if substr(concept,1,1 )== "i" & year<1980 & strpos(iso, "-MER")
+*drop if substr(concept,1,1 )== "i" & year<1980 & strpos(iso, "-MER")
 drop if substr(concept,1,1) == "d" & year<1980
 drop if substr(concept,1,1) == "w" & year<1980 & substr(iso, 1, 1)== "O"
-drop if substr(concept,1,1 )== "w" & year<1980 & strpos(iso, "-MER")
+*drop if substr(concept,1,1 )== "w" & year<1980 & strpos(iso, "-MER")
 
 
 // Fill in missing values

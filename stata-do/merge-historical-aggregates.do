@@ -41,11 +41,48 @@
 * 	1. Call necessary data from WID
 // -------------------------------------------------------------------------- //
 use "$work_data/aggregate-regions-output.dta", clear
-
 keep if inlist(substr(widcode, 1, 6), "xlcusx", "xlcusp", "xlceux", "xlceup", "xlcyux", "xlcyup") /// 
-	  | inlist(substr(widcode, 1, 6), "inyixx","mgdpro","ynninc","mnnfin") /// ,"npopul") // , "intlcu","xrerus") ///
+	  | inlist(substr(widcode, 1, 6), "inyixx", "mgdpro", "ynninc", "mnnfin") /// ,"npopul") // , "intlcu","xrerus") ///
 	  | inlist(substr(widcode, 1, 6), "yhweal", "ypweal", "mhweal", "mpweal")
 drop currency
+
+preserve 
+	keep if widcode=="inyixx999i"
+	keep iso year p value widcode 
+	rename value value_wid
+	tempfile prices1
+	save `prices1'
+
+restore
+preserve
+	use "$wid_dir/Country-Updates/Historical_series/2025_Nov/output5_Extended_deflactor_non_benchmark.dta", clear
+	
+	merge 1:1 iso year widcode p using "`prices1'", nogen
+	sort iso year
+	
+	* Recreate the price index as if pastyear=2024 ( when the non benchmark data was generated)
+	gen value_aux1=value_wid if year==2024
+	bysort iso : egen base1 = mode(value_aux1)
+	replace value_wid=value_wid/base1
+	
+	gen value_aux2=value_wid if year==$pastyear
+	bysort iso : egen base2 = mode(value_aux2)
+	replace value=value/base2
+	
+	replace value_wid=value if missing(value_wid)
+	
+	keep iso year widcode p value_wid
+	rename value_wid value
+	
+	tempfile full_prices
+	save "`full_prices'"
+restore
+
+drop if widcode=="inyixx999i"
+
+append using "`full_prices'"
+
+sort iso widcode year p
 
 * Call historical population for regions
 /*
@@ -67,7 +104,7 @@ reshape wide value, i(iso year p) j (widcode) string
 * call updated price index for NP data in 2023 prices
 preserve	
 	keep if !strpos(iso,"-PPP") & year==2023 // last year of Nievas piketty
-	keep  iso valueinyixx999i
+	keep    iso valueinyixx999i
 	rename (iso valueinyixx999i) (region inyixx_23)
 	
 	tempfile  indx_xlc
@@ -96,9 +133,8 @@ restore
 *call GDP and NNI for compleating W and Y calculations for Dietrischelal.(2025) 1970-1980
 preserve
 	keep if year>=1970 & year<=1980
-
 	keep iso year valueinyixx999i valuemgdpro999i valueynninc999i //valuemnnfin999i
-	rename (valueinyixx999i valuemgdpro999i valueynninc999i) (valueinyixx999ib valuemgdpro999ib valueynninc999ib)
+	rename       (valueinyixx999i valuemgdpro999i valueynninc999i) (valueinyixx999ib valuemgdpro999ib valueynninc999ib)
 	
 	gen region=iso
 	
@@ -579,8 +615,8 @@ replace value = round(value, 1) if strpos(widcode, "npopul")
 
 gen currency="USD" if substr(widcode,1,1)=="m"
 
-gduplicates drop
 
+gduplicates drop
 drop if missing(value)
 gen new=1
 
@@ -594,6 +630,13 @@ save "`regions_pre70'"
 * Bring Wealth to product ratio (Y)
 use  "$work_data/nievaspiketty2025_hist.dta", clear
 gen np=1
+append using "$wid_dir/Country-Updates/Historical_series/2025_Nov/output6_Extended_macro_non_benchmark.dta"
+duplicates tag iso year widcode p, gen(dup)
+drop if np==1 & dup==1
+duplicates tag iso year widcode p, gen(dup2)
+assert dup2==0
+drop dup*
+
 append using "$work_data/dietrichetal2025sectors_hist.dta"
 
 duplicates tag iso year widcode p, gen(dup)
@@ -610,14 +653,14 @@ duplicates tag iso year widcode p, gen(dup2)
 assert dup2==0
 drop dup* npd
 
-* Deep relevant observations
+* keep relevant observations
 keep if !inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"QL", "QM","WO","QE")
 
 drop if widcode=="inyixx999i"
 reshape wide value, i(iso year p) j(widcode) string
 
-* calcualte nninc and ndpro
-gen double valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) // valueygdpro999i==1
+* calculate nninc and ndpro
+replace valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) if !(missing(valueyconfc999i) & missing(valueynnfin999i))
 *gen double valueyndpro999i= 1 - valueyconfc999i // valueygdpro999i==1
 
 * Generate personal wealth 
@@ -633,6 +676,7 @@ merge 1:1 iso year using "`country_idx'", nogenerate keep(master match)
 replace valuemgdpro999i= valuemgdpro999i/valueinyixx999i
 
 merge 1:1 iso year using "`agg_70s'", nogenerate keep(master match) 
+
 foreach v in mgdpro ynninc {
 	replace value`v'999i = value`v'999ib if missing(value`v'999i ) 
 }
@@ -671,14 +715,14 @@ replace flag = 1 if inlist(substr(widcode, 2, 5), "ptxgo", "gvato", "gvago", "ce
 				    inlist(substr(widcode, 2, 5), "ccmhn", "gsrhn", "nsrhn", "ccshn", "gvahn", "ceuhn") | ///
 					inlist(substr(widcode, 2, 5), "gmxhn", "nmxhn")
 
-replace flag = 1 if  inlist(substr(widcode, 1, 6), "ylsgdp", "ylsndp", "ycsgdp", "ycsndp", "wlsgni", "wlsnni") | ///
+replace flag = 1 if inlist(substr(widcode, 1, 6), "ylsgdp", "ylsndp", "ycsgdp", "ycsndp", "wlsgni", "wlsnni") | ///
 					inlist(substr(widcode, 1, 6), "wcsgni", "wcsnni", "ylscgv", "ylscnv", "ycscgv", "ycscnv") | ///
 					inlist(substr(widcode, 1, 6), "yconfc")
 
-replace flag = 1 if  inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gweal", "gwass", "gwdeb", "nwnfa") | ///
-					 inlist(substr(widcode, 2, 5), "hweal","pweal")
+replace flag = 1 if inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gweal", "gwass", "gwdeb", "nwnfa") | ///
+					inlist(substr(widcode, 2, 5), "hweal","pweal")
 
-drop if year>=1970 & flag==0 & regions!=1
+drop if year>=1970 & flag==0 //& regions!=1
 drop flag regions
 
 tempfile full_pre70
@@ -689,14 +733,16 @@ save `full_pre70'
 * Note: while nsrgo is assumed to be 0, this is not the exact case for all the 
 *		countries (probalbly because of meassuremnt mistakes). As so, by keepusing
 * 		what we had in the WID we avoid a suden pass from 0 until 1980 to not 0 
-*		afterwards for all the contries at the same time..
+*		afterwards for all the contries at the same time.
 append using  "$work_data/aggregate-regions-output.dta"
 duplicates tag iso year widcode p, gen(dup)
 
 drop if new!=1 & dup==1 & (!inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gweal", "gwass", "gwdeb", "nwnfa") & ///
-					       !inlist(substr(widcode, 2, 5), "hweal","pweal") & !strpos(widcode,"nsrgo"))
-drop if new==1 & dup==1 & ( inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gweal", "gwass", "gwdeb", "nwnfa") | ///
+						   !inlist(substr(widcode, 2, 5), "hweal","pweal") & !strpos(widcode,"nsrgo"))					   
+						   
+drop if new==1 & dup==1 &  (inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gweal", "gwass", "gwdeb", "nwnfa") | ///
 					        inlist(substr(widcode, 2, 5), "hweal","pweal") |  strpos(widcode,"nsrgo"))
+
 
 duplicates tag iso year widcode p, gen(dup2)
 assert dup2==0
@@ -709,8 +755,6 @@ drop aux
 
 // --------- 4.3.  Save ----------------------------------------------------- //
 compress
-
-
 
 sort iso year widcode p
 label data "Generated by merge-historical-aggregates.do"

@@ -129,13 +129,13 @@ replace order = (order - 1)/100
 //------- Start of Intervention ------------------------------------------------
 *gen back_t=t
 // Create a flag for values less than 0
-gen flag_0 = (a < 0)  
-bysort iso year (p): egen flag = max(flag)  
-
+gen flag_0 = (a < 0)
+    
+bysort iso year (p): egen flag = max(flag_0)  
 
 replace a = 0 if a<0 
-bys iso year (p) : replace a = 0 if _n <= $plafond       & flag==1
-bys iso year (p) : replace t = . if inrange(p, 0, 20000) & flag==1
+bys iso year (p) : replace a = 0 if _n <= $plafond       //& flag==1
+bys iso year (p) : replace t = . if inrange(p, 0, 20000) //& flag==1
 
 // Compute Alpha
 bys iso year (p) : generate double  a_n = a if p == 20000
@@ -161,7 +161,7 @@ bys iso year (p) : generate p_n  = .2
 
 generate double  m3 = a_n*(((p_i1-p_k1)^(1+alpha))-((p_i-p_k1)^(1+alpha)))/((1+alpha)*(p_n-p_k1)^alpha*(p_i1-p_i)) if inrange(p, 5000, 19000)
 
-replace a = m3 if !missing(m3) & flag==1
+replace a = m3 if !missing(m3) //& flag==1
 
 // append using "`exception'"
 
@@ -187,7 +187,7 @@ bys iso year (p) : replace t = min(0, 2*a) if missing(t)
 
 // 3. Ensuring series Match
 //-----  3.1. Dropping values if the calculated t is >= to the first non-modified t
-bys iso year (p) : gen flag_t = 1 if round(t,0.00001)>=round(t_max,0.00001) & flag==1 & inrange(p, 5000, 20000)
+bys iso year (p) : gen flag_t = 1 if round(t,0.00001)>=round(t_max,0.00001) & inrange(p, 5000, 20000) //& flag==1
 bys iso year (p) : replace t = . if flag_t==1
 
 //-----  3.2. Interpolate dropped values

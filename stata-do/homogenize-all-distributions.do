@@ -171,6 +171,7 @@ by iso year widcode: replace         ta = sum(a*n)/(1e5 - p) if !missing(a) & (!
 
 *by iso year widcode: generate double bs = 1 - ts
 by iso year widcode: generate double bs = 1000 - ts
+					 replace bs = 0 if abs(ts - 1000) < 0.0001
 by iso year widcode: generate double ba = ((bs/1000) / (1 - p / 1e7)) * anninc992i if inlist(widcode, "ptinc992j") & !missing(anninc992i)
 by iso year widcode: replace         ba = ((bs/1000) / (1 - p / 1e7)) * anninc992i if inlist(widcode, "diinc992j") & !missing(anninc992i)
 by iso year widcode: replace         ba = ((bs/1000) / (1 - p / 1e7)) * anninc992i if inlist(widcode, "fainc992j") & !missing(anninc992i)

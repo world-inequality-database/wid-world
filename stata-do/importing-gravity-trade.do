@@ -100,6 +100,10 @@ foreach var in tradeflow_comtrade_o tradeflow_comtrade_d tradeflow_baci manuf_tr
 	replace `var' =. if `var' == 0 
 }
 
+* Drop aberrant values
+replace tradeflow_imf_d=. if year==2004 & iso3_o=="IND" & iso3_d=="BTN"
+
+
 gen exports = tradeflow_imf_d
 replace exports = tradeflow_comtrade_d if missing(exports)
 replace exports = tradeflow_imf_o if missing(exports)
@@ -124,14 +128,14 @@ keep iso_o iso_d year exports pairid
 ********************************************************************************
 // mirroring imports
 preserve
-keep iso_o iso_d year exports pairid
-ren (exports) (imports)
-ren iso_o aux2
-ren iso_d iso_o
-ren aux2 iso_d
-label var imports "Imports in USD. first IMF_d COMTRADE_d I_o C_o and BACI" 
-tempfile flowimports
-sa `flowimports', replace
+	keep iso_o iso_d year exports pairid
+	ren (exports) (imports)
+	ren iso_o aux2
+	ren iso_d iso_o
+	ren aux2 iso_d
+	label var imports "Imports in USD. first IMF_d COMTRADE_d I_o C_o and BACI" 
+	tempfile flowimports
+	sa `flowimports', replace
 restore
 
 merge 1:1 iso_o iso_d year using `flowimports'

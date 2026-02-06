@@ -496,7 +496,7 @@ replace otherpinc_debit =. if year < 1991
 preserve 
 	gen net_trade = trade_credit - trade_debit 
 	keep iso year trade_credit trade_debit net_trade gdp_us
-save "$work_data/bop_tradeusd.dta", replace
+	save "$work_data/bop_tradeusd.dta", replace
 restore 
 
 // Separating trade in services and trade in goods

@@ -45,13 +45,13 @@ preserve
 	keep if strpos(widcode,"diinc")
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
 	keep if strpos(widcode,"999j") 
-	*export delim "$output_dir/$time/wid-data-$time-diinc2025Update-999.csv", delimiter(";") replace
+	export delim "$output_dir/$time/wid-data-$time-diinc2025Update-999.csv", delimiter(";") replace
 restore
 preserve
 	keep if strpos(widcode,"diinc")
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
 	keep if strpos(widcode,"992j") 
-	*export delim "$output_dir/$time/wid-data-$time-diinc2025Update-992.csv", delimiter(";") replace
+	export delim "$output_dir/$time/wid-data-$time-diinc2025Update-992.csv", delimiter(";") replace
 restore
 
 //------------- 7.3 Generating wealth distribution data .csv
@@ -59,13 +59,13 @@ preserve
 	keep if strpos(widcode,"hweal")
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
 	keep if strpos(widcode,"999j") 
-	*export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-999.csv", delimiter(";") replace
+	export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-999.csv", delimiter(";") replace
 restore
 preserve
 	keep if strpos(widcode,"hweal")
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
 	keep if strpos(widcode,"992j") 
-	*export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-992.csv", delimiter(";") replace
+	export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-992.csv", delimiter(";") replace
 restore
 
 //------------- 7.4 Generating factor income data .csv
@@ -73,7 +73,7 @@ preserve
 	keep if strpos(widcode,"fainc")
 	keep if strpos(widcode,"999j") | strpos(widcode,"992j") 
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
-	*export delim "$output_dir/$time/wid-data-$time-fainc2025_Update.csv", delimiter(";") replace
+	export delim "$output_dir/$time/wid-data-$time-fainc2025_Update.csv", delimiter(";") replace
 restore
 
 //------------- 7.5 Generating fiscal income data .csv
@@ -81,7 +81,7 @@ preserve
 	keep if strpos(widcode,"fiinc")
 	keep if strpos(widcode,"992i") 
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
-	*export delim "$output_dir/$time/wid-data-$time-fiinc2025_Update.csv", delimiter(";") replace
+	export delim "$output_dir/$time/wid-data-$time-fiinc2025_Update.csv", delimiter(";") replace
 restore
 
 //------------- 7.6 Generating cash inflows data .csv
@@ -89,7 +89,7 @@ preserve
 	keep if strpos(widcode,"cainc")
 	keep if strpos(widcode,"992j") 
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
-	*export delim "$output_dir/$time/wid-data-$time-cainc2025_Update.csv", delimiter(";") replace
+	export delim "$output_dir/$time/wid-data-$time-cainc2025_Update.csv", delimiter(";") replace
 restore
 
 

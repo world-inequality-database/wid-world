@@ -4,9 +4,14 @@
 * Objetive: Calculate Real exchange rate with respect to US dollar
 * Note: i.e. RER<1 means real prices are lower than in the US, i.e. MER should appreciate in order to restore price parity; and converserly if RER>1
 
+//----------- Select Data ---------------------------------------------------------
 * call Data
 use "$work_data/merge-historical-aggregates-output.dta", clear
 
+
+//----------- XRER USD ---------------------------------------------------------
+
+/*
 *keep relevant observations
 drop if strpos(iso,"CN-")
 drop if strpos(iso,"-") &  inlist(substr(widcode,1,6), "inyixx",  "mgdpro","npopul")
@@ -21,6 +26,7 @@ drop dup
 drop currency
 reshape wide value, i(iso year p) j(widcode) string
 rename  value* *
+
 
 * Calculate per-capita GDP in current MER USD for $pastyear
 gen double gdp_cur_mer_usd = ((mgdpro999i/npopul999i)/inyixx999i)/xlcusx999i if year==$pastyear
@@ -69,6 +75,60 @@ keep iso year p value
 drop if mi(value)
 gen widcode="xrerus999i"
 
+tempfile rer_usd
+save    `rer_usd'
+*/
+//------------------------------------------------------------------------------
+
+*keep relevant observations
+* drop if strpos(iso,"-") &  inlist(substr(widcode,1,6), "inyixx",  "mgdpro","npopul")
+keep if inlist(substr(widcode,1,6), "xlcusp", "xlceup", "xlcyup", "xlcusx", "xlceux", "xlcyux") 
+
+duplicates tag iso year widcode p, gen (dup)
+assert dup==0
+drop dup
+
+drop currency
+reshape wide value, i(iso year p) j(widcode) string
+rename  value* *
+
+*Prepare indexes for calcuating xrer for -PPP
+preserve
+	drop if strpos(iso,"-") 
+	keep iso year xlceux999i xlcusx999i xlcyux999i
+	rename xlc* xlc*mer
+	rename iso iso2
+	
+	tempfile MER
+	save `MER'
+restore
+
+
+gen iso2 = substr(iso,1,2) if strpos(iso,"-PPP")
+merge m:1 iso2 year using "`MER'", keep(master match) nogenerate
+
+
+* Gen real exchange rate for USD
+gen     xrerus999i= xlcusp999i/xlcusx999i    if !strpos(iso,"-PPP") 
+replace xrerus999i= xlcusp999i/xlcusx999imer if  strpos(iso,"-PPP") 
+
+* Gen real exchange rate for EUR
+gen     xrereu999i= xlceup999i/xlceux999i    if !strpos(iso,"-PPP") 
+replace xrereu999i= xlceup999i/xlceux999imer if  strpos(iso,"-PPP") 
+
+* Gen real exchange rate for CNY
+gen     xreryu999i= xlcyup999i/xlcyux999i    if !strpos(iso,"-PPP") 
+replace xreryu999i= xlcyup999i/xlcyux999imer if  strpos(iso,"-PPP") 
+
+drop *mer iso2
+
+* Clean-up and format
+keep iso year p xrer*
+drop if missing(xreryu999i) & missing(xrereu999i) & missing(xrerus999i)
+rename xrer* valuexrer*
+
+reshape long value, i(iso year p) j(widcode) string
+ 
 * Generate the Metadata
 preserve
 	gen sixlet=substr(widcode,1,6)
@@ -86,6 +146,7 @@ restore
 
 
 * Keep only the core-territories if the year<1970
+/*
 drop if (!inlist(iso, "AE", "AR", "AU", "BD", "BR", "CA", "CD", "CI", "CL") ///
 		& !inlist(iso, "CN", "CO", "DE", "DK", "DZ", "EG", "ES", "ET", "FR") ///
 		& !inlist(iso, "GB", "ID", "IN", "IR", "IT", "JP", "KE", "KR", "MA") /// 
@@ -95,7 +156,7 @@ drop if (!inlist(iso, "AE", "AR", "AU", "BD", "BR", "CA", "CD", "CI", "CL") ///
 		& !inlist(iso, "TW", "US", "VN", "WO", "QL", "XB", "XF", "XL", "XN") ///
 		& !inlist(iso, "XR", "XS", "ZA", "OK","OL","QF","QP")) ///
 		& year<1970
-
+*/
 //------- Temporary section ----------------------------------------------------
 /*
 preserve

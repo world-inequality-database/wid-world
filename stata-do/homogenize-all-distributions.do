@@ -6,7 +6,7 @@
 
 clear all
 // Generate a folder for the output (FOR ALL)
-capture mkdir "$output_dir/$time"
+*capture mkdir "$output_dir/$time"
 
 
 //-------- 1.  Get the aggregates ----------------------------------------------

@@ -56,7 +56,8 @@ foreach l in `fivelet' {
 	replace tokeep = 1 if fivelet == "`l'"
 }
 replace tokeep = 1 if inlist(substr(widcode, 1, 6), "npopul")
-replace tokeep = 1 if inlist(substr(widcode, 2, 5), "nyixx", "ntlcu", "rerus", "lceux", "lceup", "lcyux", "lcyup", "lcusx", "lcusp")
+replace tokeep = 1 if inlist(substr(widcode, 2, 5), "nyixx", "ntlcu", "lceux", "lceup", "lcyux", "lcyup", "lcusx", "lcusp")
+replace tokeep = 1 if inlist(substr(widcode, 2, 5), "rerus", "rereu", "reryu")
 *replace tokeep = 1 if inlist(substr(widcode, 1, 6), "npopul", "intlcu")
 replace tokeep = 0 if inlist(substr(widcode, 1, 1), "s", "t", "o")
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "fdimp", "fdion", "fdiop", "fdior",           "fkfiw", "nwoff")
@@ -106,12 +107,13 @@ keep iso year p widcode value
 *drop if year=2024 & strpos(widcode,"nwnxa")
 *drop flag
 
-gen regions=0
+*gen regions=0
 
 tempfile core_macro
 save `core_macro'
 
 //---------------- Temporary -----------------------
+/*
 drop regions
 gen region = 1 if (inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"OM","XI")) | inlist(substr(iso, 1, 2), "QL","QM","WO","QE","QP","QF")
 keep if region==1
@@ -134,7 +136,7 @@ gen regions=1
 
 tempfile regions
 save `regions'
-
+*/
 /*
 rename iso Alpha2
 rename p   perc
@@ -154,9 +156,9 @@ foreach onelet in w  { //a i m n  w y x { //   p
 }
 */
 //--------------------------------------------------
-
+/*
 use "`core_macro'", clear
-append using "`regions'"
+*append using "`regions'"
 
 duplicates tag iso year widcode p, gen(dup)
 drop if dup==1 & regions!=1
@@ -219,7 +221,7 @@ preserve
 	gen region = 1 if (inlist(substr(Alpha2, 1, 1), "X", "O") & !inlist(Alpha2,"OM","XI")) | inlist(substr(Alpha2, 1, 2), "QL","QM","WO","QE","QP","QF")
 	drop if region == 1  & substr(Alpha2,3,1)!="-"
 	drop region
-	export delim "$output_dir/$time/wid-data-$time-macro-var-$year-wealth_diertchetal25.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-macro-var-$year-wealth_diertchetal25.csv", delimiter(";") replace
 restore
 
 
@@ -261,15 +263,15 @@ foreach onelet in a i m n  w y x { //   p
 	
 }
 
+*/
 
-/*
 preserve
 	rename iso Alpha2
 	rename p   perc
 	order Alpha2 year perc widcode
-	export delim "$output_dir/$time/wid-data-$time-macro-var-2024.csv", delimiter(";") replace
+	export delim "$output_dir/$time/wid-data-$time-macro-var-2025.csv", delimiter(";") replace
 restore
-/*
+
 
 //------------------------------------------------------------------------------
 //  Macro update Metadata

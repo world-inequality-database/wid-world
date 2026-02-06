@@ -524,7 +524,7 @@ drop cap?? cag?? nsmnp
 
 // Calculate net national income
 replace         gdpro = 1 if missing(gdpro)
-replace         nnfin =  flcin + taxnx // if !missing(taxnx)
+replace         nnfin = cond(missing(flcin), 0, flcin) + cond(missing(taxnx), 0, taxnx) // if !missing(taxnx)
 generate double nninc = gdpro - confc + cond(missing(nnfin), 0, nnfin) 
 generate double ndpro = gdpro - confc
 generate double gninc = gdpro         + cond(missing(nnfin), 0, nnfin)

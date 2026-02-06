@@ -30,9 +30,11 @@
 //      2.12. Complete intclu 
 //      2.13. Exclusion checks
 //  3. Merge Historical countries from Nievas & Piketty (2025)
+//      3.1.  Extend PPP to non-main countries before 1970
+//      3.2.  Extend Xrates to non-main countries before 1970 
 //  4. Final Formating and export
-//      4.1. Pile countries 
-//      4.2. Add regions
+//      4.1.  Pile countries 
+//      4.2.  Add regions
 //      4.3.  Save
 //  5. Create metadata
 //------------------------------------------------------------------------------
@@ -157,6 +159,12 @@ restore
 preserve
 	keep if iso=="US" 
 	keep iso year valueinyixx999i valuexlcusp999i
+	
+	gen ppp_usa_iso=1
+	tempfile pppusa_iso
+	save `pppusa_iso'	
+	
+	drop ppp_usa_iso
 	rename (iso) (region)
 	
 	tempfile pppusa
@@ -172,14 +180,20 @@ preserve
 	save    `country_idx'
 restore
 
-* Keep only regions
-keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE","QF","QP")
-drop if inlist(iso,"OM")
+
 	
 * Call conversion factors PPP fo the $pastyear for regions
 preserve	
 	keep if !strpos(iso,"-PPP") & year==$pastyear 
 	keep  iso year valueinyixx999i valuexlcusp999i valuexlceup999i valuexlcyup999i
+	
+	tempfile  indx_pasty_iso
+	save `indx_pasty_iso'
+	
+	* Keep only regions
+	keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE","QF","QP")
+	drop if inlist(iso,"OM")
+	
 	rename iso region
 	
 	tempfile  indx_pasty
@@ -698,6 +712,97 @@ replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"_w")
 replace widcode = "m" + substr(widcode,2,9) if strpos(widcode,"_m")
 
 drop if missing(value)
+
+// --------- 3.1. Extend PPP to non core countries. before 1970 ----------- //
+
+preserve 	
+	keep if inlist(widcode,"inyixx999i", "xlcusp999i", "xlcusx999i") // , "xlcyup999i")
+
+	reshape wide value, i(iso year p) j(widcode) string
+	append using "`pppusa_iso'"
+	append using "`indx_pasty_iso'"
+	
+	
+	
+	**PI home 2011
+	gen double localindex20210 = valueinyixx999i if year==$pastyear
+	egen localindex2021        = mode(localindex20210), by(iso)
+	
+	foreach c in us { // yu { 
+		**PPP home 2011
+		gen double lcl`c'ppp20210 = valuexlc`c'p999i if year==$pastyear
+		egen lcl`c'ppp2021        = mode(lcl`c'ppp20210), by(iso)
+		
+		** PI foreing current
+		gen double index`c'0 = valueinyixx999i      if iso==cond("`c'"=="us", "US", "CN")
+		egen index`c'        = mode(index`c'0), by(year)
+		** PI foreing 2021
+		gen double index`c'20210 = valueinyixx999i if iso==cond("`c'"=="us", "US", "CN") & year==$pastyear
+		egen index`c'2021         = mode(index`c'20210)
+		
+		drop *0
+		
+		**extendPPP
+		gen ppp= lcl`c'ppp2021*((valueinyixx999i/localindex2021)/(index`c'/index`c'2021))
+		
+		replace valuexlc`c'p999i=ppp if year<1970 & !inlist(iso,"US","CN")
+		
+		keep year /*currency*/ iso p valueinyixx999i valuexlcusp999i  localindex2021  // valuexlcyup999i
+	}
+	drop localindex2021
+	
+	keep if year<1970 	& !inlist(iso,"US") // ,"CN") 
+	drop valueinyixx999i
+	 
+	gen widcode="xlcusp999i"
+	rename valuexlcusp999i value_new
+	
+
+	
+	tempfile ppp_complete_iso
+	save `ppp_complete_iso'
+restore
+
+
+merge 1:1 iso year widcode p using "`ppp_complete_iso'", nogenerate
+
+replace value=value_new if missing(value) & !missing(value_new)
+drop value_new
+
+// --------- 3.2. Extend Xrates to non-main countries before 1970 ----------- //
+preserve
+	keep if inlist(substr(widcode,1,5),"xlceu","xlcyu","xlcus")
+
+	reshape wide value, i(iso year p) j(widcode) string
+	
+	** Complete PPP exange rates
+	merge m:1 year using "$work_data/ppp_ea_cn_weithgted.dta", nogenerate
+
+	replace valuexlcyup999i= valuexlcusp999i/ppp_cn if missing(valuexlcyup999i)
+	replace valuexlceup999i= valuexlcusp999i/ppp_ea if missing(valuexlceup999i)
+	
+	* Complete MER echange rate
+	merge m:1 year using "$work_data/xrate_ea_cn_weithgted.dta", nogenerate
+	
+	replace valuexlcyux999i= valuexlcusx999i/xr_cn if missing(valuexlcyux999i)
+	replace valuexlceux999i= valuexlcusx999i/xr_ea if missing(valuexlceux999i)
+	
+	keep if year<1970
+	drop ppp_* xr_*
+	
+	reshape long value, i(iso year p) j(widcode) string
+	
+	rename value value_new
+	
+	tempfile extended_rates
+	save `extended_rates'
+restore
+
+merge 1:1 iso year widcode p using "`extended_rates'", nogenerate
+
+replace value=value_new if missing(value) & !missing(value_new)
+
+drop  value_new
 
 gen new=1
 

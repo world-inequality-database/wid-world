@@ -31,13 +31,13 @@ replace ptfxa =. if ptfxa < 0
 replace fdixd =. if fdixd < 0
 replace ptfxd =. if ptfxd < 0
 
-	replace fdixd =. if iso == "AG" & year == 1978
-	replace fdixd =. if iso == "KN" & year == 1979
-	replace fdixd =. if iso == "MO" & (year == 1993 | year == 1998)
-	so iso year
-	by iso : ipolate fdixd year if inlist(iso, "AG", "KN", "MO"), gen(xfdixd) 
-	replace fdixd = xfdixd if missing(fdixd) 
-	drop xfdixd
+replace fdixd =. if iso == "AG" & year == 1978
+replace fdixd =. if iso == "KN" & year == 1979
+replace fdixd =. if iso == "MO" & (year == 1993 | year == 1998)
+so iso year
+by iso : ipolate fdixd year if inlist(iso, "AG", "KN", "MO"), gen(xfdixd) 
+replace fdixd = xfdixd if missing(fdixd) 
+drop xfdixd
 
 replace fdirx = 0 if fdixa == 0 & (flagfdirx == 1 | flagimffdirx == 1 | missing(flagimffdirx))
 replace fdipx = 0 if fdixd == 0 & (flagfdipx == 1 | flagimffdipx == 1 | missing(flagimffdipx))
@@ -105,7 +105,7 @@ foreach v in ptfrx fdirx ptfxd fdipx {
 }
 
 foreach v in ptfrx { 
-so iso year
+	so iso year
 	replace `v' = . if inlist(iso, "MT") & year == 1970 // not in original IMF BOP 
 	gsort iso -year 
 	by iso: carryforward `v' if inlist(iso, "MT"), replace
@@ -113,7 +113,7 @@ so iso year
 so iso year
 
 foreach v in fdirx { 
-so iso year
+	so iso year
 	replace `v' =. if iso == "SM" & year == 2013 // not in original IMF BOP
 	replace `v' =. if iso == "QA" & year == 2003 // not in original IMF BOP
 	replace `v' = . if iso == "TR" & flagimf`v' == 1
@@ -130,8 +130,8 @@ so iso year
 so iso year
 
 replace ptfxd =. if iso == "RO" & flagnwgxd == 1
-	gsort iso -year 
-	by iso: carryforward ptfxd if inlist(iso, "RO"), replace 
+gsort iso -year 
+by iso: carryforward ptfxd if inlist(iso, "RO"), replace 
 
 foreach v in ptfpx {
 	replace `v'=. if iso == "ER" & flag`v' == 1 & ptfxd != 0 //before was flagimf. not in original IMF BOP
@@ -140,7 +140,7 @@ foreach v in ptfpx {
 	replace `v'=. if iso == "SA" & year == 1970 // before was < 1975. I prefer to respect pinpx. not in original IMF BOP
 }
 foreach v in ptfpx { 
-so iso year
+	so iso year
 	replace `v' = . if iso == "TD" & year == 2006 // not in original IMF BOP
 	by iso : ipolate `v' year if inlist(iso, "KI", "TD", "DK", "BF", "CV", "GN", "LR", "QA"), gen(x`v') 
 	replace `v' = x`v' if missing(`v') 
@@ -155,7 +155,7 @@ foreach v in fdipx {
 	replace `v'=. if iso == "ER" & flagimf`v' == 1 & fdixd != 0
 	replace `v'=. if iso == "SA" & flagimf`v' == 1
 
-	}
+}
 
 replace fdixa =. if fdixa == 0 & abs(fdirx) > 0 & !missing(fdirx)
 replace fdixd =. if fdixd == 0 & abs(fdipx) > 0 & !missing(fdipx)
@@ -163,12 +163,12 @@ replace ptfxa =. if ptfxa == 0 & abs(ptfrx) > 0 & !missing(ptfrx)
 replace ptfxd =. if ptfxd == 0 & abs(ptfpx) > 0 & !missing(ptfpx)
 
 so iso year
-	by iso : ipolate fdixd year if inlist(iso, "SL"), gen(xfdixd) 
-	replace fdixd = xfdixd if missing(fdixd) 
-	drop xfdixd
+by iso : ipolate fdixd year if inlist(iso, "SL"), gen(xfdixd) 
+replace fdixd = xfdixd if missing(fdixd) 
+drop xfdixd
 
-	foreach v in fdixa { 
-so iso year
+foreach v in fdixa { 
+	so iso year
 	by iso : ipolate `v' year if inlist(iso, "GA", "TN", "CV", "SV", "TO", "TR") | inlist(iso, "RO", "GT", "SL", "DM", "HT"), gen(x`v') 
 	replace `v' = x`v' if missing(`v') 
 	drop x`v'
@@ -177,7 +177,7 @@ so iso year
 }
 
 foreach v in fdixa ptfxa fdixd ptfxd { 
-so iso year
+	so iso year
 	replace `v'=. if iso == "CU"
 	by iso : ipolate `v' year if iso != "TR", gen(x`v') 
 	replace `v' = x`v' if missing(`v') 
@@ -190,7 +190,7 @@ foreach x in eq deb {
 	replace ptfrx_`x' = . if ptfrx == . & negptfrx_`x' != 1
 	replace ptfpx_`x' = . if ptfpx == . & negptfpx_`x' != 1
 }
-	replace ptfrx_res = . if ptfrx == . & negptfrx_res != 1
+replace ptfrx_res = . if ptfrx == . & negptfrx_res != 1
 
 foreach v in fdirx fdipx ptfrx ptfpx ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb {
 	gsort iso year
@@ -269,22 +269,22 @@ order flag*, last
 foreach level in undet un {
 	kountry iso, from(iso2c) geo(`level')
 
-replace GEO = "Western Asia" 	if iso == "AE" & "`level'" == "undet"
-replace GEO = "Caribbean" 		if iso == "CW" & "`level'" == "undet"
-replace GEO = "Caribbean"		if iso == "SX" & "`level'" == "undet"
-replace GEO = "Caribbean" 		if iso == "BQ" & "`level'" == "undet"
-replace GEO = "Southern Europe" if iso == "KS" & "`level'" == "undet"
-replace GEO = "Southern Europe" if iso == "ME" & "`level'" == "undet"
-replace GEO = "Eastern Asia" 	if iso == "TW" & "`level'" == "undet"
-replace GEO = "Northern Europe" if iso == "GG" & "`level'" == "undet"
-replace GEO = "Northern Europe" if iso == "JE" & "`level'" == "undet"
-replace GEO = "Northern Europe" if iso == "IM" & "`level'" == "undet"
+	replace GEO = "Western Asia" 	if iso == "AE" & "`level'" == "undet"
+	replace GEO = "Caribbean" 		if iso == "CW" & "`level'" == "undet"
+	replace GEO = "Caribbean"		if iso == "SX" & "`level'" == "undet"
+	replace GEO = "Caribbean" 		if iso == "BQ" & "`level'" == "undet"
+	replace GEO = "Southern Europe" if iso == "KS" & "`level'" == "undet"
+	replace GEO = "Southern Europe" if iso == "ME" & "`level'" == "undet"
+	replace GEO = "Eastern Asia" 	if iso == "TW" & "`level'" == "undet"
+	replace GEO = "Northern Europe" if iso == "GG" & "`level'" == "undet"
+	replace GEO = "Northern Europe" if iso == "JE" & "`level'" == "undet"
+	replace GEO = "Northern Europe" if iso == "IM" & "`level'" == "undet"
 
-replace GEO = "Asia" if inlist(iso, "AE", "TW") & "`level'" == "un"
-replace GEO = "Americas" if inlist(iso, "CW", "SX", "BQ") & "`level'" == "un"
-replace GEO = "Europe" if inlist(iso, "KS", "ME", "GG", "JE", "IM") & "`level'" == "un"
-ren GEO geo`level'
-drop NAMES_STD 
+	replace GEO = "Asia" if inlist(iso, "AE", "TW") & "`level'" == "un"
+	replace GEO = "Americas" if inlist(iso, "CW", "SX", "BQ") & "`level'" == "un"
+	replace GEO = "Europe" if inlist(iso, "KS", "ME", "GG", "JE", "IM") & "`level'" == "un"
+	ren GEO geo`level'
+	drop NAMES_STD 
 }
 gen soviet = 1 if inlist(iso, "AZ", "AM", "BY", "KG", "KZ", "GE") ///
 				| inlist(iso, "TJ", "MD", "TM", "UA", "UZ") ///
@@ -394,18 +394,18 @@ restore
 */
 
 foreach v in fdirx fdipx ptfrx ptfpx ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb {
-bys geoundet year : egen auxundet_`v' = mean(`v') if flag`v' == 0 & TH == 0
-bys geoundet year : egen avundet_`v' = mode(auxundet_`v')
+	bys geoundet year : egen auxundet_`v' = mean(`v') if flag`v' == 0 & TH == 0
+	bys geoundet year : egen avundet_`v' = mode(auxundet_`v')
  }
- foreach v in fdirx fdipx ptfrx ptfpx ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb {
-bys year : egen auxTH_`v' = mean(`v') if flag`v' == 0 & TH == 1
-bys year : egen avTH_`v' = mode(auxTH_`v')
+foreach v in fdirx fdipx ptfrx ptfpx ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb {
+	bys year : egen auxTH_`v' = mean(`v') if flag`v' == 0 & TH == 1
+	bys year : egen avTH_`v' = mode(auxTH_`v')
 }
 drop aux*
 
 foreach v in fdirx fdipx ptfrx ptfpx ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb {
-bys iso : egen tag`v' = mean(flag`v')
-bys iso : egen miss`v' = mean(`v')
+	bys iso : egen tag`v' = mean(flag`v')
+	bys iso : egen miss`v' = mean(`v')
 }
 so iso year
 // -------------------------------------------------------------------------- //
@@ -749,12 +749,15 @@ drop avg* *_w
 drop i
 encode iso, gen(i)
 
-// fixing Gibraltar. it's sudden jump in fdixd is making national income < 0
+// Old note: fixing Gibraltar. it's sudden jump in fdixd is making national income < 0
 // we replace rate of return for KY, which is also Tax Haven
+
+// Note: 23Jan2025, Following the masive jump of KY, I selected BS has a soomth increase
 xtset i year
+replace fdixd = . if iso == "GI" & year == 2020 
 replace fdixd = l.fdixd if iso == "GI" & missing(fdixd) & year == 2020 
 replace rf_d = . if iso == "GI" & inrange(year,2012,2015)
-gen aux = rf_d if iso == "KY"
+gen aux = rf_d if iso == "BS"
 bys year : egen aux2 = mode(aux)
 replace rf_d = aux2 if iso == "GI" & inrange(year,2012,2015) & mi(rf_d)
 drop aux* 

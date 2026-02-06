@@ -34,10 +34,14 @@ replace confc = . if iso == "UZ" & year != 1990
 replace nnfin = . if iso == "SV" & series == 1
 replace confc = . if iso == "GY" & year >= 1985
 replace confc = . if iso == "BD" & year == 2019
+
 // Dropping anomalic data (17Jul2025)
 replace comnx = . if iso == "PK" & series == 1100 & year < 2004 // 6000 are available and 100 dont match well 
 replace comrx = . if iso == "PK" & series == 1100 & year < 2003 // 6000 are available and 100 dont match well 
 replace compx = . if iso == "PK" & series == 1100 & year < 2004 // 6000 are available and 100 dont match well 
+
+replace flcip = pinpx if iso == "MM" & series == 6000 & year > 2004 & year < 2014 & missing(flcip)
+replace flcin = nnfin if iso == "MM" & series == 6000 & year > 2004 & year < 2011 & missing(flcin)
 
 drop if iso == "BF" & series == 10
 
@@ -99,6 +103,9 @@ replace cfcnp = . 		if iso == "IN" & series == 200000
 replace cfcgo = . 		if iso == "IN" & series == 200000
 * Exagerated nsrgo values
 replace nsrgo = . 		if iso == "MZ" & series == 12 
+* Problematic data for MT
+drop if iso=="MT" & series==1 & year==1970
+drop if iso=="MT" & series==10 & year==1970
 
 foreach var in ceugo nsrco nmxhn nsrhn comhn ptxgo gsrco ceuco ceuhn cfcgo cfchn cfcco nsrgo gsmhn nsmhn gvbhn gvbco gvbgo {
 	* Drop values Iraq in 2002 to 2004, many implausabel values
@@ -284,6 +291,8 @@ replace pinrx =. if iso == "PT" & year <= 1974
 replace pinpx =. if iso == "PT" & year <= 1974
 replace ftaxx =. if iso == "KR"
 replace fsubx =. if iso == "KR"
+
+
 
 // adding corecountry dummy and Tax Haven dummy
 merge 1:1 iso year using "$work_data/import-core-country-codes-year-output.dta", nogen keepusing(corecountry TH) 
@@ -487,21 +496,21 @@ gen share_fdirx = fdirx/pinrx
 gen share_fdipx = fdipx/pinpx
 gen share_ptfrx = ptfrx/pinrx
 gen share_ptfpx = ptfpx/pinpx
-	foreach level in undet un {
-bys geo`level' year : egen sh`level'_fdirx = mean(share_fdirx) if corecountry == 1 & TH == 0
-bys geo`level' year : egen sh`level'_fdipx = mean(share_fdipx) if corecountry == 1 & TH == 0
-bys geo`level' year : egen sh`level'_ptfrx = mean(share_ptfrx) if corecountry == 1 & TH == 0
-bys geo`level' year : egen sh`level'_ptfpx = mean(share_ptfpx) if corecountry == 1 & TH == 0
-	}
+foreach level in undet un {
+	bys geo`level' year : egen sh`level'_fdirx = mean(share_fdirx) if corecountry == 1 & TH == 0
+	bys geo`level' year : egen sh`level'_fdipx = mean(share_fdipx) if corecountry == 1 & TH == 0
+	bys geo`level' year : egen sh`level'_ptfrx = mean(share_ptfrx) if corecountry == 1 & TH == 0
+	bys geo`level' year : egen sh`level'_ptfpx = mean(share_ptfpx) if corecountry == 1 & TH == 0
+}
 foreach v in fdirx fdipx ptfrx ptfpx {
-gen sh_`v' = shundet_`v'
-replace sh_`v' = shun_`v' if missing(sh_`v')
+	gen sh_`v' = shundet_`v'
+	replace sh_`v' = shun_`v' if missing(sh_`v')
 }
 foreach v in fdirx ptfrx {
-replace `v' = pinrx*sh_`v' if missing(`v') & iso == "CU"
+	replace `v' = pinrx*sh_`v' if missing(`v') & iso == "CU"
 }
 foreach v in fdipx ptfpx {
-replace `v' = pinpx*sh_`v' if missing(`v') & iso == "CU"
+	replace `v' = pinpx*sh_`v' if missing(`v') & iso == "CU"
 }
 drop sh*
 

@@ -19,7 +19,7 @@
 *** PART D : usd-exchange-rate-$year.csv............................ --> `ves'
 *** PART E : retropolate-gdp.dta + gdp_usd_YUratio + price-index.dta --> `exrateyu'
 *** PART F : retropolate-gdp.dta + price-index.dta+ gdp_usd_SUratio. --> `exratesu'
-*** PART G : usd-exchange-rate-$year  .............................. --> `exratesu' 
+*** PART G : usd-exchange-rate-$year  .............................. --> `xrateunsna' 
 *** PART H : exrate_TWD_USD  ....................................... --> `xratetwdusd'
 
 * 3. Main Table
@@ -248,7 +248,7 @@ keep iso year exrate_usd
 tempfile exratesu
 sa `exratesu', replace 
 
-// *************** PART G : usd-exchange-rate-$year --> `exratesu' *************
+// *************** PART G : usd-exchange-rate-$year --> `xrateunsna' *************
 // Complete the missing exchange rates using UN SNA data
 
 * Note: From 2025 update, some observations from SS and ME are missing so we call 
@@ -715,7 +715,7 @@ replace valuexlcusx999i = amaxrt if iso == "SY" & !missing(amaxrt)
 replace valuexlcusx999i = amaxrt if iso == "UG" & !missing(amaxrt)
 replace valuexlcusx999i = amaxrt if iso == "YE" & !missing(amaxrt)
 replace valuexlcusx999i = amaxrt if iso == "KP" & !missing(amaxrt)
-replace valuexlcusx999i = amaxrt if iso == "AF" & !missing(amaxrt)
+*replace valuexlcusx999i = amaxrt if iso == "AF" & !missing(amaxrt)
 replace valuexlcusx999i = amaxrt if iso == "BG" & !missing(amaxrt)
 replace valuexlcusx999i = amaxrt if iso == "ER" & !missing(amaxrt)
 replace valuexlcusx999i = amaxrt if iso == "GH" & !missing(amaxrt)

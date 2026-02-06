@@ -39,31 +39,31 @@ foreach var in gdp {
 	// Eriteria 1993 with Ethiopia
 	gen ratioET_ER = `var'ER/`var'ET if year == 1993
 	egen x2 = mode(ratioET_ER) 
-	replace `var'ER = `var'ET*x2 if missing(`var'ER)
+	replace `var'ER = `var'ET*x2 if missing(`var'ER) & year >= 1970
 	drop ratioET_ER x2
 	
 	// Kosovo 1990  with Serbia
 	gen ratioKS_RS = `var'KS/`var'RS if year == 1990
 	egen x2 = mode(ratioKS_RS) 
-	replace `var'KS = `var'RS*x2 if missing(`var'KS)
+	replace `var'KS = `var'RS*x2 if missing(`var'KS) & year >= 1970
 	drop ratioKS_RS x2
 	
 	// Timor Leste with Indonesia
 	gen ratioTL_ID = `var'TL/`var'ID if year == 1990
 	egen x2 = mode(ratioTL_ID) 
-	replace `var'TL = `var'ID*x2 if missing(`var'TL)
+	replace `var'TL = `var'ID*x2 if missing(`var'TL) & year >= 1970
 	drop ratioTL_ID x2
 	
 	// South Sudan and Sudan
 	gen ratioSS_SD = `var'SS/`var'SD if year == 2012
 	egen x2 = mode(ratioSS_SD) 
-	replace `var'SS = `var'SD*x2 if missing(`var'SS)
+	replace `var'SS = `var'SD*x2 if missing(`var'SS) & year >= 1970
 	drop ratioSS_SD x2
 	
 	// Zanzibar and Tanzania
 	gen ratioZZ_TZ = `var'ZZ/`var'TZ if year == 1990
 	egen x2 = mode(ratioZZ_TZ) 
-	replace `var'ZZ = `var'TZ*x2 if missing(`var'ZZ)
+	replace `var'ZZ = `var'TZ*x2 if missing(`var'ZZ) & year >= 1970
 	drop ratioZZ_TZ x2
 
 	// Isle of Man and United Kingdom

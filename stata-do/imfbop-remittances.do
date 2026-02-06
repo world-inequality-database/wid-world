@@ -141,31 +141,31 @@ drop av*
 *allocating the difference proportionally
 foreach v in remittances { 
 	replace `v'_credit = `v'_credit*gdp_usd
-	replace `v'_debit = `v'_debit*gdp_usd
+	replace `v'_debit  = `v'_debit*gdp_usd
 	gen net_`v' = `v'_credit - `v'_debit
 
 	bys year : egen tot`v'_credit = total(`v'_credit)
-	bys year : egen tot`v'_debit = total(`v'_debit)
+	bys year : egen tot`v'_debit  = total(`v'_debit)
 
 	gen aux`v'_credit = abs(`v'_credit)
-	gen aux`v'_debit = abs(`v'_debit)
+	gen aux`v'_debit  = abs(`v'_debit)
 	bys year : egen totaux`v'_credit = total(aux`v'_credit)
-	bys year : egen totaux`v'_debit = total(aux`v'_debit)
+	bys year : egen totaux`v'_debit  = total(aux`v'_debit)
 }
 drop aux*
 
 gen totnet_remittances = (totremittances_credit + totremittances_debit)/2
 foreach v in remittances { 
 	replace tot`v'_credit = totnet_`v' - tot`v'_credit
-	replace tot`v'_debit = totnet_`v' - tot`v'_debit
+	replace tot`v'_debit  = totnet_`v' - tot`v'_debit
 }
 
 foreach v in remittances { 
 	gen ratio_`v'_credit = `v'_credit/totaux`v'_credit
-	gen ratio_`v'_debit = `v'_debit/totaux`v'_debit
+	gen ratio_`v'_debit  = `v'_debit/totaux`v'_debit
 	
-replace `v'_credit = `v'_credit + tot`v'_credit*ratio_`v'_credit 
-replace `v'_debit = `v'_debit + tot`v'_debit*ratio_`v'_debit 
+	replace `v'_credit = `v'_credit + tot`v'_credit*ratio_`v'_credit 
+	replace `v'_debit  = `v'_debit  + tot`v'_debit*ratio_`v'_debit 
 }
 drop ratio* net* tot* 
 

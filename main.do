@@ -400,6 +400,9 @@ etime
 capture mkdir "$output_dir/$time"
 capture mkdir "$output_dir/$time/metadata"
 
+// Export macro variables
+do "$do_dir/export-core-macro-var.do"
+
 // Export distributions
 do "$do_dir/export-distributions.do"
 
@@ -415,8 +418,7 @@ do "$do_dir/export-metadata-source-method.do"
 *do "$do_dir/export-units.do"
 
 // Export the main database
-do "$do_dir/create-main-db.do"
-
+*do "$do_dir/create-main-db.do"
 
 
 // do "$do_dir/export-main-db.do"

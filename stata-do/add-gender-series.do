@@ -317,9 +317,9 @@ generate source = ///
 `"Main Paper: "' + ///
 `"[URL][URL_LINK]http://wid.world/document/half-the-sky-the-female-labor-income-share-in-a-global-perspective-world-inequality-lab-working-paper-2021-22/ [/URL_LINK]"'  + ///
 `"[URL_TEXT]Neef, T., Robilliard, A.-S. (2021), "Half the sky? The Female Labor Income Share in a Global Perspective"[/URL_TEXT][/URL]"'+ ///
-`"Technote for update: "' + ///
+`"; Technote for update: "' + ///
 `"[URL][URL_LINK]https://wid.world/document/female-labor-income-share-world-inequality-lab-technical-note-2025-09/[/URL_LINK]"'  + ///
-`"[URL_TEXT]Gabrielli V., Neef, T., Robilliard, A.-S. (2025), "2024 Update for Female Labor Income Share"[/URL_TEXT][/URL]"'
+`"[URL_TEXT]Gabrielli V., Neef, T., Robilliard, A.-S. (2025), "2025 Update for Female Labor Income Share"[/URL_TEXT][/URL]"'
  
 drop source_0
 

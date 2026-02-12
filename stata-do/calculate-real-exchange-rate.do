@@ -92,35 +92,14 @@ drop currency
 reshape wide value, i(iso year p) j(widcode) string
 rename  value* *
 
-*Prepare indexes for calcuating xrer for -PPP
-preserve
-	drop if strpos(iso,"-") 
-	keep iso year xlceux999i xlcusx999i xlcyux999i
-	rename xlc* xlc*mer
-	rename iso iso2
-	
-	tempfile MER
-	save `MER'
-restore
-
-
-gen iso2 = substr(iso,1,2) if strpos(iso,"-PPP")
-merge m:1 iso2 year using "`MER'", keep(master match) nogenerate
-
-
 * Gen real exchange rate for USD
-gen     xrerus999i= xlcusp999i/xlcusx999i    if !strpos(iso,"-PPP") 
-replace xrerus999i= xlcusp999i/xlcusx999imer if  strpos(iso,"-PPP") 
+gen     xrerus999i= xlcusp999i/xlcusx999i    
 
 * Gen real exchange rate for EUR
-gen     xrereu999i= xlceup999i/xlceux999i    if !strpos(iso,"-PPP") 
-replace xrereu999i= xlceup999i/xlceux999imer if  strpos(iso,"-PPP") 
+gen     xrereu999i= xlceup999i/xlceux999i    
 
 * Gen real exchange rate for CNY
-gen     xreryu999i= xlcyup999i/xlcyux999i    if !strpos(iso,"-PPP") 
-replace xreryu999i= xlcyup999i/xlcyux999imer if  strpos(iso,"-PPP") 
-
-drop *mer iso2
+gen     xreryu999i= xlcyup999i/xlcyux999i  
 
 * Clean-up and format
 keep iso year p xrer*

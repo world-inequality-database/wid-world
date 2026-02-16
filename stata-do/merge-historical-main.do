@@ -302,6 +302,7 @@ replace value_base = value_comp if !mi(value_comp) & year<= 1950  & iso== "IN" /
 replace value_base = value_comp if !mi(value_comp) & year <  1920 & iso== "NZ"
 replace value_base = value_comp if !mi(value_comp) & year <= 1960 & iso== "US"
 replace value_base = value_comp if !mi(value_comp) & year <  1969 & iso== "SG"
+replace value_base = value_comp if !mi(value_comp) & year <  1979 & iso== "RU" // We replace the historical series because Ru historical is not updated
 
 ** Note: For the data from OH_OD_CL_ptinc_post1980, this data is no longer needed since the regions can be now calculated from the complete 2016 core countries.
 *replace value_base = value_oocp if !mi(value_oocp) & year == 1970 & iso== "CL"

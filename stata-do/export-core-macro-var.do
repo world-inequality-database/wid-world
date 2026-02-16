@@ -57,15 +57,25 @@ foreach l in `fivelet' {
 }
 replace tokeep = 1 if inlist(substr(widcode, 1, 6), "npopul")
 replace tokeep = 1 if inlist(substr(widcode, 2, 5), "nyixx", "ntlcu", "lceux", "lceup", "lcyux", "lcyup", "lcusx", "lcusp")
-replace tokeep = 1 if inlist(substr(widcode, 2, 5), "rerus", "rereu", "reryu")
-*replace tokeep = 1 if inlist(substr(widcode, 1, 6), "npopul", "intlcu")
+*replace tokeep = 1 if inlist(substr(widcode, 2, 5), "rerus", "rereu", "reryu")
 replace tokeep = 0 if inlist(substr(widcode, 1, 1), "s", "t", "o")
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "fdimp", "fdion", "fdiop", "fdior",           "fkfiw", "nwoff")
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "ptfor",           "ptfhr", "ptfon", "ptfop", "ptfop", "comco")
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "comgo", "comnf", "comfc")
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "gninc", "wealg", "wealh", "weali", "wealn") // Obsolet variables
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "gwass", "cwtoq", "icwto")  // new variables unincluded variables
-replace tokeep = 0 if inlist(substr(widcode, 2, 5), "cwequ", "gwequ","hwequ","iwequ","pwequ")
+replace tokeep = 0 if inlist(substr(widcode, 2, 5), "cwequ", "gwequ", "hwequ", "iwequ", "pwequ")
+
+
+replace tokeep = 0 if inlist(substr(widcode, 2, 5), "ceufc", "ceuho", "ceunf", "ceunp","wealp","cwcub","gwcub") 
+replace tokeep = 0 if inlist(substr(widcode, 2, 5), "cwnat","iwnat","nwnat", "gwnat")
+replace tokeep = 0 if inlist(substr(widcode, 2, 5), "gvbco", "gvbfc", "gvbgo", "gvbhn", "gvbho", "gvbnf", "gvbnp")
+replace tokeep = 0 if inlist(substr(widcode, 2, 5), "lscgv","lscnv","lsgdp","lsgni","lsndp","lsnni")
+replace tokeep = 0 if inlist(substr(widcode, 2, 5), "sbpco","sbpfc","sbpgo","sbphn","sbpho","sbpnf","sbpnp")
+replace tokeep = 0 if inlist(substr(widcode, 2, 5), "tapco","tapfc","tapgo","taphn","tapho","tapnf","tapnp")
+replace tokeep = 0 if inlist(substr(widcode, 2, 5), "tspco","tspfc","tspgo","tsphn","tspho","tspnf","tspnp")
+replace tokeep = 0 if inlist(substr(widcode, 2, 3), "csc","csg","csn")
+
 replace tokeep = 1 if widcode=="icwtoq999i"
 replace tokeep = 0 if inlist(widcode, "wlabsh999i","wcapsh999i")
 

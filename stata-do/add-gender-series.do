@@ -357,10 +357,13 @@ compress
 //---------------- 7. Export the pllin992f metadata -----------------------------------
 save "$work_data/add-gender-series-metadata.dta", replace
 
+// adding empty imputation column for Ben (website engineer)
+gen str10 imputation = ""
+
 preserve 
 	capture mkdir "$output_dir/$time/metadata"
 	rename iso alpha2
-	order alpha2 twolet threelet method source data_quality extrapolation data_points 
+	order alpha2 twolet threelet method source data_quality imputation extrapolation data_points 
 	export delim "$output_dir/$time/metadata/var-notes-$time-spllin992f2025Update.csv", delimiter(";") replace
 restore
 

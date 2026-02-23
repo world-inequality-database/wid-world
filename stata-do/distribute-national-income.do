@@ -25,7 +25,7 @@ drop if inlist(vartype, "t", "f", "m")
 drop if sixlet == "afiinc" & iso == "MY" & vartype == "i" & year>=1984
 drop vartype
 
-reshape wide value, i(iso year p pop) j(sixlet) string
+reshape wide value, i(iso year p pop data_quality) j(sixlet) string
 
 generate double factor = valueanninc/valueafiinc
 

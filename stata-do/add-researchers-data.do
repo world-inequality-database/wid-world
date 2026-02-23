@@ -376,7 +376,7 @@ preserve
 	save "$work_data/data-quality-add-researchers-data-output.dta", replace 
 restore
 
-keep iso year p widcode currency value //data_quality
+keep iso year p widcode currency value data_quality
 // need to uncomment data quality when this project is ready for launch 
 // =============================================================================
 // =============================================================================

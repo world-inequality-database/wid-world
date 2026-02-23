@@ -265,6 +265,9 @@ drop test_t miss_t
 tempfile final
 save `final'
 
+//temporary file to accerlate some basic checks 
+*save "$work_data/homogenize-interim.dta", replace
+
 // ----------- 3. Reshape Long and prepare for WID format.  --------------------
 keep year iso widcode p a s t
 replace p = p/1000

@@ -14,6 +14,7 @@ save `combined', emptyok
 
 use "$work_data/extrapolate-wid-1980-output.dta", clear
 
+drop data_quality
 keep if inlist(widcode, "anninc992i", "npopul992i", "npopul999i", "inyixx999i", "xlceup999i", "xlceux999i")
 keep if p == "pall"
 drop p currency
@@ -107,6 +108,7 @@ drop _fillin
 replace a = . if year > max
 replace t = . if year > max
 replace s = . if year > max
+replace data_quality = . if year > max
 
 bys iso : egen x = mode(max)
 replace max = x
@@ -191,6 +193,11 @@ bysort iso year (p) : assert inrange(ts, 0, 1.03) if !inlist(iso, "CY", "IS") //
 
 drop n
 
+// adding data quality for years that we interpolated
+replace data_quality = 1 if data_quality==.
+assert data_quality !=.
+
+
 tempfile final
 save `final'
 
@@ -198,7 +205,7 @@ save `final'
 // Reshape Long and prepare for WID format
 // -------------------------------------------------------------------------- //
 
-keep year iso p a s t
+keep year iso p a s t data_quality
 replace p = p/1000
 bys year iso (p) : gen p2 = p[_n+1]
 replace p2 = 100 if p2 == .
@@ -211,7 +218,18 @@ rename s 	sptinc992j
 rename t    tptinc992j
 renvars aptinc992j sptinc992j tptinc992j, prefix(value)
 
-greshape long value, i(iso year p) j(widcode) string
+greshape long value, i(iso year p data_quality) j(widcode) string
+
+// ---- saving data quality to add back at the end to apply to top and bottom shares
+preserve
+	keep iso year widcode data_quality
+	duplicates drop
+	isid iso year widcode  
+	tempfile dataquality
+	save `dataquality'
+restore
+drop data_quality
+// --------------
 
 preserve
 	use `final', clear
@@ -299,6 +317,11 @@ save `all'
 use "$work_data/extrapolate-wid-1980-output.dta", clear
 
 merge 1:1 iso year p widcode using "`all'", update nogen
+
+merge m:1 iso year widcode using `dataquality', update
+drop if _merge==2
+drop _merge
+assert data_quality !=. if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j")
 
 gduplicates tag iso year p widcode, gen(dup)
 assert dup == 0

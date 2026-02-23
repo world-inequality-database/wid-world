@@ -50,6 +50,9 @@ append using  "$wid_dir/Country-Updates/US/2025/US_historical-gpinterized_2025_s
 // keeping only until 1970 for historical series non percapita
 drop if year > 1979 
 
+// adding data quality
+merge m:1 iso year using "$wid_dir/Country-Updates/Historical_series/Add-data-quality/Hist_ptinc_quality.dta", keepusing(data_quality) nogen
+
 
 // --------- 5. Assign Regions to -PPP 
 *Note: The estimations here were done in PPP.
@@ -84,6 +87,13 @@ replace t = t*anninc992i
 tempfile all
 save `all'
 
+// ------------ take data quality to apply to all tom/bottom p's after ---------
+preserve
+	keep iso year data_quality
+	duplicates drop 
+	tempfile dataquality
+	save `dataquality'
+restore 
 
 // --------- 3. Format series
 keep year iso  p a s t 
@@ -117,7 +127,6 @@ preserve
 	drop p 
 	rename (perc bs) (p s)
 	drop if p=="p0p1" | p=="p0p100"   // For avoinding duplicates with 127 g-perc
-	
 	tempfile bottom
 	save `bottom'	
 restore
@@ -133,10 +142,12 @@ greshape long value, i(iso year p ) j(widcode) string
 drop if missing(value)
 replace widcode = widcode + "ptinc992j"
 
-
 gduplicates drop 
 
 duplicates drop iso year widcode p, force
+
+merge m:1 iso year using `dataquality', nogen
+
 
 tempfile completehistoricalpretax
 save `completehistoricalpretax'
@@ -281,8 +292,22 @@ use  "$work_data/clean-up-output.dta", clear
 
 // --------- 2.  Merge Pretax Data
 rename value value_base
+rename data_quality data_quality2
 
 merge 1:1 iso year widcode p using "`completehistoricalpretax'", nogen 
+
+// temporary fix because in clean-up.do we generate deciles and groups but not
+// in this file, so need to fill data quality for those percentiles
+preserve
+	keep iso year data_quality
+	drop if data_quality ==.
+	duplicates drop 
+	tempfile dataquality
+	save `dataquality'
+restore 
+
+merge m:1 iso year using `dataquality', update nogen
+
 rename value value_comp
 *merge 1:1 iso year widcode p using "$wid_dir/Country-Updates/Historical_series/2023_December/0H_OD_CL_ptinc_post1980.dta", nogen // This dataset contains data for OH and OD, calculated in aggregate-distribtion-regions.do except for the bottom percentiles p0pXX in averages and shares , top percentiles pXXp100 in thresholds .
 *rename value value_oocp
@@ -307,11 +332,25 @@ replace value_base = value_comp if !mi(value_comp) & year <  1979 & iso== "RU" /
 ** Note: For the data from OH_OD_CL_ptinc_post1980, this data is no longer needed since the regions can be now calculated from the complete 2016 core countries.
 *replace value_base = value_oocp if !mi(value_oocp) & year == 1970 & iso== "CL"
 
+// Repeat Matching the historical series for core-countries for DATA QUALITY
+// yearly data quality was added in Historical_series/add-data-quality
+replace data_quality2 = data_quality if  mi(data_quality2) & year < 1980  & !inlist(iso,"AU","FR","IN","NZ","US","SG")
+replace data_quality2 = data_quality if !mi(data_quality) & year < 1910  & iso== "AU"
+replace data_quality2 = data_quality if !mi(data_quality) & year<= 1910  & iso== "FR"
+replace data_quality2 = data_quality if !mi(data_quality) & year<= 1950  & iso== "IN" 
+replace data_quality2 = data_quality if !mi(data_quality) & year <  1920 & iso== "NZ"
+replace data_quality2 = data_quality if !mi(data_quality) & year <= 1960 & iso== "US"
+replace data_quality2 = data_quality if !mi(data_quality) & year <  1969 & iso== "SG"
+replace data_quality2 = data_quality if !mi(data_quality) & year <  1979 & iso== "RU" 
 
 * Cleanning
 rename value_base value
 drop  value_comp // value_oocp // dup corrected
 drop if missing(value)
+
+assert data_quality2 !=. if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") 
+drop data_quality
+rename data_quality2 data_quality
 
 * Keep only one observation per iso-year-widcode-p
 duplicates tag iso year p widcode, gen (dup)

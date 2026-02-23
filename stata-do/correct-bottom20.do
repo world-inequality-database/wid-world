@@ -2,8 +2,6 @@
 // Correct negative Bracket averages 
 // -------------------------------------------------------------------------- //
 
-
-
 clear all
 tempfile combined
 save `combined', emptyok
@@ -29,6 +27,17 @@ drop if (substr(iso, 1, 1) == "X" | substr(iso, 1, 1) == "Q") & iso != "QA"
 drop if (substr(iso, 1, 1) == "O") & iso != "OM"
 drop if strpos(iso, "-") &  !strpos(iso, "CN-") 
 drop if iso == "WO"
+
+// saving data quality to add back at the end 
+preserve
+	keep iso year widcode data_quality
+	duplicates drop
+	isid iso year widcode 
+	tempfile dataquality
+	save `dataquality'
+	save "$work_data/dq-calibrate-dina-revised-output.dta", replace
+restore
+drop data_quality
 
 keep if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j")
 
@@ -330,6 +339,9 @@ append using `ba'
 
 duplicates drop iso year p widcode, force
 
+*merge m:1 iso year widcode using `dataquality'
+
+
 tempfile all
 save `all'
 
@@ -341,6 +353,11 @@ use "$work_data/calibrate-dina-revised-output.dta", clear
 
 
 merge 1:1 iso year p widcode using "`all'", update replace nogen
+
+merge m:1 iso year widcode using `dataquality', update
+drop if _merge==2
+drop _merge
+assert data_quality !=. if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j")
 
 drop if widcode == "aptinc992j" & value <0 & p == "p0p10"
 

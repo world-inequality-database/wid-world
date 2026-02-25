@@ -42,7 +42,8 @@ duplicates drop iso year p widcode, force
 // Drop variables no longer included in the WID Dictionary
 drop if strpos(widcode, "fkfiw") 
 drop if strpos(widcode, "ptfor") | strpos(widcode, "ptfon") | strpos(widcode, "ptfop")
-drop if strpos(widcode, "comco") | strpos(widcode, "comfc") | strpos(widcode, "comnf") | strpos(widcode, "comgo")                         
+drop if strpos(widcode, "comco") | strpos(widcode, "comfc") | strpos(widcode, "comnf") | strpos(widcode, "comgo")
+drop if  strpos(widcode, "ceufc")| strpos(widcode, "ceufc") | strpos(widcode,"ceuho") | strpos(widcode, "ceunf") | strpos(widcode,"ceunp")
 
 // Quality Checks
 assert value >= 0 if strpos(widcode, "nninc") > 0 | strpos(widcode, "gdpro") > 0

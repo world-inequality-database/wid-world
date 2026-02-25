@@ -95,9 +95,9 @@ drop aux
 
 * Generate percentages NDP 
 expand 2 if origin=="C1", gen (xpnd)
-replace origin="C5" if xpnd==1
-replace  concept ="NDP" if xpnd==1
-replace value=1-value if xpnd==1
+replace origin  = "C5"    if xpnd==1
+replace concept = "NDP"   if xpnd==1
+replace value   = 1-value if xpnd==1
 drop xpnd
 
 * Generate gross operating surplus in government sector
@@ -226,7 +226,3 @@ preserve
 	keep if year<=1980
 	save "$work_data/dietrichetal2025sectors_hist.dta", replace
 restore
-
-
-
-

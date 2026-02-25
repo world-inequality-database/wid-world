@@ -27,30 +27,30 @@ global un_countries "AD AE AF AG AI AL AM AO AR AS AT AU AW AZ BA BB BD BE BF BG
 //      1.1. Generate the list of "missing_years" (inrange(year,1939,1949))
 //      1.2. Import FedericoTena (pre-1950) and UN data(post-1950)
 //  2. Project Population data 
-//		2.1. Brackward Projection of KS (Kosovo)
-//		2.2. Brackward Projection of SS (South Sudan)
-//      2.3. Backward Projection of Guernsey and Jersey 
-//      2.4. Backward Projection of Bonaire, SIntMaarten and Curacao
-//      2.5. Backward Projection of French West Indies
+//		2.1. Brackward Projection of KS (Kosovo)                       [Forking]
+//		2.2. Brackward Projection of SS (South Sudan)                  [Forking]
+//      2.3. Backward Projection of Guernsey and Jersey                [Forking]
+//      2.4. Backward Projection of Bonaire, SIntMaarten and Curacao   [Forking]
+//      2.5. Backward Projection of French West Indies                 [Forking]
 //  3. Linear Interpolation of Total Population 1938-1950
 //  4. Generate Historical Breakdowns 
 //      4.1. Prepare data
 //      4.2. Loop the calculation of breakdowns
 //  5. Complete data for USSR, Yugoslavia, Czechoslovakia, France 
-//      5.1. Reformat data for calculations 
-//      5.2. Aggregations for France
-//      5.3. Aggregations for Czechoslovakia 
-//      5.4. Aggregations for Yugoslavia (incl. with KS (Kosovo))
-//      5.5. Aggregations for USSR
-//      5.6. Aggregations for Antilles
-//      5.7. Aggregations for Channel Islands
-//  6. Complete data for ZZ (Zanzibar)
+//      5.1. Reformat data for calculations                         [Assembling]
+//      5.2. Aggregations for France                                [Assembling]
+//      5.3. Aggregations for Czechoslovakia                        [Assembling]
+//      5.4. Aggregations for Yugoslavia (incl. with KS (Kosovo))   [Assembling]
+//      5.5. Aggregations for USSR                                  [Assembling]
+//      5.6. Aggregations for Antilles                              [Assembling]
+//      5.7. Aggregations for Channel Islands                       [Assembling]
+//  6. Complete data for ZZ (Zanzibar)                                 [Forking]
 //      6.1. Bring Data from TZ and from ZZ from UN-SNA
 //      6.2. Calcualte ratios of ZZ an tZ
 //      6.3. Extrapolate backwards 
 //      6.4. Append data 
-//  7. Complete data for German Democratic Republic
-//  8. Complete data for China Rural and China Urban
+//  7. Complete data for German Democratic Republic                    [Forking]
+//  8. Complete data for China Rural and China Urban                   [Forking]
 //  9. Final cleanning and selection of new countries-year observations
 // 10. Calculate Regions (temporary section)
 // 11. Export data
@@ -81,12 +81,33 @@ save "`missing_years'",replace
 
 //------------ 1.2. Import FedericoTena and UN data
 use "$work_data/ft-borders1991-population.dta",clear
+gen data_quality= 4
+
 append using "$work_data/un-population.dta"
+replace data_quality= 5 if missing(data_quality)
 keep if widcode=="npopul999i"
+
+preserve
+	keep if year>=1950
+	*UN data is updated each 2 years, flag in case past year is a projection
+	bys iso: egen max_year = max(year)
+	keep if year==1950
+	
+	gen prospect = 1 if max_year < $pastyear
+
+	keep iso prospect
+	duplicates drop
+	
+	tempfile prospect
+	save `prospect'
+restore
+
+
 *Interpolate 1939-1949
-greshape wide value, i(iso year) j(widcode) string
-greshape wide value*, i( year) j(iso) string
+greshape wide value data_quality, i(iso year) j(widcode) string
+greshape wide value* data_quality*, i( year) j(iso) string
 ren valuenpopu* *
+ren data_qualitynpopu* qua*
 append using "`missing_years'"
 sort year
 
@@ -132,14 +153,17 @@ gen shKS_1950=l999iKS/l999iRS if year==1950
 sum shKS_1950 if year==1950
 
 gen     Kosovo=r(mean)*l999iRS if year<1939 
-replace Kosovo=l999iKS if year>1949
+replace Kosovo=l999iKS 	if year>1949
 
 gen     Serbia =l999iRS if year>1949
 replace Serbia=l999iRS-Kosovo if year<1939
 
 *Replace the Serbia and Kosovo series
-replace l999iRS=Serbia if year<1950
-replace l999iKS=Kosovo if year<1950
+replace l999iRS=Serbia 	if year<1950
+replace l999iKS=Kosovo 	if year<1950
+
+replace qual999iRS=1 	if year<1939 & !missing(l999iRS)
+replace qual999iKS=1 	if year<1939 & !missing(l999iKS)
 
 drop Kosovo Serbia sh
 
@@ -151,18 +175,21 @@ drop Kosovo Serbia sh
 *For the correction, assume SouthSudan had in 1938 and before the same share of population of Sudan as in 1950. Then substract from Sudan the SouthSudan population
 
 * Share of population SouthSudan had of Sudan in 1950
-gen shSS_1950=l999iSS/l999iSD if year==1950 
+gen shSS_1950=l999iSS/l999iSD 		if year==1950 
 sum shSS_1950 if year==1950
 
-gen     SouthSudan=r(mean)*l999iSD if year<1939 
-replace SouthSudan=l999iSS if year>1949
+gen     SouthSudan=r(mean)*l999iSD 	if year<1939 
+replace SouthSudan=l999iSS 			if year>1949
 
-gen     Sudan =l999iSD if year>1949
-replace Sudan=l999iSD-SouthSudan if year<1939
+gen     Sudan =l999iSD 				if year>1949
+replace Sudan=l999iSD-SouthSudan 	if year<1939
 
 * Replace the Sudan and SouthSudan series
-replace l999iSD=Sudan if year<1950
-replace l999iSS=SouthSudan if year<1950
+replace l999iSD=Sudan 				if year<1950
+replace l999iSS=SouthSudan 			if year<1950
+
+replace qual999iSD=1 				if year<1939 & !missing(l999iSD)
+replace qual999iSS=1 				if year<1939 & !missing(l999iSS)
 
 drop SouthSudan Sudan sh
 
@@ -183,9 +210,11 @@ foreach country in GG JE{
 	gen     `country'=r(mean)*ChIsl if year<1939 
 	replace `country'=l999i`country' if year>1949
 	replace l999i`country'=`country' if year<1939
+	replace qual999i`country'=1      if year<1939
+
 }
 drop GG JE sh*
-drop  ChIs l999iXI
+drop  ChIs l999iXI qual999iXI
 
 //------------ 2.4. Backward Projection of Bonaire, SIntMaarten and Curacao 
 *https://en.wikipedia.org/wiki/Netherlands_Antilles
@@ -200,10 +229,12 @@ foreach country in SX CW BQ{
 	gen     `country'=r(mean)*Antilles if year<1939 
 	replace `country'=l999i`country' if year>1949
 	replace l999i`country'=`country' if year<1939
+	replace qual999i`country'=1 if year<1939
+
 }
 drop SX CW BQ sh*
 
-drop  Antilles l999iAN
+drop  Antilles l999iAN  qual999iAN 
 
 //------------ 2.5. Backward Projection of French West Indies 
 * Missing Saint Barthelemy:BL and Saint Martin(French part):(MF),Guadeloupe: GP, 
@@ -221,6 +252,7 @@ foreach country in BL MF GP MQ{
 	gen     `country'=r(mean)*FWI if year<1939 
 	replace `country'=l999i`country' if year>1949
 	replace l999i`country'=`country' if year<1939
+	replace qual999i`country'=1      if year<1939 // just to keep the fields full before the collpase of all the french territories
 }
 drop  shBL_1950 BL shMF_1950 MF shGP_1950 GP shMQ_1950 MQ
 drop FWI
@@ -235,17 +267,17 @@ foreach country of global un_countries {
 	ipolate l999i`country' year, gen(l999i`country'_2) epolate
 	drop l999i`country'
 	rename l999i`country'_2 l999i`country'
+	replace qual999i`country'=3      if missing(qual999i`country')
 }
 
-ren l999i* valuenpopul999i* 
+ren l999i* value* 
+ren qual999i* data_quality* 
 
 // Formatting
-greshape long valuenpopul999i, i( year) j(iso) string
+greshape long value data_quality, i( year) j(iso) string
 gen widcode="npopul999i"
 
 sum year
-
-rename  valuenpopul999i value
 
 // Saving
 tempfile poptot_1800_2100
@@ -256,8 +288,12 @@ save "`poptot_1800_2100'",replace
 //------------ 4.1. Prepare data
 // Bring data UN + IHS
 use  "$work_data/un-population.dta",clear
+gen data_quality=5
+
 append using "$work_data/ihs-breakdowns-population.dta"
+replace  data_quality=4 if missing(data_quality)
 drop if widcode=="npopul999i"
+
 // Bring interpolated data (FT + UN)
 append using "`poptot_1800_2100'"
 
@@ -267,7 +303,7 @@ keep if inlist(widcode,"npopul014i", "npopul156i", "npopul997i", "npopul991i", "
         inlist(widcode, "npopul014m", "npopul156m", "npopul997m", "npopul991m", "npopul992m") | ///
         inlist(widcode, "npopul999f", "npopul999m" , "npopul999i")
 
-greshape wide value, i(iso year) j(widcode) string
+greshape wide value data_quality, i(iso year) j(widcode) string
 rename value* *
 
 *Assing the first observed proportion to all previous years
@@ -280,7 +316,7 @@ foreach var in  999m  999f 014i 014m 014f 156i 156m  156f 997i  997m  997f  991i
 ren npopul* valuenpopul* 
 
 sort year
-greshape wide value*, i( year) j(iso) string
+greshape wide value* data_quality*, i( year) j(iso) string
 rename value* *
 
 order year npopul999i* npopul999m*  npopul999f* npopul014i* npopul014m* npopul014f* npopul156i* npopul156m* npopul156f* npopul997i*   npopul997m* npopul997f* npopul991i* npopul991m* npopul991f* npopul992i* npopul992m* npopul992f* 
@@ -290,12 +326,16 @@ drop *YU
 //------------ 4.2. Loop the calculation of breakdowns
 tsset year
 foreach country in $un_countries {
+		
+		**-----  999 m, f ------**
 		*Linearly interpolate men between  1950 and the first data point
 		gen year_nonmiss = year if !missing(npopul999m`country')
 		sum year_nonmiss
+		
 		ipolate npopul999m`country' year if year>=r(min), gen(npopul999m`country'_2) epolate
 		drop    npopul999m`country' year_nonmiss
 		rename  npopul999m`country'_2 npopul999m`country'
+		replace data_qualitynpopul999m`country'= 3 if missing(data_qualitynpopul999m`country') & !missing(npopul999m`country')
 
 		*Assume same growth of men between first data point and 1800 as the total polation	
 		gen     crecnpopul999i`country'=.
@@ -305,18 +345,22 @@ foreach country in $un_countries {
 		
 		forv year =  `r(min)'(-1)1800 {
 				replace npopul999m`country'=(F.npopul999m`country'/(1+F.crecnpopul999i`country')) if npopul999m`country'==. & year==`year'					
-		}			
-					
+		}
+		replace data_qualitynpopul999m`country'= 2 if missing(data_qualitynpopul999m`country') & !missing(npopul999m`country')
+		
 		*Substract the women from men so they equal the total	
 		replace	npopul999f`country'=npopul999i`country'-npopul999m`country'	if npopul999f`country'==. & year<1950
+		replace	data_qualitynpopul999f`country'= data_qualitynpopul999m`country' if data_qualitynpopul999f`country'==. & year<1950
 		drop year_nonmiss	
-
+		
+		**-----  991 i ------**
 		*Linearly interpolate non-adults 991 between  1950 and the first data point
 		gen year_nonmiss = year if !missing(npopul991i`country')
 		sum year_nonmiss
 		ipolate npopul991i`country' year if year>=r(min), gen(npopul991i`country'_2) epolate
 		drop    npopul991i`country' year_nonmiss
 		rename  npopul991i`country'_2 npopul991i`country'
+		replace data_qualitynpopul991i`country'= 3 if missing(data_qualitynpopul991i`country') & !missing(npopul991i`country')
 
 		*Assume same growth of adults between first data point and 1800 as the total polation	
 		gen year_nonmiss = year if !missing(npopul991i`country')
@@ -324,19 +368,24 @@ foreach country in $un_countries {
 		forv year =  `r(min)'(-1)1800{
 				replace npopul991i`country'=(F.npopul991i`country'/(1+F.crecnpopul999i`country')) if npopul991i`country'==. & year==`year'					
 		}	
-					
+		replace data_qualitynpopul991i`country'= 2 if missing(data_qualitynpopul991i`country') & !missing(npopul991i`country')
+		
+		**-----  992 i ------**
 		*Substract the non-adults from adults so they equal the total	
 		replace	npopul992i`country'=npopul999i`country'-npopul991i`country'	if npopul992i`country'==. & year<1950
+		replace	data_qualitynpopul992i`country'= data_qualitynpopul991i`country' if data_qualitynpopul992i`country'==. & year<1950
 		drop year_nonmiss	
 		
 		*Next do gender for 991 and 992, assuming interpolation of men to earliest data point
 		
+		**-----  991 m ------**
 		*Linearly interpolate non-adult men 991 between  1950 and the first data point
 		gen year_nonmiss = year if !missing(npopul991m`country')
 		sum year_nonmiss
 		ipolate npopul991m`country' year if year>=r(min), gen(npopul991m`country'_2) epolate
 		drop    npopul991m`country' year_nonmiss
 		rename  npopul991m`country'_2 npopul991m`country'
+		replace data_qualitynpopul991m`country'= 3 if missing(data_qualitynpopul991m`country') & !missing(npopul991m`country')
 
 		*Assume same growth of men adult between first data point and 1800 as the total polation	
 		gen year_nonmiss = year if !missing(npopul991m`country')
@@ -344,19 +393,26 @@ foreach country in $un_countries {
 		forv year =  `r(min)'(-1)1800{
 			replace npopul991m`country'=(F.npopul991m`country'/(1+F.crecnpopul999i`country')) if npopul991m`country'==. & year==`year'		
 					}	
-				
+		replace data_qualitynpopul991m`country'= 2 if missing(data_qualitynpopul991m`country') & !missing(npopul991m`country')
+		
+		**-----  992 m ------**
 		*Substract the non-adult men from total men so they equal the total adult men
 		replace	npopul992m`country'=npopul999m`country'-npopul991m`country'	if npopul992m`country'==. & year<1950
+		replace	data_qualitynpopul992m`country'= data_qualitynpopul991m`country' if data_qualitynpopul992m`country'==. & year<1950
 		drop year_nonmiss		
-				
+		
+		**-----  991 f ------**
 		*Compute non-adult women = non-adult total - non-adult men	
 		replace	npopul991f`country'=npopul991i`country'-npopul991m`country'	if npopul991f`country'==. & year<1950
-
+		replace	data_qualitynpopul991f`country'= data_qualitynpopul991m`country' if data_qualitynpopul991f`country'==. & year<1950
+		
+		**-----  992 f ------**
 		*Compute adult women = adult total - adult men	
 		replace	npopul992f`country'=npopul992i`country'-npopul992m`country'	if npopul992f`country'==. & year<1950
-			
-		*Next assume 997 and 014 grew like poptot, account for earliest data point
+		replace	data_qualitynpopul992f`country'= data_qualitynpopul992m`country' if data_qualitynpopul992f`country'==. & year<1950
 		
+		*Next assume 997 and 014 grew like poptot, account for earliest data point
+		**-----  997, 014 i ------**
 		foreach age in 997 014{	
 				*Linearly interpolate between  1950 and the first data point
 				gen year_nonmiss = year if !missing(npopul`age'i`country')
@@ -364,28 +420,35 @@ foreach country in $un_countries {
 				ipolate npopul`age'i`country' year if year>=r(min), gen(npopul`age'i`country'_2) epolate
 				drop    npopul`age'i`country' year_nonmiss
 				rename  npopul`age'i`country'_2 npopul`age'i`country'	
-
+				replace data_qualitynpopul`age'i`country'= 3 if missing(data_qualitynpopul`age'i`country') & !missing(npopul`age'i`country')
+				
 				*Assume same growth as the total polation	
 				gen year_nonmiss = year if !missing(npopul`age'i`country')
 				sum year_nonmiss	
 				forv year =  `r(min)'(-1)1800{
 						replace npopul`age'i`country'=(F.npopul`age'i`country'/(1+F.crecnpopul999i`country')) if npopul`age'i`country'==. & year==`year'			
-				}		
+				}
+				replace data_qualitynpopul`age'i`country'= 2 if missing(data_qualitynpopul`age'i`country') & !missing(npopul`age'i`country')
 				drop year_nonmiss			
 		}		
 					
 		*Compute middle age all  = total - young age all - old age all 
-		replace	npopul156i`country'=npopul999i`country'-npopul997i`country' - npopul014i`country' if npopul156m`country'==. & year<1950					
+		**-----  156 i ------**
+		replace	npopul156i`country'=npopul999i`country'-npopul997i`country' - npopul014i`country' if npopul156m`country'==. & year<1950	
+		replace	data_qualitynpopul156i`country'= data_qualitynpopul014i`country' if data_qualitynpopul156i`country'==. & year<1950		
+		
 		*Next do gender for 156 014 and 997, assuming interpolation of men to earliest data point
 		
 		*Next assume 997 and 014 grew like poptot, account for earliest data point
+		**-----  997, 014 m ------**
 		foreach age in 997 014{	
 				*Linearly interpolate between  1950 and the first data point
 				gen year_nonmiss = year if !missing(npopul`age'm`country')
 				sum year_nonmiss
 				ipolate npopul`age'm`country' year if year>=r(min), gen(npopul`age'm`country'_2) epolate
 				drop    npopul`age'm`country' year_nonmiss
-				rename  npopul`age'm`country'_2 npopul`age'm`country'	
+				rename  npopul`age'm`country'_2 npopul`age'm`country'
+				replace data_qualitynpopul`age'm`country'= 3 if missing(data_qualitynpopul`age'm`country') & !missing(npopul`age'm`country')
 					
 				*Assume same growth as the total polation	
 				gen year_nonmiss = year if !missing(npopul`age'm`country')
@@ -393,19 +456,24 @@ foreach country in $un_countries {
 				forv year =  `r(min)'(-1)1800{
 						replace npopul`age'm`country'=(F.npopul`age'm`country'/(1+F.crecnpopul999i`country')) if npopul`age'm`country'==. & year==`year'					
 				}	
-							
+				replace data_qualitynpopul`age'm`country'= 2 if missing(data_qualitynpopul`age'm`country') & !missing(npopul`age'm`country')			
 				drop year_nonmiss			
 		}		
-					
+		
+		**-----  156 m ------**
 		*Compute middle age men  = total men - young age men - old age men 
 		replace	npopul156m`country'=npopul999m`country'-npopul997m`country' - npopul014m`country'		if npopul156m`country'==. & year<1950	
+		replace	data_qualitynpopul156m`country'= data_qualitynpopul014m`country' if data_qualitynpopul156m`country'==. & year<1950
+		
+		**-----  997, 014, 156 f ------**
 		foreach age in 997 014 156{	
 			*Compute adult women = adult total - adult men	
 			replace	npopul`age'f`country'=npopul`age'i`country'-npopul`age'm`country'		if npopul`age'f`country'==. & year<1950
+			replace	data_qualitynpopul`age'f`country'= data_qualitynpopul`age'm`country' if data_qualitynpopul`age'f`country'==. & year<1950
 		}
 		drop crec
 
-		order year npopul999i* npopul999m*  npopul999f* npopul014i* npopul014m* npopul014f* npopul156i* npopul156m*  npopul156f* npopul997i*   npopul997m*  npopul997f*      npopul991i* npopul991m* npopul991f* npopul992i* npopul992m* npopul992f* 
+		order year npopul999i* npopul999m*  npopul999f* npopul014i* npopul014m* npopul014f* npopul156i* npopul156m*  npopul156f* npopul997i*   npopul997m*  npopul997f*      npopul991i* npopul991m* npopul991f* npopul992i* npopul992m* npopul992f* data_qualitynpopul999i* 	data_qualitynpopul999m*  	data_qualitynpopul999f* 	data_qualitynpopul014i* 	data_qualitynpopul014m* 	data_qualitynpopul014f* 	data_qualitynpopul156i* 	data_qualitynpopul156m*  	data_qualitynpopul156f* 	data_qualitynpopul997i*   	data_qualitynpopul997m*  	data_qualitynpopul997f*      	data_qualitynpopul991i* 	data_qualitynpopul991m* 	data_qualitynpopul991f* 	data_qualitynpopul992i* 	data_qualitynpopul992m* 	data_qualitynpopul992f* 
 
 }
 
@@ -422,17 +490,20 @@ drop *CS
 keep if year<1950
 
 rename npopul* valuenpopul* 
-greshape long valuenpopul999i valuenpopul999m valuenpopul999f valuenpopul014i valuenpopul014m valuenpopul014f valuenpopul156i valuenpopul156m  valuenpopul156f valuenpopul997i   valuenpopul997m  valuenpopul997f valuenpopul991i valuenpopul991m valuenpopul991f valuenpopul992i valuenpopul992m valuenpopul992f , i( year) j(iso) string
+greshape long valuenpopul999i valuenpopul999m valuenpopul999f valuenpopul014i valuenpopul014m valuenpopul014f valuenpopul156i valuenpopul156m  valuenpopul156f valuenpopul997i   valuenpopul997m  valuenpopul997f valuenpopul991i valuenpopul991m valuenpopul991f valuenpopul992i valuenpopul992m valuenpopul992f data_qualitynpopul999i data_qualitynpopul999m data_qualitynpopul999f data_qualitynpopul014i data_qualitynpopul014m data_qualitynpopul014f data_qualitynpopul156i data_qualitynpopul156m  data_qualitynpopul156f data_qualitynpopul997i   data_qualitynpopul997m  data_qualitynpopul997f data_qualitynpopul991i data_qualitynpopul991m data_qualitynpopul991f data_qualitynpopul992i data_qualitynpopul992m data_qualitynpopul992f , i( year) j(iso) string
 drop if iso=="CS"
 misstable summarize
 
-greshape long value ,i(year iso) j(widcode) string
+greshape long value data_quality,i(year iso) j(widcode) string
 
 tab widcode
 misstable summarize
 
+assert !missing(data_quality)
+
 * Complete data from UN
 append using "$work_data/un-population.dta"
+replace data_quality=5 if missing(data_quality)
 misstable summarize
 
 //------------ 5.2. Aggregations for France
@@ -455,19 +526,17 @@ MF: Saint Martin (French part) (not in Codes Dictionary ) YES in WID, include
 */
 * Collapse French terriotires values
 egen value2 = total(value) if /*(*/inlist(iso, "FR", "GF", "GP", "MQ", "YT", "RE") /*|  inlist(iso, "BL", "MF"/*,"PM","WF"*/) )*/, by(year widcode /*age sex*/)
-
 format value2 %12.0f
 drop if /*(*/inlist(iso, "GF", "GP", "MQ", "YT", "RE") /*|  inlist(iso, "BL", "MF"/*,"PM","WF"*/) )*/
-replace value = value2 if (iso == "FR")
-drop value2
+replace value = value2 if (iso == "FR") // Keeps the metadata from FR
+drop value2 
 // so far there are 232 countries
-
 
 //------------ 5.3. Aggregations for Czechoslovakia
 * Collapse values for CS
 egen value2 = total(value) if inlist(iso, "CZ", "SK"), by(year widcode /*age sex*/)
 
-expand 2 if (iso == "CZ"), generate(newobs)
+expand 2 if (iso == "CZ"), generate(newobs) // Inherit metadata from CS
 replace iso = "CS" if newobs
 replace value = value2 if newobs
 drop value2 newobs
@@ -481,6 +550,7 @@ egen value2 = total(value) if inlist(iso, "HR", "SI", "RS", "MK", "BA", "ME", "K
 expand 2 if (iso == "RS"), generate(newobs)
 replace iso = "YU" if newobs
 replace value = value2 if newobs
+*replace data_quality = 1 if newobs // Inherit metadata from RS given that is has the highest popualtion share
 drop value2 newobs
 //  so far there are 234 countries with YU Yugoslavia
 
@@ -495,9 +565,9 @@ replace inUSSR = 1 if inlist(iso, "TM", "UA", "UZ")
 egen value2 = total(value) if (inlist(iso, "AM", "AZ", "BY", "EE", "GE", "KZ", "KG") | inlist(iso, "LV", "LT", "MD", "RU", "TJ") | inlist(iso, "TM", "UA", "UZ")), by(year widcode /*age sex*/)
 
 expand 2 if (iso == "RU"), generate(newobs)
-replace iso = "SU" if newobs
-
+replace iso = "SU" if newobs // Inherit metadata from RU
 replace value = value2 if newobs
+*replace data_quality = 1 if newobs
 drop value2 newobs inUSSR
 // so far there are 235 countries with SU USSR
 
@@ -505,9 +575,10 @@ drop value2 newobs inUSSR
 *Collapse values for Antilles
 egen value2 = total(value) if inlist(iso, "SX", "CW", "BQ"), by(year widcode /*age sex*/)
 
-expand 2 if (iso == "BQ"), generate(newobs)
-replace iso = "AN" if newobs
+expand 2 if (iso == "CW"), generate(newobs)
+replace iso = "AN" if newobs // Inherit ata quality from CW
 replace value = value2 if newobs
+replace data_quality = 1 if newobs
 drop value2 newobs
 // so far there are 236 countries with AN Netherlands Antilles
 
@@ -515,8 +586,8 @@ drop value2 newobs
 * Collapse value for the Channel Islands
 egen value2 = total(value) if inlist(iso, "GG", "JE"), by(year widcode /*age sex*/)
 
-expand 2 if (iso == "GG"), generate(newobs)
-replace iso = "XI" if newobs
+expand 2 if (iso == "JE"), generate(newobs)
+replace iso = "XI" if newobs // Inherit metadata from JE
 replace value = value2 if newobs
 drop value2 newobs
 // so far there are 237 countries with XI Channel Islands
@@ -525,7 +596,7 @@ tempfile temp_popbreaks_1800_2100_long
 save "`temp_popbreaks_1800_2100_long'",replace
 
 //------ 6. Complete data for Zanzibar  ----------------------------------------
-* Note 5.1: The WPP merges Tanzania and Zanzibar at all dates. In the NA, they 
+* Note 5.1: The WPP merges Tanzania and Zanzibar at all dates. In the SNA, they 
 * are separated starting in 1990. Therefore, before 1990, we keep the WPP data,
 * and after, we correct them using the SNA population data as we did for
 * Serbia and Kosovo.
@@ -542,17 +613,18 @@ tab wid
 rename value value_wpp
 
 * Bring data from UN-SNA from Zanzibar
-merge 1:1 iso year sex age using "$work_data/un-sna-population.dta", nogenerate
+merge 1:1 iso year sex age using "$work_data/un-sna-population.dta", nogenerate // This allow to keep the data from UN SNA with the highest 5 score of data given that it commes as well from a recent creadible source
 rename value value_sna
+gen data_quality_sna= 5 if !missing(value_sna)
 preserve
 	keep if iso == "ZZ" & year >= 1990
-	keep year age value_sna sex
-	ren value_sna value_sna_zz
+	keep year age value_sna sex data_quality_sna
+	ren value_sna  value_sna_zz 
 	tempfile zanzibar
 	save `zanzibar'
 restore
 
-//------------ 6.2. Calcualte ratios of ZZ an tZ
+//------------ 6.2. Calculate ratios of ZZ an tZ
 gen value=.
 preserve
     keep if iso == "TZ"	 & year >= 1990
@@ -564,12 +636,18 @@ preserve
 	bysort year : egen b = mode(ratio_tz)
 	drop ratio_* _merge value_sna_zz sna_total
 	expand 2 if (iso == "TZ") & (year >= 1990), generate(new)
+	
+	*Exend ratios if pas_year not available
+	bys iso age sex (year) : carryforward a, replace
+	bys iso age sex (year) : carryforward b, replace
+	
 	replace value = round(value_wpp*a) if (new == 1) & (iso == "TZ")
 	replace value = round(value_wpp*b) if (new == 0) & (iso == "TZ")
 	replace iso = "ZZ" if (new == 1) & (iso == "TZ")
+	replace data_quality_sna=1 if missing(data_quality_sna) & !missing(value)
+		
     drop a b new
-	* Extrapolate data
-	bys iso age sex (year) : carryforward value, replace
+
 	tempfile TZandZZ
 	save `TZandZZ'
 restore
@@ -577,7 +655,11 @@ restore
 drop if (iso == "TZ" | iso == "ZZ") & year >= 1990
 append using `TZandZZ'
 keep if  iso=="ZZ"
-keep year widcode value iso 
+
+replace data_quality=data_quality_sna
+drop data_quality_sna
+
+keep year widcode value iso data_quality
 
 * Append data
 append using "`temp_popbreaks_1800_2100_long'"
@@ -592,24 +674,35 @@ preserve
 restore
 
 keep if inlist(iso,"TZ","ZZ")
-greshape wide value, i(iso year) j(widcode) string
+
+rename data_quality data_quality_sna
+greshape wide value data_quality_sna, i(iso year) j(widcode ) string
 renvars value*, predrop(5)
 *keep iso year npopul992i npopul999i  
-keep iso year npopul*i
+keep iso year  data_quality_sna*i npopul*i
 ds iso year, not
 local pop_list `r(varlist)'
 
+ds iso year data_quality_sna*, not
+local pop_list2 `r(varlist)'
+
 greshape wide `pop_list', i(year) j(iso) string
 
-foreach var in `pop_list' {
+foreach var in `pop_list2' {
+	
 	preserve 
 		// Zanzibar and Tanzania
-		keep year `var'ZZ `var'TZ
+		keep year `var'ZZ `var'TZ data_quality_sna`var'ZZ data_quality_sna`var'TZ
 		
 		gen ratioZZ_TZ = `var'ZZ/`var'TZ if year == 1990
 		egen x2 = mode(ratioZZ_TZ) 
+		
+		replace data_quality_sna`var'ZZ = 1 if missing(`var'ZZ)
+		replace data_quality_sna`var'TZ = 1 if year <= 1990
+		
 		replace `var'ZZ = `var'TZ*x2 if missing(`var'ZZ)
 		replace `var'TZ = `var'TZ-`var'ZZ if year <= 1990
+
 		display "`var'ZZ "
 		drop ratioZZ_TZ x2 
 		tempfile variable
@@ -628,15 +721,15 @@ greshape long  `pop_list', i(year) j(iso) string
 *renvars npopul99*, pref(value)
 
 renvars npopul*, pref(value)
-greshape long value, i(iso year) j(widcode) string
+greshape long value data_quality_sna, i(iso year) j(widcode) string
 	
 keep if iso=="ZZ" & year<1990
 drop if missing(value)
+
 tempfile extrap
 save `extrap'
 
-
-//------------ 6.4. Append data 
+*correct 999i
 use "`temp_popbreaks_1800_2100_long'", clear
 drop if  iso=="ZZ" //& inlist(widcode, "npopul992i", "npopul999i") &
 append  using `extrap'
@@ -645,15 +738,20 @@ drop if year>$pastyear & iso=="ZZ"
 tab widcode if iso=="ZZ" & year<1990
 keep if iso=="ZZ"
 
-reshape wide value, i(iso year) j(widcode) string
-replace valuenpopul991i=valuenpopul999i-valuenpopul992i if valuenpopul991i==. & inrange(year,1950,$pastyear )
+replace data_quality=data_quality_sna if missing(data_quality) & !missing(data_quality_sna)
+drop data_quality_sna
 
-reshape long value, i(iso year) j(widcode) string
+reshape wide value data_quality, i(iso year) j(widcode) string
+replace data_qualitynpopul991i = min(data_qualitynpopul999i,data_qualitynpopul992i) if data_qualitynpopul991i==. & inrange(year,1950,$pastyear )
+replace valuenpopul991i        = valuenpopul999i-valuenpopul992i                    if valuenpopul991i       ==. & inrange(year,1950,$pastyear )
+
+reshape long value data_quality, i(iso year) j(widcode) string
 
 *Keep only those that were in the WID
 keep if inrange(year,1950,$pastyear) //& inlist(widcode,"npopul999i","npopul991i","npopul992i")
 misstable summarize
 
+//------------ 6.4. Append data 
 append  using "`temp_popbreaks_1800_2100_long'"
 misstable summarize
 sort iso year widcode
@@ -672,13 +770,14 @@ keep if  substr(widcode, 1, 6) == "npopul" & substr(widcode, 10, 1) != "t"
 
 * Formatting
 replace src = "_wid" if (src == "")
+replace data_quality=4 if  src == "_wid"
 
-keep iso year src widcode value
-greshape wide value, i(iso year src) j(widcode) string
-greshape wide value*, i(iso year) j(src) string
+keep iso year src widcode value data_quality
+greshape wide value data_quality, i(iso year src) j(widcode) string
+greshape wide value* data_quality*, i(iso year) j(src) string
 
 // Drop variables with missing value only
-foreach v of varlist value* {
+foreach v of varlist value* data_quality* {
 	quietly count if (`v' < .)
 	if (r(N) == 0) {
 		drop `v'
@@ -726,7 +825,8 @@ foreach v in npopul992i npopul999i {
 	replace `v' = `v' - levelref if (`v' < .)
 	
 	replace `v' = lastwid*exp(`v')
-	
+	gen data_quality`v' = 4 if  strpos(growth_src_`v', "_wid")
+	replace data_quality`v' = 2 if  strpos(growth_src_`v', "_un")
 	drop growth firstyear lastwid lastyear growth levelref haswid
 }
 
@@ -746,10 +846,15 @@ expand 2 if (iso == "DE") & inrange(year, 1950, 1990), generate(newobs)
 replace iso = "DD" if newobs
 replace npopul999i = npopul999i_un - npopul999i_wid if (iso == "DD")
 replace npopul992i = npopul992i_un - npopul992i_wid if (iso == "DD")
+replace data_qualitynpopul992i = data_qualitynpopul992i if (iso == "DD")
+replace data_qualitynpopul999i = data_qualitynpopul999i if (iso == "DD")
 drop newobs
+
 *replacing DE for UN from 1950 to 1990 
 replace npopul999i = npopul999i_un if (iso == "DE") & inrange(year, 1950, 1990)
 replace npopul992i = npopul992i_un if (iso == "DE") & inrange(year, 1950, 1990)
+replace data_qualitynpopul992i = data_qualitynpopul992i_un if (iso == "DE") & inrange(year, 1950, 1990)
+replace data_qualitynpopul999i = data_qualitynpopul999i_un if (iso == "DE") & inrange(year, 1950, 1990)
 
 
 // Estimate missing $pastyear populations from past growth rate
@@ -767,6 +872,7 @@ preserve
 	keep if newobs==1
 	replace npopul999i_un=round(npopul999i_un)
 	drop obs growth_factor
+	replace data_qualitynpopul999i= 1
 	
 	tempfile imputed
 	save "`imputed'"
@@ -775,7 +881,8 @@ append using "`imputed'"
 
 
 // Generate children population
-generate npopul991i = npopul999i - npopul992i
+generate npopul991i   = npopul999i - npopul992i
+generate data_qualitynpopul991i = data_qualitynpopul999i
 
 // Rescale all other population categories from the UN to get coherent results
 
@@ -784,6 +891,7 @@ generate ratio999i = npopul999i/npopul999i_un
 foreach v of varlist npopul*_un {
 	local widcode = substr("`v'", 1, 10)
 	generate resc_`widcode' = `v'*ratio999i if (ratio999i < .)
+	generate data_qualityresc_`widcode'=min(data_qualitynpopul999i, data_qualitynpopul999i_un) if (ratio999i < .)
 }
 
 // Adults & children
@@ -794,26 +902,36 @@ foreach v of varlist npopul*_un {
 	local agecode = substr("`v'", 7, 3)
 	if (`agecode' < 200 & `agecode' != 111) {
 		replace resc_`widcode' = `v'*ratio991i if (ratio991i < .)
+		replace data_qualityresc_`widcode'=min(data_qualitynpopul991i, data_qualitynpopul991i_un) if (ratio999i < .)
 	}
 	else {
 		replace resc_`widcode' = `v'*ratio992i if (ratio992i < .)
+		replace data_qualityresc_`widcode'=min(data_qualitynpopul992i, data_qualitynpopul992i_un) if (ratio999i < .)
 	}
 }
 
 replace resc_npopul999i = npopul999i
+replace data_qualityresc_npopul999i=data_qualitynpopul999i
 replace resc_npopul992i = npopul992i
+replace data_qualityresc_npopul992i=data_qualitynpopul992i
 replace resc_npopul991i = npopul991i
+replace data_qualityresc_npopul991i=data_qualitynpopul991i
+
+
 foreach v of varlist resc_* {
 	local widcode = substr("`v'", 6, .)
-	replace `v' = `widcode'_un if (`v' >= .)
+	replace  data_quality`v' =  data_quality`widcode'_un if (`v' >= .)
+	replace `v'              = `widcode'_un              if (`v' >= .)
+	
 }
 
-keep iso year resc_* minyear maxyear haswid newobs growth_src_npopul999i
+
+keep iso year resc_* data_qualityresc_* minyear maxyear haswid newobs growth_src_npopul999i
 
 
 // Reshape back to long format
-greshape long resc_, i(iso year) j(widcode) string
-rename resc_ value
+greshape long resc_ data_qualityresc_, i(iso year) j(widcode) string
+rename (resc_ data_qualityresc_) (value data_quality)
 
 // sum value if iso=="ZZ" & year==1950
 // assert r(N)>0
@@ -822,10 +940,9 @@ tabulate growth_src_npopul999i
 drop growth_src_npopul999i
 
 keep if value < .
-*drop haswid minyear maxyear newobs
+drop haswid minyear maxyear newobs
 drop if iso=="DE"
-tab iso
-tab widcode
+
 
 * Append data back
 misstable summarize
@@ -841,6 +958,7 @@ use "$work_data/correct-widcodes-output.dta",clear
 keep if inlist(iso, "CN-RU","CN-UR") 
 tab widcode
 keep if widcode=="npopul992i"
+replace data_quality=4
 append using "`temp_popbreaks_1800_2100_long'"
 misstable summarize
 sort iso year widcode
@@ -872,71 +990,13 @@ replace value=round(value,1)
 
 generate p = "pall"
 
-keep iso widcode p year value
+keep iso widcode p year value data_quality
 sort iso widcode year
 keep if inrange(year,1800,$pastyear)
 
-//----- 10. Calculate Regions (temporary section) ------------------------------
-/*
-* Format for calculations
-replace iso="CN_RU" if iso=="CN-RU"
-replace iso="CN_UR" if iso=="CN-UR"
-
-greshape wide value, i(year widcode) j(iso) string
-rename value* poptot*
-
-*Generate coordination regions
-gen poptotEURO = poptotAD+ poptotAL+ poptotAT+ poptotBA+ poptotBE+ poptotBG+ poptotCH+ poptotCY+ poptotCZ+ poptotDE+ poptotDK+ poptotEE+ poptotES+ poptotFI+ poptotFR+ poptotGB+ poptotGG+ poptotGI+ poptotGR+ poptotHR+ poptotHU+ poptotIE+ poptotIM+ poptotIS+ poptotIT+ poptotJE+ poptotKS+ poptotLI+ poptotLT+ poptotLU+ poptotLV+ poptotMC+ poptotMD+ poptotME+ poptotMK+ poptotMT+ poptotNL+ poptotNO+ poptotPL+ poptotPT+ poptotRO+ poptotRS+ poptotSE+ poptotSI+ poptotSK+ poptotSM
-		
-gen poptotNAOC = poptotAU+ poptotBM+ poptotCA+ poptotFJ+ poptotFM+ poptotGL+ poptotKI+ poptotMH+ poptotNC+ poptotNR+ poptotNZ+ poptotPF+ poptotPG+ poptotPW+ poptotSB+ poptotTO+ poptotTV+ poptotUS+ poptotVU+ poptotWS
-
-gen poptotLATA = poptotAG+ poptotAI+ poptotAR+ poptotAW+ poptotBB+ poptotBO+ poptotBQ+ poptotBR+ poptotBS+ poptotBZ+ poptotCL+ poptotCO+ poptotCR+ poptotCU+ poptotCW+ poptotDM+ poptotDO+ poptotEC+ poptotGD+ poptotGT+ poptotGY+ poptotHN+ poptotHT+ poptotJM+ poptotKN+ poptotKY+ poptotLC+ poptotMS+ poptotMX+ poptotNI+ poptotPA+ poptotPE+ poptotPR+ poptotPY+ poptotSR+ poptotSV+ poptotSX+ poptotTC+ poptotTT+ poptotUY+ poptotVC+ poptotVE+ poptotVG
-
-gen poptotMENA = poptotAE+ poptotBH+ poptotDZ+ poptotEG+ poptotIL+ poptotIQ+ poptotIR+ poptotJO+ poptotKW+ poptotLB+ poptotLY+ poptotMA+ poptotOM+ poptotPS+ poptotQA+ poptotSA+ poptotSY+ poptotTN+ poptotTR+ poptotYE
-
-gen poptotSSAF = poptotAO+ poptotBF+ poptotBI+ poptotBJ+ poptotBW+ poptotCD+ poptotCF+ poptotCG+ poptotCI+ poptotCM+ poptotCV+ poptotDJ+ poptotER+ poptotET+ poptotGA+ poptotGH+ poptotGM+ poptotGN+ poptotGQ+ poptotGW+ poptotKE+ poptotKM+ poptotLR+ poptotLS+ poptotMG+ poptotML+ poptotMR+ poptotMU+ poptotMW+ poptotMZ+ poptotNA+ poptotNE+ poptotNG+ poptotRW+ poptotSC+ poptotSD+ poptotSL+ poptotSN+ poptotSO+ poptotSS+ poptotST+ poptotSZ+ poptotTD+ poptotTG+ poptotTZ+ poptotUG+ poptotZA+ poptotZM+ poptotZW
-
-gen poptotRUCA = poptotAM+ poptotAZ+ poptotBY+ poptotGE+ poptotKG+ poptotKZ+ poptotRU+ poptotTJ+ poptotTM+ poptotUA+ poptotUZ
-
-gen poptotEASA = poptotCN+ poptotHK+ poptotJP+ poptotKP+ poptotKR+ poptotMN+ poptotMO+ poptotTW
-
-gen poptotSSEA = poptotAF+ poptotBD+ poptotBN+ poptotBT+ poptotID+ poptotIN+ poptotKH+ poptotLA+ poptotLK+ poptotMM+ poptotMV+ poptotMY+ poptotNP+ poptotPH+ poptotPK+ poptotSG+ poptotTH+ poptotTL+ poptotVN
-			
-gen poptotQM   = poptotAL		+poptotBA		+poptotBG		+poptotCY		+poptotCZ		+poptotEE		+poptotHR		+poptotHU		+poptotLT		+poptotLV		+poptotMD		+poptotME		+poptotMK		+poptotPL		+poptotRO		+poptotRS		+poptotSI		+poptotSK +			poptotKS
-
-*Generate other core regions
-gen poptotOH = poptotNAOC - (poptotUS+poptotCA+poptotAU+poptotNZ)
-gen poptotOD = poptotLATA - (poptotAR+poptotBR+poptotCL+poptotCO+poptotMX)
-gen poptotOE = poptotMENA - (poptotTR+poptotEG+poptotDZ)
-gen poptotOJ = poptotSSAF - poptotZA
-gen poptotOA = poptotRUCA - poptotRU
-gen poptotOB = poptotEASA - (poptotCN+poptotJP)
-gen poptotOI = poptotSSEA - (poptotIN+poptotID)
-gen poptotOC = poptotEURO - (poptotDE+poptotFR+poptotGB+poptotIT+poptotES+poptotSE+poptotQM)
-		
-*Generate extended other regions
-gen  poptotOK = poptotEASA-poptotCN- poptotJP- poptotKR- poptotTW //extended Other EASA
-gen  poptotOL = poptotOC- poptotNL- poptotNO- poptotDK	          //extended Other Western Europe
-gen	 poptotOO = poptotOE-poptotIR-poptotMA-poptotSA-poptotAE	  //extended Other MENA
-gen  poptotOP = poptotSSEA - poptotBD-poptotIN-poptotID- poptotMM- poptotPK- poptotPH- poptotTH- poptotVN //extended Other SSEA
-gen  poptotOQ = poptotOJ-poptotCD-poptotET-poptotKE-poptotCI-poptotML-poptotNE-poptotNG-poptotRW-poptotSD //extended Other SSAF
-
-
-* Format back	
-rename poptot* value*		
-drop valueEASA valueSSAF valueEURO valueLATA valueNAOC valueRUCA valueMENA valueSSEA
-
-greshape long value, i( year widcode) j(iso) string
-
-replace iso="CN-RU" if iso=="CN_RU"
-replace iso="CN-UR" if iso=="CN_UR"
-
-* Drop core regions since they will be calculated in the macro-regional-aggregation 
-drop if inlist(iso,"OA","OB","OC","OD","OE","OH","OI","OJ","QM")
-*/
 //------ 11. Export data -------------------------------------------------------
 sort iso widcode year p 
-order iso year widcode p value
+order iso year widcode p value data_quality
 
 label data "Generated by calculate-populations.do"
 save "$work_data/populations.dta", replace
@@ -948,43 +1008,86 @@ gen sixlet= substr(widcode, 1, 6)
 keep iso sixlet year
 duplicates drop
 
-	// Country-specific notes
-gen     method = "Before 1939, the data is took from Federico-Tena World Population Historical Database : World Population borders 1991 (2025) and International Historical Statistics databse. Data between 1939-1949 results from a linear interpolation"
-replace method = method + "; Includes départements et régions d'outre-mer(DROM)." if (iso == "FR")
-*replace method = method + "Includes East Timor before 1999." if (iso == "ID")
+// MethodC
+
+* 2. Project Population data 	
+gen     method = "Before 1939, the data are taken from the Federico-Tena World Population Historical Database (World Population, borders 1991, 2025 edition), with aggregates disaggregated using age shares from the International Historical Statistics database for available years and interpolated in between. Data for the period 1939–1949 are obtained by linear interpolation. From 1950 onward, data are taken from the United Nations World Population Prospects Database."
+
+** 2.1. Brackward Projection of KS (Kosovo)
 replace method = method + "; Excludes Kosovo. Data on the population distriguishing between Serbia and " + ///
 		"Kosovo from 1950 comes from the UN World Population Prospects (2024)." if (iso == "RS")
 replace method = method + "; Data on the population of Kosovo comes from the UN World Population Prospects (2024)." if (iso == "KS")
-replace method = method + "; Excludes Zanzibar. Data on the population of Tanzania excluding " + ///
-	"Zanzibar comes from the UN SNA. Data for the population subcategories come " + ///
-	"from the UN World Population Prospects (2024) for Tanzania including Zanzibar, " + ///
-	"each of them adjusted proportionally to match the SNA population total." if (iso == "TZ")
+
+** 2.2. Brackward Projection of SS (South Sudan)
+replace method = method + "; Before 1939, population data distinguishing between Sudan and South Sudan are constructed using the ratio observed in 1950 relative to Sudan." if inlist(iso,"SS", "SD")
+
+** 2.3. Backward Projection of Guernsey and Jersey 
+replace method = method + ";Before 1939, population data distinguishing between Guernsey and Jersey are constructed using the ratio observed in 1950 relative to Channel Islands." if inlist(iso,"GG", "JE")
+
+** 2.4. Backward Projection of Bonaire, SIntMaarten and Curacao
+replace method = method + ";Before 1939, population data distinguishing between Bonaire, SintMaarten and Curacao are constructed using the ratio observed in 1950 relative to Netherlands Antilles." if inlist(iso,"SX", "CW", "BQ")
+
+** 2.5. Backward Projection of French West Indies
+replace method = method + ";Before 1939, population data distinguishing between Saint Barthelemy and Saint Martin(French part), Guadeloupe and Martinique are constructed using the ratio observed in 1950 relative to French West Indies." if inlist(iso,"BL", "MF", "GP", "MQ")
+
+* 5. Complete data for USSR, Yugoslavia, Czechoslovakia, France 
+** 5.2. Aggregations for France
+replace method = method + "; Includes départements et régions d'outre-mer(DROM): Guiana Francaice, Guadeloupe, Martinique, Mayotte and the Reunion." if inlist(iso,"FR")
+
+** 5.3. Aggregations for Czechoslovakia 
+replace method = method + "; Calculated by combining the populations of Czechia and Slovakia." if inlist(iso,"CS")
+
+** 5.4. Aggregations for Yugoslavia (incl. with KS (Kosovo))
+replace method = method + "; Calculated by combining the populations of Bosnia and Herzegovina, Croatia, North Macedonia, Montenegro, Kosovo, Serbia and Slovenia." if inlist(iso,"YU")
+
+** 5.5. Aggregations for USSR
+replace method = method + "; Calculated by combining the populations of AM, AZ, BY, EE, GE, KZ, KG, LV, LT, MD, RU, TJ, TM, UA and UZ." if inlist(iso,"YU")
+
+** 5.6. Aggregations for Antilles
+replace method = method + "; Calculated by combining the populations of Bonaire, Curacao and Sint Maarten (Dutch part)." if inlist(iso,"AN")
+
+** 5.7. Aggregations for Channel Islands
+replace method = method + "; Calculated by combining the populations of Gunersey and Jersey." if inlist(iso,"XI")
+
+*  6. Complete data for ZZ (Zanzibar)
+** 6.3. Extrapolate backwards 
+*replace method = method + "; Excludes Zanzibar. Data on the population of Tanzania excluding " + ///
+*	"Zanzibar comes from the UN SNA. Data for the population subcategories come " + ///
+*	"from the UN World Population Prospects (2024) for Tanzania including Zanzibar, " + ///
+*	"each of them adjusted proportionally to match the SNA population total." if (iso == "TZ")
 replace method = method + "; Data on the population of Zanzibar comes from the UN SNA. Data " + ///
 	"for the population subcategories come from the UN World Population Prospects (2024) " + ///
-	"for Tanzania and Zanzibar, each of them adjusted proportionally to match the SNA " + ///
-	"population total." if (iso == "ZZ")
-replace method = method + "; Data on the population come from the UN World Population Prospects (2024)." if (iso == "CY")
-		
+	"From 1990, data adjusted proportionally to match the SNA population total for " + ///
+	"Tanzania and Zanzibar." if (iso == "ZZ")
+
+* 7. Complete data for German Democratic Republic
 replace method = method + "; Adult and total population estimated as a difference between " + ///
 		"the UN World Population Prospects (2024) for total Germany, and Piketty and Zucman (2013) " + ////
 		"data for West Germany. Data on other population subcategories also come from the UN World Population " + ///
 		"Prospects (2024), rescaled to match the East German totals." if (iso == "DD")
+		
+* 8. Complete data for China Rural and China Urban
 replace method = method + "; Adult and total population estimated as a difference between " + ///
 		"the UN World Population Prospects (2024) for total China, and Piketty, Yang and Zucman (2017) " + ////
 		"data for Urban and Rural China. Data on other population subcategories also come from the UN World Population " + ///
 		"Prospects (2024), rescaled to match the Urban and Rural totals." if inlist(iso, "CN-RU","CN-UR")
-		
-*replace method = "From " + string(minyear) + " to " + ///
-*		string(maxyear) + " we the use data provided by the WID researchers for " + ///
-*		"total and adult population (see source). We extend it to the other " + ///
-*		"years using growth rates from the UN World Population Prospects (2015). Data on other " + ///
-*		"population subcategories also come from the UN World Population " + ///
-*		"Prospects (2015), rescaled when necessary to match the source data." if (haswid)
 
-replace method = method + "; Total $pastyear population is an projection included in the UN World Population Prospects (2024). Data on other years comes from the UN World Population Prospects (2015)." //if year==$pastyear (New from Nov 2025: condition commented out to ensure no iso-sixlet duplicates due to different "method" values, by A. Van Der Ree)
+* Years when UN data was not updated
+merge m:1 iso using "`prospect'", nogen
+replace method = method + "; Total $pastyear population is an projection included in the UN World Population Prospects (2024). Data on other years comes from the UN World Population Prospects (2015)." if prospect==1
+drop prospect
+
+*Source:
+gen source = ///
+`"[URL][URL_LINK]"' + ///
+`"Ricardo Gomez-Carrera Rowaida Moshrif Gaston Nievas Thomas Piketty Anmol Somanchi"' + ///
+ `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + ///
+`"Gomez-Carrera, R., Moshrif, R., Nievas G., Piketty, T., Somanchi, A. (2024), "Extending WID Population Series: Projections 2024-2100 & Age/Gender Breakdowns" "' + ///
+ `"[/URL_TEXT][/URL]"'
 
 drop year
-keep iso sixlet method
+keep iso sixlet method source
 
 duplicates drop
 save "$work_data/population-metadata.dta", replace

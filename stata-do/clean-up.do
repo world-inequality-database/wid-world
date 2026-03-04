@@ -417,9 +417,6 @@ save `quality'
 use `data', clear
 append using `quality'
 
-assert data_quality !=. if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j")
-
-
 // --------------------- Add yearly data quality -------------------------------
 // as long as we only have yearly data_quality for pre-tax distributions 
 // (and a few other exceptions) then we can add yearly data_quality here. 
@@ -437,8 +434,8 @@ preserve
 restore 
 merge m:1 iso year widcode using `dataquality', keepusing(data_quality)
 drop _merge
-assert data_quality !=. if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j")
-
+assert data_quality!=. if strpos(widcode, "ptinc") 
+assert data_quality!=. if strpos(widcode, "cainc")
 // -----------------------------------------------------------------------------
 
 // Save

@@ -15,7 +15,7 @@ generate vartype = substr(widcode, 2, .)
 generate long perc = round(1e3*real(regexs(1))) if (regexm(p, "^p([0-9\.]+)(p100)?$"))
 drop p widcode
 
-greshape wide value, i(iso year perc vartype) j(onelet) string
+greshape wide value, i(iso year perc vartype data_quality) j(onelet) string
 
 // Calculate Pareto coefficient
 generate value = valuea/valuet

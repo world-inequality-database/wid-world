@@ -665,7 +665,7 @@ save "`temp_popbreaks_1800_2100_long'",replace
 keep if iso=="DE"
 
 generate src = "_un"
-append   using "$work_data/correct-widcodes-output.dta", keep(iso year value widcode data_quality)
+append   using "$work_data/correct-widcodes-output.dta", keep(iso year value widcode)
 keep if  inlist(iso,"DE","DD")
 *drop if  widcode == "npopul996i"
 keep if  substr(widcode, 1, 6) == "npopul" & substr(widcode, 10, 1) != "t"
@@ -673,7 +673,7 @@ keep if  substr(widcode, 1, 6) == "npopul" & substr(widcode, 10, 1) != "t"
 * Formatting
 replace src = "_wid" if (src == "")
 
-keep iso year src widcode value data_quality
+keep iso year src widcode value
 greshape wide value, i(iso year src) j(widcode) string
 greshape wide value*, i(iso year) j(src) string
 
@@ -808,7 +808,7 @@ foreach v of varlist resc_* {
 	replace `v' = `widcode'_un if (`v' >= .)
 }
 
-keep iso year resc_* minyear maxyear haswid newobs growth_src_npopul999i data_quality
+keep iso year resc_* minyear maxyear haswid newobs growth_src_npopul999i
 
 
 // Reshape back to long format
@@ -872,7 +872,7 @@ replace value=round(value,1)
 
 generate p = "pall"
 
-keep iso widcode p year value data_quality
+keep iso widcode p year value
 sort iso widcode year
 keep if inrange(year,1800,$pastyear)
 

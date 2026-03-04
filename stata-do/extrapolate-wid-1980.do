@@ -272,9 +272,20 @@ by iso year : generate bs = 1-ts
 bysort iso year (p) : assert inrange(ts, 0, 1.01) /*if !inlist(iso, "CY", "IS")*/ // issues in 2007/08
 
 drop n
-
+// -------------------------------------------------------------------------- //
 // adding data quality for years that we interpolated
-replace data_quality = 1 if data_quality==.
+// -------------------------------------------------------------------------- //
+
+// ensure if a country has 0 it should have only 0s for all years
+bys iso: egen dq_min = min(data_quality)
+bys iso: egen dq_max = max(data_quality)
+assert !(dq_min==0 & dq_max>0)
+
+gen data_quality2 = data_quality
+replace data_quality = min(dq_min, 1) if missing(data_quality)
+assert inlist(data_quality, 0,1) if data_quality2==.
+drop dq_min dq_max data_quality2
+
 assert data_quality !=.
 
 tempfile final
@@ -370,8 +381,6 @@ append using `bs'
 
 duplicates drop iso year p widcode, force
 
-*merge m:1 iso year widcode using `dataquality', update nogenerate
-
 
 *drop if inlist(iso, "JP", "KR")
 
@@ -388,8 +397,8 @@ merge 1:1 iso year p widcode using "`all'", update nogenerate
 merge m:1 iso year widcode using `dataquality', update
 drop if _merge==2
 drop _merge
-assert data_quality !=. if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j")
-
+assert data_quality!=. if strpos(widcode, "ptinc") 
+assert data_quality!=. if strpos(widcode, "cainc")
 
 gduplicates tag iso year p widcode, gen(dup)
 assert dup == 0

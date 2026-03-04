@@ -35,7 +35,6 @@ preserve
 	isid iso year widcode 
 	tempfile dataquality
 	save `dataquality'
-	save "$work_data/dq-calibrate-dina-revised-output.dta", replace
 restore
 drop data_quality
 
@@ -357,7 +356,9 @@ merge 1:1 iso year p widcode using "`all'", update replace nogen
 merge m:1 iso year widcode using `dataquality', update
 drop if _merge==2
 drop _merge
-assert data_quality !=. if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j")
+
+assert data_quality!=. if strpos(widcode, "ptinc") 
+assert data_quality!=. if strpos(widcode, "cainc")
 
 drop if widcode == "aptinc992j" & value <0 & p == "p0p10"
 

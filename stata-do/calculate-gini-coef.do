@@ -25,7 +25,7 @@ by iso widcode year: generate bracket_size = cond(_n == _N, 1 - p/1e5, (p[_n + 1
 // Integrate using trapezoidal rule
 by iso widcode year: generate trapezoid = ((equality_line - bottom_share) + ///
 	cond(_n == _N, 0, equality_line[_n + 1] - bottom_share[_n + 1]))*bracket_size/2
-collapse (sum) value = trapezoid, by(iso widcode year)
+collapse (sum) value = trapezoid, by(iso widcode year data_quality)
 replace value = 2*value
 
 // Code as Gini

@@ -36,9 +36,9 @@ if substr("`c(pwd)'",1,25) == "/Users/manuelestebanarias" {
     global r_dir "/usr/local/bin/R"
 }
 
-if substr("`c(pwd)'",1,20)== "C:\Users\a.vanderree" { 
-	global wid_dir "C:/Users/a.vanderree/Dropbox/W2ID"
-	global project_dir "C:/Users/a.vanderree/Documents/GitHub/wid-world"
+if substr("`c(pwd)'",1,19)== "/Users/anavanderree" { 
+	global wid_dir "/Users/anavanderree/Dropbox/W2ID"
+	global project_dir "/Users/anavanderree/Documents/GitHub/wid-world"
 }
 
 // WID folder directory
@@ -157,13 +157,13 @@ dis $corecountries
 // Required ADO files
 
 *update all
-//  ssc install kountry
-//  ssc install coefplot
-//  ssc install sxpose
-//  ssc install egenmore
-//  ssc install carryforward
-//  ssc install quandl
-//  ssc install gtools
+// ssc install kountry
+// ssc install coefplot
+// ssc install sxpose
+// ssc install egenmore
+// ssc install carryforward
+// ssc install quandl
+// ssc install gtools
 
 // You need to update Stata to the 14 version
 *version 14

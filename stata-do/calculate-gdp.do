@@ -419,7 +419,7 @@ merge 1:1 iso year using "$work_data/maddison-gdp.dta", ///
 replace gdp_maddison = . if inlist(iso, "US", "FR", "DE", "GB")
 
 // Housekeeping
-keep iso year currency gdp gdp_maddison *_src level_year
+keep iso year currency gdp gdp_maddison *_src level_year 
 
 // Drop former countries after separation
 drop if (iso == "CS") & (year > 1990)
@@ -474,7 +474,7 @@ drop currency
 rename currency2 currency
 
 // 6. Export
-keep iso year gdp growth2_src level_src level_year currency
+keep iso year gdp growth2_src level_src level_year currency 
 rename growth2_src growth_src
 
 

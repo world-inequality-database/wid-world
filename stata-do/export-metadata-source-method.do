@@ -31,6 +31,18 @@
 use "$work_data/World-and-regional-aggregates-metadata.dta", clear
 // use "$work_data/add-carbon-series-metadata.dta", clear
 
+/*temporary fix! 
+replace data_points = "" if iso=="KH" & strpos(sixlet, "ptinc")
+replace extrapolation = "[[1980, 1990], [1990, 1996], [1996, 2003], [2020, 2023]]" if iso=="CY" & strpos(sixlet, "cainc")
+replace extrapolation = "[[2020, 2023]]" if iso=="CZ" & strpos(sixlet, "cainc")
+replace extrapolation = "[[2020, 2022]]" if iso=="GR" & strpos(sixlet, "cainc")
+replace extrapolation = "[[1820, 2013], [2015, 2024]]" if iso == "AE" & strpos(sixlet, "ptinc")
+replace extrapolation = "[[1820, 1950], [2023, 2024]]" if iso == "CA" & strpos(sixlet, "ptinc")
+replace extrapolation = "[[1820, 1950], [2023, 2024]]" if iso == "AU" & strpos(sixlet, "ptinc")
+replace extrapolation = "[[1980, 2024]]" if iso == "ER" & strpos(sixlet, "ptinc")
+replace extrapolation = "[[1820, 2024]]" if inlist(iso, "MM", "SO") & strpos(sixlet, "ptinc")
+*/
+
 // Dropping widcodes that no longer exist 
 gen fivelet = substr(sixlet, 2, 5)
 local dropcodes ///
@@ -299,6 +311,44 @@ drop duplicate
 `"[URL][URL_LINK]https://wid.world/document/world-totals-in-wid-core-territories-core-countries-and-core-macro-and-distributional-variables-1820-2023-world-inequality-lab-technical-note-2024-02/[/URL_LINK][URL_TEXT] ; Moshrif, R., Nievas, G., Piketty, T., Sodano, A., Chancel, L., (2024), "World Totals in WID: Core Territories, Core Countries and Core Macro and Distributional Variables, 1820-2023"[/URL_TEXT][/URL]"' ///
 if strpos(iso, "-PPP") | strpos(iso, "-MER")
 *if (inlist(iso, "OA", "OB", "OC", "OD", "OE", "OI") | inlist(iso, "OJ", "QE", "QF", "QL", "QM", "QP") | inlist(iso, "WO", "XF", "XL", "XN", "XR", "XS"))
+
+
+//==============================================================================
+// ----------------------------- 10. Final checks ------------------------------
+//==============================================================================
+
+* 1) data_points format checks
+assert substr(data_points, 1, 1) == "[" if data_points != ""
+assert substr(data_points, strlen(data_points), 1) == "]" if data_points != ""
+
+assert regexm(data_points, "^\[[0-9]{4}(, [0-9]{4})*\]$") if data_points != ""
+
+assert strpos(data_points, "[") & strpos(data_points, "]") if data_points != ""
+assert !regexm(data_points, "\],") if data_points != ""    // no "],"
+assert !regexm(data_points, ",  ") if data_points != ""    // no double spaces after comma
+assert !regexm(data_points, ",[0-9]") if data_points != "" // must be comma+space, not comma immediately followed by digit
+
+* Count "[" and "]" and assert they're equal
+assert (strlen(data_points) - strlen(subinstr(data_points,"[","",.))) == ///
+       (strlen(data_points) - strlen(subinstr(data_points,"]","",.))) if data_points != ""
+
+
+* 2) extrapolation format checks
+assert substr(extrapolation, 1, 2) == "[[" if extrapolation != ""
+assert substr(extrapolation, strlen(extrapolation)-1, 2) == "]]" if extrapolation != ""
+
+assert !regexm(extrapolation, "]],") if extrapolation != ""     // no "]],"
+assert !regexm(extrapolation, "]]],") if extrapolation != ""     // no "]]],"
+assert !regexm(extrapolation, "[[,") if extrapolation != ""     // no "[[,"
+assert !regexm(extrapolation, "[[[,") if extrapolation != ""     // no "[[[,"
+
+assert !regexm(extrapolation, ",  ") if extrapolation != ""  // no double spaces after comma
+assert regexm(extrapolation, ", [0-9]") if extrapolation != "" // must be ", " between segments
+
+* Count "[" and "]" and assert they're equal
+assert (strlen(extrapolation) - strlen(subinstr(extrapolation,"[","",.))) == ///
+       (strlen(extrapolation) - strlen(subinstr(extrapolation,"]","",.))) if extrapolation != ""
+
 
 save "$work_data/metadata-final.dta", replace
 

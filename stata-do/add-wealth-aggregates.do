@@ -5,6 +5,7 @@
 // 1. Prepare the wealth aggreggates
 use "$wid_dir/Country-Updates/Wealth/2025_March/wealth-aggregates-2024.dta", clear
 replace iso="KS" if iso=="XK"
+
 	
 * Completing data of last year in case it is not available
 summarize year
@@ -22,19 +23,19 @@ if `n_expand'!=0 {  // Loop for filling missing recent years
 	drop dup n
 	} 
 
-tempfile wealth_aggregates
-save `wealth_aggregates'
+tempfile wealth_shares
+save `wealth_shares'
 
 // 2. Append the wealth aggregates
 use "$work_data/add-populations-output.dta", clear
 
-keep if inlist(widcode, /* "mnweal999i", "mhweal999i", "mpweal999i", "mgweal999i",*/ "mnninc999i")
+keep if inlist(widcode, /* "mnweal999i", "mhweal999i", "mpweal999i", "mgweal999i",*/ "mnninc999i", "mgdpro999i")
 drop p currency 
 reshape wide value, i(iso year) j(widcode) string
 
 
 *merge 1:1 iso year using "$wid_dir/Country-Updates/Wealth/2023_December/wealth-aggregates-2023.dta", nogen
-merge 1:1 iso year using "`wealth_aggregates'", nogen
+merge 1:1 iso year using "`wealth_shares'", nogen
 
 
 drop nwoff  gwdec
@@ -44,23 +45,30 @@ foreach var in nwnxa nwgxd nwgxa {
 // Netherlands
 // merge 1:1 iso year using "$wid_dir/Country-Updates/Netherlands/2022_11/NL_WealthAggregates_WID_tomerge", update nogen
 
-ds iso year valuemnninc999i, not
+ds iso year valuemnninc999i valuemgdpro999i, not
 /*
 foreach l in `r(varlist)' {
 	replace `l' = . if inrange(year, 1990, 1994) & iso == "RU"
 }
 */
 
+* Generate the share of Net national income
 foreach x in `r(varlist)' {
 	generate valuem`x'999i = `x'*valuemnninc999i if !missing(valuemnninc999i) & !missing(`x')
 	rename `x' valuew`x'999i
 }
 
-drop valuemnninc999i
+* Generate the share of Gross Domestic Product
+foreach x in `r(varlist)' {
+	generate valuey`x'999i = valuem`x'999i/valuemgdpro999i if !missing(valuemgdpro999i) & !missing(valuem`x'999i)
+}
+
+
+drop valuemnninc999i valuemgdpro999i
 
 
 *reshape long
-reshape long value, i(iso year) j(widcode) string
+greshape long value, i(iso year) j(widcode) string
 drop if missing(value)
 generate p = "pall"
 

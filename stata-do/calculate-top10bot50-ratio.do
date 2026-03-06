@@ -8,7 +8,7 @@ keep if (p == "p90p100" | p == "p0p50")
 generate onelet  = substr(widcode, 1, 1)
 generate vartype = substr(widcode, 2, .)
 
-greshape wide value, i(iso year widcode currency onelet vartype) j(p) string
+greshape wide value, i(iso year widcode currency onelet vartype data_quality) j(p) string
 generate value = valuep90p100/valuep0p50
 
 drop if missing(value)
@@ -22,9 +22,22 @@ save "`ratio'"
 
 // Put pop(i) to pop(j) hweal for GB before 1995
 use  "$work_data/homogenize-all-distributions-output.dta", clear
-
 keep if inlist(widcode, "shweal992i", "shweal992j") & iso == "GB"
-reshape wide value, i(iso year p currency) j(widcode) string
+
+// --------------- Temporary correction until Pierre sends wealth dist with data quality 
+preserve
+keep if widcode=="shweal992i"
+	keep iso year data_quality
+	duplicates drop
+	isid iso year
+	tempfile tempGBquality
+	save `tempGBquality'
+restore 
+merge m:1 iso year using `tempGBquality', update nogen 
+// -----------------------------------------------------------------------------
+
+reshape wide value, i(iso year p currency data_quality) j(widcode) string
+
 replace valueshweal992j = valueshweal992i if year<1995 & missing(valueshweal992j)
 reshape long
 drop if missing(value)

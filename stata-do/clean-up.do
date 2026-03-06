@@ -112,6 +112,7 @@ save "`data'"
 //-------- 3.1. Retain fiscal data   -------------------------------------------
 // Compute average fiscal percentile incomes
 keep if strpos(widcode,"fiinc")>0
+drop data_quality 
 
 tempfile fiscal
 save "`fiscal'"
@@ -415,6 +416,27 @@ save `quality'
 //------------------------------------------------------------------------------
 use `data', clear
 append using `quality'
+
+// --------------------- Add yearly data quality -------------------------------
+// as long as we only have yearly data_quality for pre-tax distributions 
+// (and a few other exceptions) then we can add yearly data_quality here. 
+// Once we expand data_quality to yearly fiinc observations, need to rethink and
+// retain data_quality throughout this do-file: 
+
+// need to apply data quality to new generated top and bottom shares 
+drop data_quality
+preserve
+	use "$work_data/extrapolate-wid-forward-output.dta", clear
+	keep iso year widcode data_quality
+	duplicates drop 
+	tempfile dataquality
+	save `dataquality'
+restore 
+merge m:1 iso year widcode using `dataquality', keepusing(data_quality)
+drop _merge
+assert data_quality!=. if strpos(widcode, "ptinc") 
+assert data_quality!=. if strpos(widcode, "cainc")
+// -----------------------------------------------------------------------------
 
 // Save
 sort iso year p widcode

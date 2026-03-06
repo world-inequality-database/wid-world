@@ -16,6 +16,7 @@ save `combined', emptyok
 // 1. Bring National income, wealth, population and prices by year
 // -------------------------------------------------------------------------- //
 use "$work_data/extend-distributions-999-output.dta", clear
+drop data_quality // data quality is reassigned after regions are generated
 
 gen     tokeep = 1 if inlist(widcode, "npopul992i", "npopul999i", "inyixx999i", "xlcusp999i", "xlcusx999i")
 replace tokeep = 1 if inlist(widcode, "ahweal992i", "anninc992i", "ahweal999i", "anninc999i")
@@ -51,6 +52,7 @@ save "`aggregates'"
 // -------------------------------------------------------------------------- //
 * Import Distributions 
 use "$work_data/extend-distributions-999-output.dta", clear
+drop data_quality // data quality is reassigned after regions are generated
 
 * keep relevant years
 drop if year<1980 & !inlist(year,1820, 1850, 1880, 1900, 1910, 1920) & !inlist(year,1930, 1940, 1950, 1960, 1970, 1980)
@@ -355,8 +357,18 @@ assert !missing(avg_tag)
 drop if avg_tag==0
 drop *tag
 
+// -------- Add data quality back  ---------------------------------------------
+//[NOTE] at the time of writing (02.2026) all regions are assigned data_quality = 0
+// according to DINA Guidelines 2025 quality table. This means there is no yearly
+// variation in data quality for the regions. If in future revisions this changes,
+// then we may have to consider filling in the data_quality directly in the loop 
+// that generates regions
+assert (strpos(iso, "-PPP") | strpos(iso, "-MER"))
+gen data_quality = 0 // for all regions, MER and PPP
+
 tempfile final
 save `final'
+
 //-----Append-------//
 
 use "$work_data/extend-distributions-999-output.dta", clear
@@ -370,12 +382,18 @@ drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j", "aptinc999j", 
 		
 append using "`final'"
 
+assert data_quality!=. if strpos(widcode, "ptinc") 
+assert data_quality!=. if strpos(widcode, "cainc")
+assert data_quality!=. if strpos(widcode, "diinc")
+
 save "$work_data/World-and-regional-aggregates-output.dta", replace
 
 //-------------------------------------//
 * Source
 //-------------------------------------//
 use "`final'", clear
+
+drop data_quality // temporary until we correct data quality in metadata
 
 replace widcode = substr(widcode, 1, 6)
 rename widcode sixlet

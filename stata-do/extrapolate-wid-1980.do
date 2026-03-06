@@ -14,6 +14,7 @@ save `combined', emptyok
 
 use "$work_data/correct-bottom20-output.dta", clear
 
+drop data_quality
 keep if inlist(widcode, "anninc992i", "npopul992i", "npopul999i", "inyixx999i", "xlceup999i", "xlceux999i")
 keep if p == "pall"
 drop p currency
@@ -117,7 +118,7 @@ gen keep = 0
 	foreach q in `group1' SG RU {
 		replace keep = 1 if iso == "`q'"	
 	}
-	keep if keep == 1
+keep if keep == 1
 drop keep 
 // -------------------------------------------------------------------------- //
 // Extrapolate backwards all countries up to 1980
@@ -271,6 +272,21 @@ by iso year : generate bs = 1-ts
 bysort iso year (p) : assert inrange(ts, 0, 1.01) /*if !inlist(iso, "CY", "IS")*/ // issues in 2007/08
 
 drop n
+// -------------------------------------------------------------------------- //
+// adding data quality for years that we interpolated
+// -------------------------------------------------------------------------- //
+
+// ensure if a country has 0 it should have only 0s for all years
+bys iso: egen dq_min = min(data_quality)
+bys iso: egen dq_max = max(data_quality)
+assert !(dq_min==0 & dq_max>0)
+
+gen data_quality2 = data_quality
+replace data_quality = min(dq_min, 1) if missing(data_quality)
+assert inlist(data_quality, 0,1) if data_quality2==.
+drop dq_min dq_max data_quality2
+
+assert data_quality !=.
 
 tempfile final
 save `final'
@@ -279,7 +295,7 @@ save `final'
 // Reshape Long and prepare for WID format
 // -------------------------------------------------------------------------- //
 
-keep year iso p a s t
+keep year iso p a s t data_quality
 replace p = p/1000
 bys year iso (p) : gen p2 = p[_n+1]
 replace p2 = 100 if p2 == .
@@ -292,7 +308,18 @@ rename s 	sptinc992j
 rename t    tptinc992j
 renvars aptinc992j sptinc992j tptinc992j, prefix(value)
 
-greshape long value, i(iso year p) j(widcode) string
+greshape long value, i(iso year p data_quality) j(widcode) string
+
+// ---- saving data quality to add back at the end to apply to top and bottom shares
+preserve
+	keep iso year widcode data_quality
+	duplicates drop
+	isid iso year widcode  
+	tempfile dataquality
+	save `dataquality'
+restore
+drop data_quality
+// --------------
 
 preserve
 	use `final', clear
@@ -354,6 +381,7 @@ append using `bs'
 
 duplicates drop iso year p widcode, force
 
+
 *drop if inlist(iso, "JP", "KR")
 
 tempfile all
@@ -365,6 +393,12 @@ use "$work_data/correct-bottom20-output.dta", clear
 // use "$work_data/calibrate-dina-revised-output.dta", clear
 
 merge 1:1 iso year p widcode using "`all'", update nogenerate
+
+merge m:1 iso year widcode using `dataquality', update
+drop if _merge==2
+drop _merge
+assert data_quality!=. if strpos(widcode, "ptinc") 
+assert data_quality!=. if strpos(widcode, "cainc")
 
 gduplicates tag iso year p widcode, gen(dup)
 assert dup == 0

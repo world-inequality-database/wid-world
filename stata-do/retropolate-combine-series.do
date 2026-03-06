@@ -2,15 +2,19 @@
 // Retropolate series
 // -------------------------------------------------------------------------- //
 
+// Import data
+* International organisations databases
 use "$work_data/un-sna86-full.dta", clear 				// series 1-5
 append using "$work_data/un-sna-full.dta" 				// series 10-60, 100-600, 1000,1100
 append using "$work_data/oecd-full.dta" 				// series 10000-20000
 append using "$work_data/imf-foreign-income.dta" 		// series 6000
 append using "$work_data/wid-luis-data.dta" 			// series 300000
 append using "$work_data/sna-wid.dta" 					// series 150-350
+
+* Papers
 append using "$work_data/bachasetal2024_sectors.dta" 	// series 0 and 12
 append using "$work_data/PikettyZucman2013_cib.dta" 	// Series 800 and 900
-
+merge 1:1 iso year series using  "$work_data/castillogarcia2026.dta", update replace nogen	// series 0
 drop footnote*
 drop gdpro
 
@@ -54,7 +58,7 @@ foreach wx in comrx compx fsubx ftaxx finpx finrx pinpx pinrx {
 replace taxnx = fsubx - ftaxx 
 replace comnx = comrx - compx 
 replace pinnx = pinrx - pinpx 
-replace nnfin = finrx - finpx 
+replace nnfin = finrx - finpx  if !(iso=="PE" & series==0)
 
 *br iso series year cfc?? confc if iso == "MX"
 *br iso year series cfcgo prggo prigo confc if iso == "IT"
@@ -95,6 +99,8 @@ replace ceuco = . 		if iso == "JP" & series == 1000
 *replace nmxhn = . 		if iso == "NZ" & series == 7
 replace gmxhn = . 		if iso == "RS" & series == 200
 replace nmxhn = . 		if iso == "RS" & series == 200
+replace nmxhn = . 		if iso == "PE" & series == 0
+replace nsrhn = . 		if iso == "PE" & series == 0
 * Sectoral decomposition does not make senes (gov > corporation)
 replace cfcco = . 		if iso == "IN" & series == 200000
 replace cfchn = . 		if iso == "IN" & series == 200000

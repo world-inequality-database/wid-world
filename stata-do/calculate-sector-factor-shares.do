@@ -17,6 +17,7 @@
 // 			2.6  Sweden
 // 			2.7  Thailand
 // 			2.8  Saudi Arabia
+//          2.9  Peru
 //	3. Use other data sources if missing
 //  4. Logical Splits
 //  5. Distribute compensation of employees between corporations and households 
@@ -226,6 +227,10 @@ replace nsrco = nsrco - nsrhn - nmxhn if iso == "SA"
 replace gsrco = gsrco - nsrhn - nmxhn if iso == "SA"
 merge 1:1 iso year using "$work_data/country_fix_SA.dta", nogen update replace
 replace gsrhn = . if iso == "SA" 
+
+//------------ 2.9  Peru
+** -- Data from Castillo Garcia
+merge 1:1 iso year using "$work_data/castillogarcia2026.dta", update replace nogen keepusing( comhn gmxhn ptxgo nnfin )
 
 
 //------------------------------------------------------------------------------

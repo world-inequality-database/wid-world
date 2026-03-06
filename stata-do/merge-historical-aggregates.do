@@ -57,7 +57,8 @@ preserve
 
 restore
 preserve
-	use "$wid_dir/Country-Updates/Historical_series/2025_Nov/output5_Extended_deflactor_non_benchmark.dta", clear
+	use          "$wid_dir/Country-Updates/Historical_series/2025_Nov/output5_Extended_deflactor_non_benchmark.dta", clear
+	append using "$wid_dir/Country-Updates/Historical_series/2026-Feb/output1_Extended_deflactor_PE.dta"
 	
 	merge 1:1 iso year widcode p using "`prices1'", nogen
 	sort iso year
@@ -645,6 +646,7 @@ save "`regions_pre70'"
 use  "$work_data/nievaspiketty2025_hist.dta", clear
 gen np=1
 append using "$wid_dir/Country-Updates/Historical_series/2025_Nov/output6_Extended_macro_non_benchmark.dta"
+append using "$wid_dir/Country-Updates/Historical_series/2026-Feb/output2_Extended_macro_PE.dta"
 duplicates tag iso year widcode p, gen(dup)
 drop if np==1 & dup==1
 duplicates tag iso year widcode p, gen(dup2)
@@ -826,7 +828,7 @@ replace flag = 1 if inlist(substr(widcode, 1, 6), "ylsgdp", "ylsndp", "ycsgdp", 
 
 replace flag = 1 if inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gweal", "gwass", "gwdeb", "nwnfa") | ///
 					inlist(substr(widcode, 2, 5), "hweal","pweal")
-
+					
 drop if year>=1970 & flag==0 //& regions!=1
 drop flag regions
 

@@ -62,7 +62,9 @@ save `hist'
 ** calling updated data:
 *use "$wid_dir/Country-Updates/Wealth/2025_March/wealth-distributions-2024-lcu-final.dta", clear
 *use "$wid_dir/Country-Updates/Historical_series/2025_Oct/wealth-distributions-1820-2024-lcu-final.dta", clear
-use "$wid_dir/Country-Updates/Wealth/2025_December/wealth-distributions-1980-2024-lcu-final.dta", clear
+use "$wid_dir/Country-Updates/Wealth/2026_March/wealth-distributions-corrected-graded-2024-lcu-complete.dta", clear
+bysort iso year: assert data_quality == data_quality[1] // assuring dataquality is constant at iso-year-widcode
+
 keep if year>=1980
 drop if substr(iso,1,1)=="O" & iso!="OM"
 drop if iso=="QM"
@@ -71,6 +73,7 @@ drop if inlist(p,28999, 57999,  56999, 99929) // This are wrong percentiles gene
 
 **Ensure Kosovo is well formatted
 replace iso="KS" if iso=="XK"
+
 /*
 duplicates tag iso year p, gen(dup)
 assert dup<=1
@@ -143,7 +146,7 @@ order iso year p bracket_share bracket_average ts ta bs ba
 gsort iso year p
 */
 renvars bracket_average bracket_share threshold top_share bottom_share bottom_average top_average / a s t ts bs ba ta
-keep iso year p a s t ts bs ba ta
+keep iso year p a s t ts bs ba ta data_quality
 duplicates tag iso year p, gen(dup) 
 assert dup == 0 
 drop dup 
@@ -167,7 +170,7 @@ save `all'
 //	                III. Homogenise series		
 //------------------------------------------------------------------------------
 
-keep year iso p a s t
+keep year iso p a s t data_quality
 
 replace p = p/1000
 bys year iso (p) : gen p2 = p[_n+1]
@@ -175,18 +178,18 @@ replace p2 = 100 if p2 == .
 gen perc = "p"+string(p)+"p"+string(p2)
 drop p p2
 
-ds iso year p, not
+ds iso year p data_quality, not
 renvars `r(varlist)', postf(hweal992j)
-ds iso year p, not
+ds iso year p data_quality, not
 renvars `r(varlist)', prefix(value)
 rename perc p
 
-reshape long value, i(iso year p) j(widcode) string
+reshape long value, i(iso year p data_quality) j(widcode) string
 
 //------- III.1 Format top percentiles --------------------------------------
 preserve
 	use `all', clear
-	keep year iso p ts ta 
+	keep year iso p ts ta data_quality
 	replace p = p/1000
 	gen perc = "p"+string(p)+"p100"
 	drop p
@@ -194,7 +197,7 @@ preserve
 	rename ts shweal992j
 	rename ta ahweal992j
 	renvars shweal992j ahweal992j, prefix(value)
-	reshape long value, i(iso year p) j(widcode) string
+	reshape long value, i(iso year p data_quality) j(widcode) string
 	
 	tempfile top
 	save `top'
@@ -202,7 +205,7 @@ restore
 //------- III.2 Format bottom percentiles -----------------------------------
 preserve
 	use `all', clear
-	keep year iso p bs ba
+	keep year iso p bs ba data_quality
 	replace p = p/1000
 	gen perc = "p0p"+string(p)
 	drop p 
@@ -210,7 +213,7 @@ preserve
 	rename bs shweal992j
 	rename ba ahweal992j
 	renvars shweal992j ahweal992j, prefix(value)
-	reshape long value, i(iso year p) j(widcode) string
+	reshape long value, i(iso year p data_quality) j(widcode) string
 
 	tempfile bottom
 	save `bottom'	
@@ -220,7 +223,18 @@ append using `top'
 append using `bottom'
 
 //------- III.3 appending Polish 1923 data. Already in final format ------------
-append using "$wid_dir/Country-Updates/Poland/2022_February/poland_hweal_1923.dta"
+append using "$wid_dir/Country-Updates/Poland/2022_February/poland_hweal_1923_Feb2026.dta"
+
+assert data_quality !=. if strpos(widcode, "hweal")
+
+// grabbing data quality to then apply to rest of series from add-researchers
+preserve
+	keep iso year widcode data_quality
+	duplicates drop
+	isid iso year widcode 
+	tempfile dataqualitywealth
+	save `dataqualitywealth'
+restore 
 
 //------- III.4 appending historical grouped percentiles -----------------------
 /*
@@ -454,7 +468,7 @@ save "$work_data/add-wealth-distribution-metadata.dta", replace
 // -----------------------------------------------------------------------------
 use "$work_data/add-researchers-data-real-output.dta", clear
 
-drop if inlist(widcode, "ahweal992j", "ohweal992j", "bhweal992j", "shweal992j", "thweal992j") & year>=1995
+drop if inlist(widcode, "ahweal992j", "ohweal992j", "bhweal992j", "shweal992j", "thweal992j") & year>=1980
 gen core=1
 append using "`final'"
 drop if p == "p0p0"
@@ -482,6 +496,14 @@ drop if dup==1 & core==1 // We want to retain the new observations
 duplicates tag iso year p widcode, gen(dup2)
 assert dup2 == 0
 drop dup* core
+
+
+merge m:1 iso year widcode using `dataqualitywealth', update nogen
+
+assert data_quality!=. if strpos(widcode, "ptinc") 
+assert data_quality!=. if strpos(widcode, "cainc")
+assert data_quality !=. if strpos(widcode, "hweal") & year>= 1980 & p !="pall"  & p!="p0p100" // p0p100 condition because dq for macro/aggregates havent been completed yet. can remove this part of the condition when it is complete. 1980 condition because rest of hweal series is dealt with in merge-historical-main.do
+
 
 // -----------------------------------------------------------------------------
 //	                  VI. Export

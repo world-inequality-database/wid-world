@@ -24,18 +24,6 @@ save "`ratio'"
 use  "$work_data/homogenize-all-distributions-output.dta", clear
 keep if inlist(widcode, "shweal992i", "shweal992j") & iso == "GB"
 
-// --------------- Temporary correction until Pierre sends wealth dist with data quality 
-preserve
-keep if widcode=="shweal992i"
-	keep iso year data_quality
-	duplicates drop
-	isid iso year
-	tempfile tempGBquality
-	save `tempGBquality'
-restore 
-merge m:1 iso year using `tempGBquality', update nogen 
-// -----------------------------------------------------------------------------
-
 reshape wide value, i(iso year p currency data_quality) j(widcode) string
 
 replace valueshweal992j = valueshweal992i if year<1995 & missing(valueshweal992j)

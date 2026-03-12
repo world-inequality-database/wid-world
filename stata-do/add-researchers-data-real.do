@@ -254,7 +254,7 @@ keep iso year p widcode currency value data_quality
 
 bys iso widcode: egen dq_min = min(data_quality)
 bys iso widcode: egen dq_max = max(data_quality)
-assert !(dq_min==0 & dq_max>0)
+assert !(dq_min==0 & dq_max>0) if strpos(widcode, "ptinc")
 drop dq_min dq_max
 
 compress

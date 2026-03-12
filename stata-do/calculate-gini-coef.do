@@ -41,5 +41,12 @@ drop if substr(widcode, 1, 1) == "g"
 
 append using "`gini'"
 
+// Final checks for data quality
+assert data_quality!=. if strpos(widcode, "ptinc") 
+assert data_quality!=. if strpos(widcode, "cainc")
+assert data_quality!=. if strpos(widcode, "diinc")
+assert data_quality!=. if strpos(widcode, "hweal") & p!="p0p100" & p!="pall"
+bysort iso year widcode: assert data_quality == data_quality[1]
+
 compress
 save "$work_data/calculate-gini-coef-output.dta", replace

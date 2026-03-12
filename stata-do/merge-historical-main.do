@@ -88,15 +88,15 @@ tempfile all
 save `all'
 
 // ------------ take data quality to apply to all tom/bottom p's after ---------
-preserve
-	keep iso year data_quality
-	duplicates drop 
-	tempfile dataquality
-	save `dataquality'
-restore 
+// preserve
+// 	keep iso year data_quality
+// 	duplicates drop 
+// 	tempfile dataquality
+// 	save `dataquality'
+// restore 
 
 // --------- 3. Format series
-keep year iso  p a s t 
+keep year iso  p a s t data_quality
 
 replace p = p/1000
 bys year iso  (p) : gen p2 = p[_n+1] 
@@ -108,7 +108,7 @@ ren perc p
 // top
 preserve
 	use `all', clear
-	keep year iso  p ts 
+	keep year iso  p ts data_quality
 	replace p = p/1000
 	gen perc = "p"+string(p)+"p100"
 	drop p
@@ -121,7 +121,7 @@ restore
 // bottom
 preserve
 	use `all', clear
-	keep year iso  p bs  
+	keep year iso  p bs data_quality 
 	replace p = p/1000
 	gen perc = "p0p"+string(p)
 	drop p 
@@ -137,7 +137,7 @@ append using `bottom'
 
 * Format
 renvars t-a, prefix(value)
-greshape long value, i(iso year p ) j(widcode) string   
+greshape long value, i(iso year p data_quality) j(widcode) string   
 
 drop if missing(value)
 replace widcode = widcode + "ptinc992j"
@@ -146,7 +146,7 @@ gduplicates drop
 
 duplicates drop iso year widcode p, force
 
-merge m:1 iso year using `dataquality', nogen
+*merge m:1 iso year using `dataquality', nogen
 
 
 tempfile completehistoricalpretax
@@ -160,7 +160,7 @@ save `completehistoricalpretax'
 
 ** Countries and Other regions distributions (we duplicate from per-adult to get per-capita) - 58 main territories and 8 or 9 other regions
 
-use "$wid_dir/Country-Updates/Historical_series/2025_Oct/wealth-distributions-1820-2024-lcu-final.dta", clear
+use "$wid_dir/Country-Updates/Wealth/2026_March/wealth-distributions-corrected-graded-2024-lcu-complete.dta", clear // location may change if coordinators send historical wealth series separately 
 
 // keeping only until 1980 for historical series 
 drop if year >= 1980 
@@ -173,7 +173,7 @@ drop if inlist(p,28999, 57999,  56999, 99929) // This are wrong percentiles gene
 replace bracket_average = bracket_average/average
 replace threshold = threshold/average 
 
-keep iso year p threshold top_share bottom_share bracket_share bracket_average
+keep iso year p threshold top_share bottom_share bracket_share bracket_average data_quality
 rename (threshold top_share bottom_share bracket_share bracket_average)( t ts bs s a)
 order iso year p t ts bs s a
 
@@ -201,6 +201,9 @@ append using "$wid_dir/Country-Updates/Historical_series/2025_Nov/output4_Hist_h
 // keeping only until 1980 for historical series 
 drop if year >= 1980 
 
+// adding data quality
+merge m:1 iso year using "$wid_dir/Country-Updates/Historical_series/Add-data-quality/Hist_hweal_quality.dta", update nogen
+
 // --------- 4. Calibrate monetary amounts using nninc 
 preserve
 	use "$work_data/clean-up-output.dta", clear
@@ -227,7 +230,7 @@ save `all'
 
 
 // --------- 3. Format series
-keep year iso  p a s t 
+keep year iso  p a s t data_quality 
 
 replace p = p/1000
 bys year iso  (p) : gen p2 = p[_n+1] 
@@ -239,7 +242,7 @@ ren perc p
 // top
 preserve
 	use `all', clear
-	keep year iso  p ts 
+	keep year iso  p ts data_quality
 	replace p = p/1000
 	gen perc = "p"+string(p)+"p100"
 	drop p
@@ -252,7 +255,7 @@ restore
 // bottom
 preserve
 	use `all', clear
-	keep year iso  p bs  
+	keep year iso  p bs data_quality
 	replace p = p/1000
 	gen perc = "p0p"+string(p)
 	drop p 
@@ -269,7 +272,7 @@ append using `bottom'
 
 * Format
 renvars t-a, prefix(value)
-greshape long value, i(iso year p ) j(widcode) string   
+greshape long value, i(iso year p data_quality) j(widcode) string   
 
 drop if missing(value)
 replace widcode = widcode + "hweal992j"
@@ -278,6 +281,8 @@ replace widcode = widcode + "hweal992j"
 gduplicates drop 
 
 duplicates drop iso year widcode p, force
+
+assert data_quality !=.
 
 tempfile completehistoricalwealth
 save `completehistoricalwealth'
@@ -290,23 +295,24 @@ save `completehistoricalwealth'
 // --------- 1.  Call the current WID data
 use  "$work_data/clean-up-output.dta", clear
 
-// --------- 2.  Merge Pretax Data
-rename value value_base
-rename data_quality data_quality2
-
-merge 1:1 iso year widcode p using "`completehistoricalpretax'", nogen 
-
 // temporary fix because in clean-up.do we generate deciles and groups but not
 // in this file, so need to fill data quality for those percentiles
 preserve
-	keep iso year data_quality
+	keep iso year widcode data_quality
 	drop if data_quality ==.
 	duplicates drop 
 	tempfile dataquality
 	save `dataquality'
 restore 
 
-merge m:1 iso year using `dataquality', update nogen
+merge m:1 iso year widcode using `dataquality', update nogen
+rename data_quality data_quality2
+
+
+// --------- 2.  Merge Pretax Data
+rename value value_base
+merge 1:1 iso year widcode p using "`completehistoricalpretax'", nogen 
+
 
 rename value value_comp
 *merge 1:1 iso year widcode p using "$wid_dir/Country-Updates/Historical_series/2023_December/0H_OD_CL_ptinc_post1980.dta", nogen // This dataset contains data for OH and OD, calculated in aggregate-distribtion-regions.do except for the bottom percentiles p0pXX in averages and shares , top percentiles pXXp100 in thresholds .
@@ -333,7 +339,7 @@ replace value_base = value_comp if !mi(value_comp) & year <  1979 & iso== "RU" /
 *replace value_base = value_oocp if !mi(value_oocp) & year == 1970 & iso== "CL"
 
 // Repeat Matching the historical series for core-countries for DATA QUALITY
-// yearly data quality was added in Historical_series/add-data-quality
+// yearly data quality was added in Country_Updates/Historical_series/add-data-quality
 replace data_quality2 = data_quality if  mi(data_quality2) & year < 1980  & !inlist(iso,"AU","FR","IN","NZ","US","SG")
 replace data_quality2 = data_quality if !mi(data_quality) & year < 1910  & iso== "AU"
 replace data_quality2 = data_quality if !mi(data_quality) & year<= 1910  & iso== "FR"
@@ -349,8 +355,7 @@ drop  value_comp // value_oocp // dup corrected
 drop if missing(value)
 
 assert data_quality2 !=. if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") 
-drop data_quality
-rename data_quality2 data_quality
+rename data_quality data_quality_histpt
 
 * Keep only one observation per iso-year-widcode-p
 duplicates tag iso year p widcode, gen (dup)
@@ -361,12 +366,26 @@ drop dup
 rename value value_base
 merge 1:1 iso year widcode p using "`completehistoricalwealth'", nogen 
 rename value value_comp
-replace value_base= value_comp if year<1995 & !missing(value_comp)
-
+replace value_base= value_comp if year<1980 & !missing(value_comp) // before was 1995
 rename value_base value
 drop value_comp
 
-* Keep only one observation per iso-year-widcode-p
+replace data_quality2 = data_quality if year<1980 & strpos(widcode, "hweal") & !missing(data_quality)
+drop data_quality data_quality_histpt
+rename data_quality2 data_quality
+
+// there are some top/bottom percentiles that dont have data quality filled for IN hweal
+preserve
+	keep if iso=="IN"
+	keep if p=="p0p1" // keeping an aribtrary g-perc to ensure we grab the right dq 
+	keep iso year widcode data_quality
+	duplicates drop
+	isid iso year widcode 
+	tempfile dqindiawealth
+	save `dqindiawealth'
+restore
+merge m:1 iso year widcode using `dqindiawealth', update nogen 
+	
 duplicates tag iso year p widcode, gen (dup)
 assert dup==0
 drop dup
@@ -374,6 +393,9 @@ drop dup
 // -------- Check complete data quality
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")
+assert data_quality!=. if strpos(widcode, "hweal") & p !="pall"  & p!="p0p100"
+bysort iso year widcode: assert data_quality == data_quality[1] // assuring dataquality is constant at iso-year-widcode
+
 
 // --------- 4.  Save
 compress

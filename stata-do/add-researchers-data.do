@@ -109,6 +109,7 @@ append using "$wid_dir/Country-Updates/France/2018/January/france-goupille2018-g
 
 // India 2018 (Bharti2018) -  distributional series (ahweal, bhweal, shweal, thweal)
 append using "$wid_dir/Country-Updates/India/2018/November/india-bharti2018.dta"
+drop if widcode=="bhweal992j" & iso=="IN" // reconstructed in calc-pareto-ceof
 
 assert !missing(iso, year, widcode)
 isid iso year p widcode, missok 
@@ -374,8 +375,7 @@ assert data_quality !=. if strpos(widcode, "ptinc")
 // ----- TEMPORARY FIX TO BE REMOVED AFTER DATA QUALITY PROJECT IS COMPLETE!!! ---
 
 preserve
-	*gen sixlet = substr(widcode, 1, 6)
-	keep iso year widcode data_quality // change to widcode not sixlet 
+	keep iso year widcode data_quality
 	duplicates drop
 	duplicates tag iso year widcode, gen(dup)
 	drop if data_quality ==. & iso=="DE" & strpos(widcode, "fiinc992t") & dup==1

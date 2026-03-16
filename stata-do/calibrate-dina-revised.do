@@ -301,7 +301,7 @@ tab iso year if changes == 0  & ///
 // 	!(fivelet == "ptinc" & iso == "CZ" & year < 1980) // No overall income available, just shares
 
 
-drop tot anninc* coef_* changes b 
+drop tot anninc* coef_* changes //b 
 
 // save data quality and add it back later
 *save "$work_data/calibrate-dina-interim.dta"

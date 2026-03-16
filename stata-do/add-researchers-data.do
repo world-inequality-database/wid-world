@@ -131,6 +131,7 @@ append using "$wid_dir/Country-Updates/Wealth/2021_July/macro-wealth-Jul2021.dta
 
 // Russia 2017 (NPZ2017) - macro series +  distributional series 
 append using "$wid_dir/Country-Updates/Russia/2017/August/russia-npz2017.dta"
+drop if iso=="RU" & substr(widcode, 1,1)=="b" // b variables are generated at the end of main.do
 
 // Australia, New Zealand, Canada - macro series +  distributional series 
 append using "$wid_dir/Country-Updates/North_America/2025_10/aucanz-other-macro-dist-2025.dta"
@@ -227,6 +228,7 @@ drop if iso == "IN" & author == "kumar2019"   & inlist(widcode, "npopul999i") & 
 *      combinations. As so, this file is no longer necessary.
 */
 
+drop if substr(widcode, 1,1)=="b" // b variables are re-generated at the end of main.do
 assert data_quality!=. if strpos(widcode, "ptinc") 
 
 compress, nocoalesce 

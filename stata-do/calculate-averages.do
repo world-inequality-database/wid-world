@@ -3,7 +3,7 @@ use "$work_data/convert-to-nominal-output.dta", clear
 // Keep a- and s-variables only
 keep if inlist(substr(widcode, 1, 1), "a", "s")
 
-keep iso year p widcode value
+keep iso year p widcode value data_quality
 
 generate inctype = substr(widcode, 2, .)
 generate avg = value if (p == "pall")

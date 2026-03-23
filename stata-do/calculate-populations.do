@@ -741,11 +741,11 @@ keep if iso=="ZZ"
 replace data_quality=data_quality_sna if missing(data_quality) & !missing(data_quality_sna)
 drop data_quality_sna
 
-reshape wide value data_quality, i(iso year) j(widcode) string
+greshape wide value data_quality, i(iso year) j(widcode) string
 replace data_qualitynpopul991i = min(data_qualitynpopul999i,data_qualitynpopul992i) if data_qualitynpopul991i==. & inrange(year,1950,$pastyear )
 replace valuenpopul991i        = valuenpopul999i-valuenpopul992i                    if valuenpopul991i       ==. & inrange(year,1950,$pastyear )
 
-reshape long value data_quality, i(iso year) j(widcode) string
+greshape long value data_quality, i(iso year) j(widcode) string
 
 *Keep only those that were in the WID
 keep if inrange(year,1950,$pastyear) //& inlist(widcode,"npopul999i","npopul991i","npopul992i")
@@ -1019,35 +1019,45 @@ replace method = method + "; Excludes Kosovo. Data on the population distriguish
 replace method = method + "; Data on the population of Kosovo comes from the UN World Population Prospects (2024)." if (iso == "KS")
 
 ** 2.2. Brackward Projection of SS (South Sudan)
-replace method = method + "; Before 1939, population data distinguishing between Sudan and South Sudan are constructed using the ratio observed in 1950 relative to Sudan." if inlist(iso,"SS", "SD")
+replace method = method + "; Before 1939, population data distinguishing between Sudan and South Sudan"  + ///
+		"are constructed using the ratio observed in 1950 relative to Sudan." if inlist(iso,"SS", "SD")
 
 ** 2.3. Backward Projection of Guernsey and Jersey 
-replace method = method + ";Before 1939, population data distinguishing between Guernsey and Jersey are constructed using the ratio observed in 1950 relative to Channel Islands." if inlist(iso,"GG", "JE")
+replace method = method + ";Before 1939, population data distinguishing between Guernsey and"  + ///
+		 "Jersey are constructed using the ratio observed in 1950 relative to Channel Islands." if inlist(iso,"GG", "JE")
 
 ** 2.4. Backward Projection of Bonaire, SIntMaarten and Curacao
-replace method = method + ";Before 1939, population data distinguishing between Bonaire, SintMaarten and Curacao are constructed using the ratio observed in 1950 relative to Netherlands Antilles." if inlist(iso,"SX", "CW", "BQ")
+replace method = method + ";Before 1939, population data distinguishing between Bonaire,"  + ///
+		 " SintMaarten and Curacao are constructed using the ratio observed in 1950 relative to Netherlands Antilles." if inlist(iso,"SX", "CW", "BQ")
 
 ** 2.5. Backward Projection of French West Indies
-replace method = method + ";Before 1939, population data distinguishing between Saint Barthelemy and Saint Martin(French part), Guadeloupe and Martinique are constructed using the ratio observed in 1950 relative to French West Indies." if inlist(iso,"BL", "MF", "GP", "MQ")
+replace method = method + ";Before 1939, population data distinguishing between Saint"  + ///
+		 " Barthelemy and Saint Martin(French part), Guadeloupe and Martinique are constructed using the ratio observed in 1950 relative to French West Indies." if inlist(iso,"BL", "MF", "GP", "MQ")
 
 * 5. Complete data for USSR, Yugoslavia, Czechoslovakia, France 
 ** 5.2. Aggregations for France
-replace method = method + "; Includes départements et régions d'outre-mer(DROM): Guiana Francaice, Guadeloupe, Martinique, Mayotte and the Reunion." if inlist(iso,"FR")
+replace method = method + "; Includes départements et régions d'outre-mer(DROM): Guiana"  + ///
+		 " Francaice, Guadeloupe, Martinique, Mayotte and the Reunion." if inlist(iso,"FR")
 
 ** 5.3. Aggregations for Czechoslovakia 
-replace method = method + "; Calculated by combining the populations of Czechia and Slovakia." if inlist(iso,"CS")
+replace method = method + "; Calculated by combining the populations of Czechia and"  + ///
+		 " Slovakia." if inlist(iso,"CS")
 
 ** 5.4. Aggregations for Yugoslavia (incl. with KS (Kosovo))
-replace method = method + "; Calculated by combining the populations of Bosnia and Herzegovina, Croatia, North Macedonia, Montenegro, Kosovo, Serbia and Slovenia." if inlist(iso,"YU")
+replace method = method + "; Calculated by combining the populations of Bosnia and"  + ///
+		 " Herzegovina, Croatia, North Macedonia, Montenegro, Kosovo, Serbia and Slovenia." if inlist(iso,"YU")
 
 ** 5.5. Aggregations for USSR
-replace method = method + "; Calculated by combining the populations of AM, AZ, BY, EE, GE, KZ, KG, LV, LT, MD, RU, TJ, TM, UA and UZ." if inlist(iso,"YU")
+replace method = method + "; Calculated by combining the populations of AM, AZ, BY,"  + ///
+		 " EE, GE, KZ, KG, LV, LT, MD, RU, TJ, TM, UA and UZ." if inlist(iso,"YU")
 
 ** 5.6. Aggregations for Antilles
-replace method = method + "; Calculated by combining the populations of Bonaire, Curacao and Sint Maarten (Dutch part)." if inlist(iso,"AN")
+replace method = method + "; Calculated by combining the populations of Bonaire,"  + ///
+		 " Curacao and Sint Maarten (Dutch part)." if inlist(iso,"AN")
 
 ** 5.7. Aggregations for Channel Islands
-replace method = method + "; Calculated by combining the populations of Gunersey and Jersey." if inlist(iso,"XI")
+replace method = method + "; Calculated by combining the populations of Gunersey"  + ///
+		 " and Jersey." if inlist(iso,"XI")
 
 *  6. Complete data for ZZ (Zanzibar)
 ** 6.3. Extrapolate backwards 
@@ -1074,13 +1084,14 @@ replace method = method + "; Adult and total population estimated as a differenc
 
 * Years when UN data was not updated
 merge m:1 iso using "`prospect'", nogen
-replace method = method + "; Total $pastyear population is an projection included in the UN World Population Prospects (2024). Data on other years comes from the UN World Population Prospects (2015)." if prospect==1
+replace method = method + "; Total $pastyear population is an projection included"  + ///
+		 " in the UN World Population Prospects (2024). Data on other years comes from the UN World Population Prospects (2015)." if prospect==1
 drop prospect
 
 *Source:
 gen source = ///
 `"[URL][URL_LINK]"' + ///
-`"Ricardo Gomez-Carrera Rowaida Moshrif Gaston Nievas Thomas Piketty Anmol Somanchi"' + ///
+`"https://wid.world/document/extending-wid-population-series-projections-2024-2100-age-gender-breakdowns-world-inequality-lab-technical-note-2024-12/"' + ///
  `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + ///
 `"Gomez-Carrera, R., Moshrif, R., Nievas G., Piketty, T., Somanchi, A. (2024), "Extending WID Population Series: Projections 2024-2100 & Age/Gender Breakdowns" "' + ///

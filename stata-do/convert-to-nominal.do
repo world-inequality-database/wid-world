@@ -45,7 +45,7 @@ assert (priceindex < .) if (real == 1)
 replace value = value*priceindex if (real == 1)
 
 // Housekeeping
-keep year widcode value p iso currency
+keep year widcode value p iso currency data_quality
 order iso p widcode year value
 sort iso p widcode year
 

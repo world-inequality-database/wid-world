@@ -409,7 +409,7 @@ do "$do_dir/export-distributions.do"
 // Export the metadata
 do "$do_dir/export-metadata-source-method.do"
 
-// do "$do_dir/export-metadata-other.do"
+do "$do_dir/export-metadata-other.do"
 
 // Create flag variables to indicate extrapolation/interpolations
 *do "$do_dir/create-flag-variables.do"
@@ -427,7 +427,7 @@ do "$do_dir/export-metadata-source-method.do"
 // do "$do_dir/export-countries.do"
 //
 // // Make the variable tree
-// do "$do_dir/make-variable-tree.do"
+do "$do_dir/make-variable-tree.do"
 
 // -------------------------------------------------------------------------- //
 // Report updated and deleted data

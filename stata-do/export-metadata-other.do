@@ -15,8 +15,7 @@ save "`fivelet'", replace
 tempfile variables
 
 local firstiter = 1
-foreach sheet in Wealth_Macro_Variables Income_Macro_Variables ///
-		Income_Distributed_Variables Other_Macro_Variables Wealth_Distributed_Variables Carbon_Macro Carbon_Distributed {
+foreach sheet in Wealth_Macro_Variables Income_Macro_Variables Income_Distributed_Variables Other_Macro_Variables Wealth_Distributed_Variables Carbon_Macro Carbon_Distributed {
 	
 	*import excel "$wid_dir/Methodology/Codes_Dictionnary_WID.xlsx", sheet("`sheet'") clear allstring
 	import excel "$codes_dictionary", sheet("`sheet'") clear allstring

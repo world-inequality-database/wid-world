@@ -26,16 +26,18 @@
 *----------------------
 *** PART Main :  WB PI_PA.NUS.FCRF_DS2 --> exchange-rates.dta 
 ***        PART Main.1  :  + wb-metadata.dta                   (World Bank Data)
-***        PART Main.2  :  + `Somalia'                                 (Somalia)
+***        PART Main.2  :  + `Somalia'  + correction NG      (Somalia & Nigeria)
 ***        PART Main.3  :  + `ves'+ + New Ouguiya, IslandUSD and missings (Venezuela)
-***        PART Main.4  :  + `merged'            (currencies of most recent year)
+***        PART Main.4  :  + `merged'           (currencies of most recent year)
 ***        PART Main.5  :  + `exrateyu'                             (Yugoslavia)
 ***        PART Main.6  :  + `exratesu'                           (Soviet Union)
 ***        PART Main.7  :  + `xrateunsna'
 ***        PART Main.8  :  + xratetwdusd'                               (Taiwan)
 ***        PART Main.9  :  + NievasPiketty (2025) 
-***        PART Main.10 : Genrate valuexlceux999i and valuexlcyux999i (Un-active)
-***        PART Main.11 : + import-country-codes-output.dta and Save
+***        PART Main.10 : 
+***        PART Main.11 : + import-country-codes-output.dta and carryforward last year 
+***        PART Main.12 : + Generate data_quality and export data
+***        PART Main.13 : + Generate and export metadata
 *+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -81,7 +83,8 @@ drop if (currency == "BYN")
 
 // *************** PART B : Currency Rates + `EUR' --> `merged'    ***********
 
-// Import exchange rates
+// Import exchange rates from openexchangerates.org (This data was downloaded 
+//      with an R code in the same folder)
 import delimited "$input_data_dir/currency-rates/currencies-rates-$pastyear.csv", clear delim(",") encoding("utf8")
 drop if currency == "CYP"
 drop if currency == "CUP"
@@ -95,6 +98,9 @@ replace currency = "MRU" if currency == "MRO"
 gduplicates tag year currency, gen(dup)
 assert dup == 0
 drop dup
+
+* Gen source
+gen source2=  "openexchangerate"
 
 // ************** PART B.1 : -->`EUR'--> merged' *******************************
 preserve
@@ -120,33 +126,27 @@ keep if year == $pastyear
 
 *replace lcu_to_usd = 87.6462   if (currency == "YUN") // source: mataf.net, April 2021
 replace lcu_to_usd = 76.7601    if (currency == "YUN") // source: mataf.net, June 2025
+replace source = "mataf" if (currency == "YUN")
 
 *replace lcu_to_usd = 1355.14   if (currency == "YER") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
 replace lcu_to_usd = 1355.116   if (currency == "YER") & $pastyear == 2024 // taken from IMF Data Exchange Rates
+replace source="IMF"            if (currency == "YER") & $pastyear == 2024 
 
 *replace lcu_to_usd = 380127.65 if (currency == "IRR") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
 replace lcu_to_usd = 42000      if (currency == "IRR") & $pastyear == 2024 // taken from IMF Data Exchange Rates
+replace source="IMF"            if (currency == "IRR") & $pastyear == 2024
 
 *replace lcu_to_usd = 2289.92   if (currency == "SSP") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
 replace lcu_to_usd = 2163.104   if (currency == "SSP") & $pastyear == 2024 // taken from IMF Data Exchange Rates
+replace source="IMF"            if (currency == "SSP") & $pastyear == 2024 
 
 assert $pastyear == 2024
 
 // Generate exchange rates with euro and yuan
 rename lcu_to_usd valuexlcusx999i
-// Exchange rate with euro
-quietly levelsof valuexlcusx999i if (currency == "EUR") & (year == $pastyear), local(exchrate_eu) clean
-generate valuexlceux999i = valuexlcusx999i/`exchrate_eu'
-
-// Exchange rate with Yuan
-quietly levelsof valuexlcusx999i if (currency == "CNY") & (year == $pastyear), local(exchrate_cn) clean
-generate valuexlcyux999i = valuexlcusx999i/`exchrate_cn'
 
 // Sanity checks
-assert valuexlceux999i == 1 if (currency == "EUR")
 assert valuexlcusx999i == 1 if (currency == "USD")
-assert valuexlcyux999i == 1 if (currency == "CNY")
-
 
 reshape long value, i(iso) j(widcode) string
 
@@ -177,6 +177,7 @@ expand 2 if year == 2019, gen(new)
 replace value = 24362.04727494*(1/.97969919)/(1/.98220074) if new
 replace year = 2020 if new
 drop new
+generate source="UN_SNA"
 
 tempfile somalia
 save "`somalia'"
@@ -192,6 +193,8 @@ rename amaexchangerate value
 gen iso = "VE"
 gen currency = "VES"
 gen widcode = "xlcusx999i"
+generate source2="UN_SNA"
+
 tempfile ves
 sa `ves'
 
@@ -205,7 +208,7 @@ sa `ves'
 // Will divide gdp_lcu in nominal terms/GDP_USD to get an estimate of the exchange rate
 
 u "$input_data_dir/snapshots/snapshot-SUYU-retropolate-gdp-output.dta",clear // Modif: Loop Solution
-merge 1:1 iso year using "$work_data/price-index.dta", nogen
+merge 1:1 iso year using "$work_data/price-index.dta", nogen keepusing(index)
 gen yugosl = 1 if inlist(iso, "BA", "HR", "MK", "RS", "YU", "KS", "SI", "ME")
 keep if yugosl == 1 & year >= 1970
 
@@ -217,6 +220,7 @@ merge 1:1 iso year using "$input_data_dir/currency-rates/gdp_usd_YUratio", nogen
 gen double exrate_usd = gdp_idx/gdp_usd_YUratio
 drop if iso == "YU"
 keep iso year exrate_usd
+gen source2="calculationfromGDP_yugosl"
 
 tempfile exrateyu
 sa `exrateyu', replace 
@@ -245,6 +249,8 @@ merge 1:1 iso year using "$input_data_dir/currency-rates/gdp_usd_SUratio", nogen
 gen exrate_usd = gdp_idx/gdp_usd_SUratio
 drop if iso == "SU"
 keep iso year exrate_usd
+gen source2="calculationfromGDP_soviet"
+
 tempfile exratesu
 sa `exratesu', replace 
 
@@ -306,7 +312,11 @@ xtset i year
 destring imfxrt, replace force
 destring amaxrt, replace force
 
+* Gen source
+generate source2="UN_SNA" if !missing(amaxrt) | !missing(imfxrt)
+
 // Soviet
+* Calculate yearly growth
 foreach xr in ama imf {
 xtset i year
 gen double growth_`xr'_soviet = (`xr'xrt - l1.`xr'xrt)/l1.`xr'xrt if country == "Former USSR"
@@ -320,109 +330,122 @@ foreach i in 1992 1991 1990 {
 }
 */
 
+* Project values backwards
 foreach xr in ama imf {
+	gen aux1`xr' = `xr'xrt 
+	gen aux2`xr' = aux1`xr'/(1+aux`xr'soviet) if year == 1990 & soviet == 1
 
-gen aux1`xr' = `xr'xrt 
-gen aux2`xr' = aux1`xr'/(1+aux`xr'soviet) if year == 1990 & soviet == 1
-
-xtset i year
-forvalues i = 1989(-1)1970 { 
-	replace aux1`xr' = f.aux2`xr' if year == `i' & soviet == 1
-	replace aux2`xr' = aux1`xr'/(1+aux`xr'soviet) if year == `i' & soviet == 1
+	xtset i year
+	forvalues i = 1989(-1)1970 { 
+		replace aux1`xr' = f.aux2`xr'                 if year == `i' & soviet == 1
+		replace aux2`xr' = aux1`xr'/(1+aux`xr'soviet) if year == `i' & soviet == 1
+	}
 }
-}
 
+* Input values
 foreach xr in ama imf {
-gen double extrap_`xr'_soviet = 1 if missing(`xr'xrt) & soviet == 1
-replace extrap_`xr'_soviet = 0 if missing(extrap_`xr'_soviet)
-replace `xr'xrt = aux1`xr' if extrap_`xr'_soviet == 1
+	gen double extrap_`xr'_soviet = 1   if missing(`xr'xrt) & soviet == 1
+	replace extrap_`xr'_soviet = 0      if missing(extrap_`xr'_soviet)
+	replace `xr'xrt = aux1`xr'          if extrap_`xr'_soviet == 1
+	replace source2="extrapolated_ratio_soviet" if extrap_`xr'_soviet == 1
 }
 drop aux* growth*
 
 // Yugoslavia
+* Calculate yearly growth
 foreach xr in ama imf {
-xtset i year
-gen double growth_`xr'_yug = (`xr'xrt - l1.`xr'xrt)/l1.`xr'xrt if country == "Former Yugoslavia"
+	xtset i year
+	gen double growth_`xr'_yug = (`xr'xrt - l1.`xr'xrt)/l1.`xr'xrt if country == "Former Yugoslavia"
 	bys year : egen aux`xr'yug = max(growth_`xr'_yug) 
 }
 
+* Project values backwards
 foreach xr in ama imf {
+	gen double aux1`xr' = `xr'xrt 
+	gen double aux2`xr' = aux1`xr'/(1+aux`xr'yug) if year == 1990 & yugosl == 1
 
-gen double aux1`xr' = `xr'xrt 
-gen double aux2`xr' = aux1`xr'/(1+aux`xr'yug) if year == 1990 & yugosl == 1
-
-xtset i year
-forvalues i = 1989(-1)1970 { 
-	replace aux1`xr' = f.aux2`xr' if year == `i' & yugosl == 1
-	replace aux2`xr' = aux1`xr'/(1+aux`xr'yug) if year == `i' & yugosl == 1
+	xtset i year
+	forvalues i = 1989(-1)1970 { 
+		replace aux1`xr' = f.aux2`xr'              if year == `i' & yugosl == 1
+		replace aux2`xr' = aux1`xr'/(1+aux`xr'yug) if year == `i' & yugosl == 1
+	}
 }
-}
 
+* Input values
 foreach xr in ama imf {
-gen double extrap_`xr'_yugosl = 1 if missing(`xr'xrt) & yugosl == 1
-replace extrap_`xr'_yugosl = 0 if missing(extrap_`xr'_yugosl)
-replace `xr'xrt = aux1`xr' if extrap_`xr'_yugosl == 1
+	gen double extrap_`xr'_yugosl = 1   if missing(`xr'xrt) & yugosl == 1
+	replace extrap_`xr'_yugosl = 0      if missing(extrap_`xr'_yugosl)
+	replace `xr'xrt = aux1`xr'          if extrap_`xr'_yugosl == 1
+	replace source2="extrapolated_ratio_yugosl" if extrap_`xr'_yugosl == 1
 }
 drop aux* growth*
 
-// Yemen 
+// Yemen
+* Calculate yearly growth 
 foreach xr in ama imf {
 xtset i year
 gen double growth_`xr'_yem = (`xr'xrt - l1.`xr'xrt)/l1.`xr'xrt if country == "Yemen: Former Yemen Arab Republic"
 	bys year : egen aux`xr'yem = max(growth_`xr'_yem) 
 }
 
+* Project values backwards
 foreach xr in ama imf {
+	gen double aux1`xr' = `xr'xrt 
+	gen double aux2`xr' = aux1`xr'/(1+aux`xr'yem) if year == 1989 & country == "Yemen"
 
-gen double aux1`xr' = `xr'xrt 
-gen double aux2`xr' = aux1`xr'/(1+aux`xr'yem) if year == 1989 & country == "Yemen"
-
-xtset i year
-forvalues i = 1988(-1)1970 { 
-	replace aux1`xr' = f.aux2`xr' if year == `i' & country == "Yemen"
-	replace aux2`xr' = aux1`xr'/(1+aux`xr'yem) if year == `i' & country == "Yemen"
+	xtset i year
+	forvalues i = 1988(-1)1970 { 
+		replace aux1`xr' = f.aux2`xr'              if year == `i' & country == "Yemen"
+		replace aux2`xr' = aux1`xr'/(1+aux`xr'yem) if year == `i' & country == "Yemen"
+	}
 }
-}
 
+* Input values
 foreach xr in ama imf {
-gen double extrap_`xr'_yem = 1 if missing(`xr'xrt) & country == "Yemen"
-replace extrap_`xr'_yem = 0 if missing(extrap_`xr'_yem)
-replace `xr'xrt = aux1`xr' if extrap_`xr'_yem == 1
+	gen double extrap_`xr'_yem = 1      if missing(`xr'xrt) & country == "Yemen"
+	replace extrap_`xr'_yem = 0         if missing(extrap_`xr'_yem)
+	replace `xr'xrt = aux1`xr'          if extrap_`xr'_yem == 1
+	replace source2="extrapolated_ratio_yemen" if extrap_`xr'_yem == 1
 }
 drop aux* growth*
 
 
 // Euro before 1990 for some countries 
+* Calculate average yearly growth
 foreach xr in ama imf {
-bys year : egen avg_`xr'xrt = mean(`xr'xrt) if unit == "Euro"
-xtset i year
-gen double growth_`xr'_eu = (avg_`xr'xrt - l1.avg_`xr'xrt)/l1.avg_`xr'xrt if unit == "Euro"
+	bys year : egen avg_`xr'xrt = mean(`xr'xrt) if unit == "Euro"
+	xtset i year
+	gen double growth_`xr'_eu = (avg_`xr'xrt - l1.avg_`xr'xrt)/l1.avg_`xr'xrt if unit == "Euro"
 	bys year : egen aux`xr'eu = max(growth_`xr'_eu) 
 }
 
+* Project values backwards
 foreach xr in ama imf {
+	gen double aux1`xr' = `xr'xrt 
+	gen double aux2`xr' = aux1`xr'/(1+aux`xr'eu) if year == 1990 & euro == 1
 
-gen double aux1`xr' = `xr'xrt 
-gen double aux2`xr' = aux1`xr'/(1+aux`xr'eu) if year == 1990 & euro == 1
-
-xtset i year
-forvalues i = 1989(-1)1970 { 
-	replace aux1`xr' = f.aux2`xr' if year == `i' & euro == 1
-	replace aux2`xr' = aux1`xr'/(1+aux`xr'eu) if year == `i' & euro == 1
+	xtset i year
+	forvalues i = 1989(-1)1970 { 
+		replace aux1`xr' = f.aux2`xr'             if year == `i' & euro == 1
+		replace aux2`xr' = aux1`xr'/(1+aux`xr'eu) if year == `i' & euro == 1
+	}
 }
-}
 
+* Input values
 foreach xr in ama imf {
-gen double extrap_`xr'_eu = 1 if missing(`xr'xrt) & euro == 1
-replace extrap_`xr'_eu = 0 if missing(extrap_`xr'_eu)
-replace `xr'xrt = aux1`xr' if extrap_`xr'_eu == 1
+	gen double extrap_`xr'_eu = 1       if missing(`xr'xrt) & euro == 1
+	replace extrap_`xr'_eu = 0          if missing(extrap_`xr'_eu)
+	replace `xr'xrt = aux1`xr'          if extrap_`xr'_eu == 1
+	replace source2="extrapolated_ratio_euro" if extrap_`xr'_eu == 1
 }
 drop aux* growth*
 
-// changing labels
-replace unit = "" if extrap_imf_soviet == 1 | extrap_imf_yugosl == 1 | extrap_imf_yem == 1 | extrap_imf_eu == 1
+// Exend the unit currency for the inputed values
+replace unit = "" if extrap_imf_soviet == 1 | extrap_imf_yugosl == 1 | ///
+					 extrap_imf_yem == 1 | extrap_imf_eu == 1
 gsort country -year 
-by country : carryforward unit if extrap_imf_soviet == 1 | extrap_imf_yugosl == 1 | extrap_imf_yem == 1 | extrap_imf_eu == 1, replace
+by country : carryforward unit if extrap_imf_soviet == 1 | extrap_imf_yugosl == 1 | ///
+								  extrap_imf_yem == 1 | extrap_imf_eu == 1, replace
 
 // generating iso2 variable
 ren country countryname
@@ -439,26 +462,41 @@ replace country = "MK" if countryname == "Republic of North Macedonia"
 replace country = "SU" if countryname == "Former USSR"
 replace country = "KS" if countryname == "Kosovo"
 replace country = "CW" if countryname == "CuraÃ§ao"
+replace country = "CW" if countryname == "CuraĂ§ao" // For MAC laptops interpretor
 replace country = "SX" if countryname == "Sint Maarten (Dutch part)"
 replace country = "AN" if countryname == "Former Netherlands Antilles"
+replace country = "BO" if countryname == "Bolivia (Plurinational State of)"
+replace country = "HK" if countryname == "China, Hong Kong SAR"
+replace country = "TR" if countryname == "TĂźrkiye"
+replace country = "VE" if countryname == "Venezuela (Bolivarian Republic of)"
+replace country = "TZ" if countryname == "United Republic of Tanzania: Mainland"
+replace country = "CI" if countryname == "CĂ´te d'Ivoire"
+replace country = "CV" if countryname == "Cabo Verde"
+replace country = "SZ" if countryname == "Kingdom of Eswatini" 
+replace country = "PS" if countryname == "State of Palestine" 
+replace country = "GB" if countryname == "United Kingdom of Great Britain and Northern Ireland"
 
 tab countryname if missing(country)
 // Curacao and Sint Marteen using Former Netherlands Antilles
 drop if country == "CW" & year < 1994
 expand 2 if (country == "AN") & inrange(year, 1970, 1993), generate(newobsCW)
-replace country = "CW" if newobsCW
+replace country = "CW"      if newobsCW
+replace source = country+ "_assumed_as_" + source if newobsCW
+
 drop if country == "SX" & year < 2000
 expand 2 if (country == "AN") & inrange(year, 1970, 1999), generate(newobsSX)
-replace country = "SX" if newobsSX
+replace country = "SX"        if newobsSX
+replace source = country+"_assumed_as_"+ source if newobsSX
 drop newobs* 
 
 drop if missing(country) | unit == "..."
 drop if countryname == "Former Sudan" & year >= 1995
 drop if countryname == "South Sudan" & year < 1995
 drop if inlist(countryname, "Yemen: Former Yemen Arab Republic")
-ren country iso
+rename country iso
+
 tempfile xrateunsna
-sa `xrateunsna', replace
+save `xrateunsna', replace
 
 
 // *************** PART H : + exrate_TWD_USD --> `xratetwdusd' *****************
@@ -470,9 +508,9 @@ gen year = year(DATE)
 ren FXRATETWA618NUPN xrate_twd_usd
 keep year xrate_twd_usd
 gen iso = "TW"
+generate source2="FRED"
 tempfile xratetwdusd
 sa `xratetwdusd', replace
-
 
 *-------------------------------------------------------------------------------
 *---------------------  3. Main Table   ----------------------------------------
@@ -537,7 +575,7 @@ drop countryname countrycode indicatorname indicatorcode fiscalyearend
 gen widcode = "xlcusx999i"
 gen p = "pall"
 cap drop value
-reshape long value, i(iso currency widcode p) j(year)
+greshape long value, i(iso currency widcode p) j(year)
 drop if mi(value)
 order iso widcode currency value year p
 
@@ -581,11 +619,17 @@ preserve
 restore
 //-------------------------------------------------------
 
+*Gen source
+generate source="WB"
 
 // Replace exchange rate by 1 for El Salvadore and Liberia and Zimbabwe (series in dollars)
-replace value = 1 if inlist(iso, "ZW", "SV", "LR", "EC") //  
+replace value = 1 if inlist(iso, "ZW", "SV", "LR", "EC")   
+
+replace source= currency+"_assumed_"+source if inlist(iso, "ZW", "SV", "LR", "EC")   
 
 append using "`xrate'"
+replace source=source2 if missing(source)
+drop source2
 
 // Fix in Zambia
 replace value = value/1000 if iso == "ZM" & year < 1972
@@ -595,10 +639,11 @@ expand 2 if iso == "MR" & year == 2003, gen(new)
 replace value = .   if new
 replace year = 2004 if new
 ipolate value year  if iso == "MR" & inrange(year, 2003, 2005), gen(i)
+replace source = "interpolated"  if new
 replace value = i   if new
 drop new i
 
-// *************** PART Main.2 :  + `Somalia' *************************************
+// *************** PART Main.2 :  + `Somalia' + correction NG ******************
 
 // Fix Somalia using UN data
 merge 1:1 iso year widcode using "`somalia'", nogenerate update replace
@@ -611,7 +656,7 @@ replace value = 76.278096344699490 if iso == "NG" & year == 1996 & widcode == "x
 replace value = 78.775837490581820 if iso == "NG" & year == 1997 & widcode == "xlcusx999i"
 replace value = 82.580278068470160 if iso == "NG" & year == 1998 & widcode == "xlcusx999i"
 
-
+replace source = "UN_PARE" if iso == "NG" & inrange(year, 1994,1998) & widcode == "xlcusx999i"
 // *************** PART Main.3 :  + `ves' + Fix New Ouguiya, Islands' USD and missings **
 
 drop if iso == "VE"
@@ -620,14 +665,17 @@ append using `ves'
 // Introduction of the new Ouguiya in 2018
 replace currency = "MRU"    if currency == "MRO"
 
-reshape wide value, i(iso year p currency) j(widcode) string
+greshape wide value, i(iso year p currency) j(widcode) string
 
 fillin iso year
-replace currency = "USD"    if iso == "ZW"
-replace valuexlcusx999i = 1 if iso == "ZW"
-replace p = "pall"          if iso == "ZW"
+replace currency = "USD"                if iso == "ZW"
+replace valuexlcusx999i = 1             if iso == "ZW"
+replace p = "pall"                      if iso == "ZW"
+
+egen source_aux = mode(source), by(year currency)
+replace source =  currency + "_assumed_"+ source_aux if iso == "ZW"
 drop if _fillin & iso != "ZW"
-drop _fillin
+drop _fillin source_aux
 
 // Bonaire, Sint Eustatius and Saba series is in USD
 drop if iso == "BQ"
@@ -635,7 +683,7 @@ expand 2 if (iso == "ZW"), generate(newobsBQ)
 replace iso = "BQ"          if newobsBQ
 replace currency = "USD"    if iso == "BQ"
 replace valuexlcusx999i = 1 if iso == "BQ"
-replace p = "pall"          if iso == "BQ"
+*replace p = "pall"          if iso == "BQ"
 
 // Fixing Gibraltar
 drop if iso == "GI"
@@ -650,15 +698,18 @@ replace currency = currency2
 drop currency2
 replace p = "pall"
 egen value2 = mean(valuexlcusx999i), by(year currency)
-replace valuexlcusx999i = value2 if missing(valuexlcusx999i)
-drop value2 _fillin
+egen source_aux = mode(source), by(year currency)
+replace source = currency + "_assumed_"+ source_aux   if missing(valuexlcusx999i) & !missing(value2)
+replace valuexlcusx999i = value2       if missing(valuexlcusx999i)
+drop value2 _fillin source_aux
 
 
 // *************** PART Main.4 :  + `merged' **************************************
 
-merge 1:1 iso currency year using "`merged'", update noreplace keepusing(lcu_to_usd) nogenerate
+merge 1:1 iso currency year using "`merged'", update keepusing(lcu_to_usd source2) nogenerate
+replace source = source2            if  missing(valuexlcusx999i) & !missing(lcu_to_usd)
 replace valuexlcusx999i = lcu_to_usd if missing(valuexlcusx999i)
-drop lcu_to_usd
+drop lcu_to_usd source2
 
 drop if iso == "ZW" & currency == "ZWD"
 
@@ -666,26 +717,26 @@ drop if iso == "ZW" & currency == "ZWD"
 // *************** PART Main.5 :  + `exrateyu' *********************************
 	
 drop if iso == "HR" & currency == "HRK"
-merge 1:1 iso year using `exrateyu'
-drop if _m == 2
-drop _m 
+merge 1:1 iso year using `exrateyu', nogenerate keep(master match) 
+
+replace source = source2            if missing(valuexlcusx999i) & !missing(exrate_usd)
 replace valuexlcusx999i = exrate_usd if missing(valuexlcusx999i) & !missing(exrate_usd)
-drop exrate_usd 
+drop exrate_usd  source2
 
 
 	
 // *************** PART Main.6 : + `exratesu' **********************************
 
-merge 1:1 iso year using `exratesu'
-drop if _m == 2
-drop _m 
+merge 1:1 iso year using `exratesu', nogenerate keep(master match)
+
+
 *replace valuexlcusx999i = exrate_usd if missing(valuexlcusx999i) & !missing(exrate_usd) & iso == "GE"
-drop exrate_usd 
+drop exrate_usd source2
 
 
 // *************** PART D.7 : + `xrateunsna' *************************************
 
-merge 1:1 iso year using `xrateunsna', keepusing(imfxrt amaxrt soviet yugosl)
+merge 1:1 iso year using `xrateunsna', keepusing(imfxrt amaxrt soviet yugosl source2)
 
 drop if _m == 2 & iso != "HR"
 replace currency = "EUR" if iso == "HR"
@@ -748,18 +799,34 @@ replace valuexlcusx999i = 0.00000149385 if iso == "GE" & year == 1986
 replace valuexlcusx999i = 0.00000152877 if iso == "GE" & year == 1987
 replace valuexlcusx999i = 0.00000148910 if iso == "GE" & year == 1988
 */
-	
+replace source = source2         if !missing(valuexlcusx999i) & missing(source)
+
+
+replace source = source2         if missing(valuexlcusx999i)	
 replace valuexlcusx999i = amaxrt if missing(valuexlcusx999i)
-gen double auxcsk = valuexlcusx999i if iso == "CS"
-bys year : egen maxauxcsk = max(auxcsk)
+
+gen auxcsk = valuexlcusx999i if iso == "CS"
+gen auxsourcsk = source      if iso == "CS"
+
+bys year : egen maxauxcsk  = max(auxcsk)
+bys year : egen sourauxcsk = mode(auxsourcsk) 
+
+replace source = sourauxcsk         if iso == "CZ" & missing(valuexlcusx999i)
 replace valuexlcusx999i = maxauxcsk if iso == "CZ" & missing(valuexlcusx999i)
-drop imfxrt amaxrt flagexrate auxcsk maxauxcsk soviet yugosl
+
+drop imfxrt amaxrt flagexrate auxcsk maxauxcsk soviet yugosl sourauxcsk
 
 *missing years for CW
-gen double aux = valuexlcusx999i if iso == "SX"
-bys year : egen aux2 = mode(aux)
-replace valuexlcusx999i = aux2 if iso == "CW" & mi(valuexlcusx999i)
+gen aux = valuexlcusx999i if iso == "SX"
+gen auxsour = source2 if iso == "SX"
 
+bys year : egen aux2 = mode(aux)
+bys year : egen auxsour2 = mode(auxsour)
+
+replace source = auxsour2        if iso == "CW" & mi(valuexlcusx999i)
+replace valuexlcusx999i = aux2   if iso == "CW" & mi(valuexlcusx999i)
+
+drop source2 aux*
 /*
 // replacing problematic Iraq data <= 2003 from WB WDI data
 preserve
@@ -793,9 +860,6 @@ replace valuexlcusx999i = xrate_iq_usd if iso == "IQ" & year < 2003
 drop xrate_iq_usd 
 */
 
-* Correct Iran 2024
-
-
 * ------- Compleating YUN ------------------------------------------------------
 sort iso year 
 gen currency3=currency
@@ -825,22 +889,28 @@ replace value8=71.7148 if currency=="YUN" & year==2020
 replace value8=77.3620 if currency=="YUN" & year==2021
 replace value8=89.1162 if currency=="YUN" & year==2022
 */
+replace source = source + "_RS_MK" if missing(valuexlcusx999i) & iso=="YU"
 replace valuexlcusx999i = value8 if missing(valuexlcusx999i) & iso=="YU"
+
 drop value3-value8 currency3
 * ------- Compleating YUN ------------------------------------------------------
 
 // *************** PART Main.8 : + xratetwdusd' ********************************
 
-merge 1:1 iso year using `xratetwdusd'
-drop if _m == 2
-drop _m 
+merge 1:1 iso year using `xratetwdusd', nogenerate keepusing(xrate_twd_usd source2) keep(master match)
+
+replace source = source2 if missing(valuexlcusx999i)
 replace valuexlcusx999i = xrate_twd_usd if missing(valuexlcusx999i)
-drop xrate_twd_usd 
+
+drop xrate_twd_usd source2
 
 // *************** PART Main.9 : + NievasPiketty (2025)  ********
 merge 1:1 iso year using "$work_data/nievaspiketty2025_xrate.dta", nogenerate keepusing(xrate_usd)
+gen source2="np" if !missing(xrate_usd)
+
+replace source= source2 if !missing(xrate_usd)
 replace valuexlcusx999i= xrate_usd if !missing(xrate_usd)
-drop xrate_usd
+drop xrate_usd source2
 
 drop if missing(valuexlcusx999i)
 
@@ -851,68 +921,8 @@ egen currency2 = mode(currency), by(iso)
 replace currency = currency2 if missing(currency)
 drop currency2
 
-//--------------------
-drop valuexlceux999i valuexlcyux999i
-//--------------------
 
-// *************** PART Main.10 : Genrate valuexlceux999i and valuexlcyux999i ***
-/*
-preserve 
-	keep if currency == "EUR" ///	
-						& (inlist(iso, "DE", "AT", "BE", "ES", "FI", "FR") | ///
-							inlist(iso,"IE", "IT", "LU", "NL", "PT", "ES"))
-
-	keep year valuexlcusx999i
-//	duplicates drop year, force
-	collapse (mean) valuexlcusx999i, by(year)
-	rename valuexlcusx999i EURUSD
-	
-	tempfile eurusd
-	save "`eurusd'"
-restore
-
-preserve
-	keep if currency == "CNY"
-	keep year valuexlcusx999i
-	duplicates drop year, force
-	rename valuexlcusx999i CNYUSD
-	
-	tempfile cnyusd
-	save "`cnyusd'"
-restore
-
-merge n:1 year using "`eurusd'", keep(master match) nogenerate
-merge n:1 year using "`cnyusd'", keep(master match) nogenerate
-
-
-replace valuexlceux999i = valuexlcusx999i/EURUSD
-replace valuexlcyux999i = valuexlcusx999i/CNYUSD
-
-drop EURUSD CNYUSD
-*/
 replace p = "pall" if iso=="HR" // Little adjusment for filling the data
-/*
-replace valuexlceux999i = round(valuexlceux999i) if currency == "EUR" & year >= 1999 ///
-& ( ///
-    (inlist(iso, "AT","BE","DD","DE","ES","FI") & year >= 1999) | ///
-    (inlist(iso, "FR","IE","IT","LU","NL","PT") & year >= 1999) | ///
-    (iso == "GR" & year >= 2001) | ///
-    (inlist(iso, "AD","MC","ME","MF","SM") & year >= 2002) | ///
-    (iso == "SI" & year >= 2007) | ///
-    (inlist(iso, "CY","MT") & year >= 2008) | ///
-    (iso == "SK" & year >= 2009) | ///
-    (iso == "EE" & year >= 2011) | ///
-    (iso == "LV" & year >= 2014) | ///
-    (iso == "LT" & year >= 2015) | ///
-    (iso == "HR" & year >= 2023) ///
-)
-
-
-
-//assert valuexlceux999i == 1 if currency == "EUR" & year > 1999
-assert valuexlcyux999i == 1 if currency == "CNY"
-assert valuexlcusx999i == 1 if currency == "USD"
-*/
 
 
 greshape long value, i(iso year p currency) j(widcode) string
@@ -921,16 +931,15 @@ sort iso widcode year
 
 fillin iso widcode year
 
-
-
-// *************** PART Main.11 : + import-country-codes-output.dta and Save ****
+// *************** PART Main.11 : + import-country-codes-output.dta and carryforward last year ****
 
 merge m:1 iso using "$work_data/import-country-codes-output.dta", nogen 
 *drop titlename shortname region1 region2 region3 region4 region5 TH
 drop if _fillin == 1 & corecountry != 1 
 drop if _fillin == 1 & year < 1970 
 
-so iso widcode year
+sort iso widcode year
+replace source = "carryforward"                if missing(value) & year == $pastyear & corecountry == 1
 by iso widcode : carryforward value p currency if missing(value) & year == $pastyear & corecountry == 1, replace
 
 // Drop Iraq before 2003 (problematic data)
@@ -938,79 +947,147 @@ by iso widcode : carryforward value p currency if missing(value) & year == $past
 // drop if iso == "IQ" & year < 2003
 
 recast double value
+drop if missing(value)
 
-drop aux*
+// *************** PART Main.12 : + Generate data_quality and export data ***
+
+* gen data suality
+gen data_quality=.
+
+replace data_quality=5 if strpos(source,"WB")  | strpos(source,"openexchangerate") | ///
+						  strpos(source,"IMF") | strpos(source,"UN_SNA") | strpos(source,"mataf")
+replace data_quality=4 if strpos(source,"np")
+replace data_quality=3 if strpos(source,"interpolated")
+replace data_quality=2 if strpos(source,"carryforward")
+replace data_quality=1 if strpos(source,"extrapolated_ratio") | strpos(source,"calculationfromGDP")
+*replace data_quality=0 if
+
+assert !missing(data_quality)
+assert widcode=="xlcusx999i"
+
+rename value exrate_usd
+
+preserve
+	drop source widcode
+	recast int year	
+	recast double exrate_usd
+
+	label data "Generated by import-exchange-rates.do"
+	save "$work_data/exchange-rates.dta", replace
+
+	/*
+	keep   if widcode == "xlcusx999i"
+	rename    value exrate_usd
+	label data "Generated by import-exchange-rates.do"
+	save "$work_data/USS-exchange-rates.dta", replace
+	*/
+restore
+
+// *************** PART Main.13 : + Generate and export metadata ***
+keep iso year source widcode currency
+
+replace widcode = substr(widcode,1,6)
+rename (widcode source) (sixlet source_0)
+
+bysort iso source (year): egen from = min(year)
+bysort iso source (year): egen to   = max(year)
+
+tostring from, replace
+tostring to, replace
+keep iso sixlet source from to
+duplicates drop 
+
+
+
+*Generate Period: 
+gen period=""
+replace period = from + "-" + to + ": " if from!=to
+replace period = from + ": " if from==to
+
+sort iso sixlet from to
+
+*Generate Method
+gen method=""
+
+* countries with 
+replace method = period + "Currency assumed to be " + substr(source_0, 1, 3) + ";" if strpos(source_0,"_assumed_")
+replace method = period + "Data extended from "     + substr(source_0, 1, 2) + ";"          if strpos(source_0,"_assumed_as_")
+
+replace method = period +  "Due to data limitations, this exchange rate is estimated as the " /// 
+				+ "ratio between in-house GDP estimates in USD and the same variable " ///
+				+ "in LCU for countries succeeding the former Yugoslavia (BA, HR, MK, " ///
+				+ "RS, YU, KS, SI, ME);"                                      if strpos(source_0,"calculationfromGDP_yugosl")
+replace method = period +  "Due to data limitations, this exchange rate is estimated as the " /// 
+				+ "ratio between in-house GDP estimates in USD and the same variable " ///
+				+ "in LCU for countries succeeding the former USRR (AM, AZ, BY, " ///
+				+ "KG, KZ, TJ, TM, UZ, EE, LT, LV, MD, GE, RU, UA);"          if strpos(source_0,"calculationfromGDP_soviet")
+				
+replace method = period +  "Data carried forward from the last available year;"    if strpos(source_0,"carryforward")
+replace method = period +  "Data interpolated;"                               if strpos(source_0,"interpolated")
+
+
+replace method = period +  "Data projected backwards using the growth of exchange rates of " ///
+				+ "the former USRR;"                                          if strpos(source_0,"extrapolated_ratio_soviet")
+replace method = period +  "Data projected backwards using the growth of exchange rates of " ///
+				+ "the former Yugoslavia;"                                    if strpos(source_0,"extrapolated_ratio_yugosl")
+replace method = period +  "Data projected backwards using the average growth of exchange rates of " ///
+				+ "countries with complete spliced exchange rate series (AD, AT, BE, CY, FI, " ///
+				+ "FR, DE, GR, IE, IT, LU, MT, MC, ME, NL, PT, SM, ES);"      if strpos(source_0,"extrapolated_ratio_euro")
+replace method = period +  "Data projected backwards using the growth of exchange rates of " ///
+				+ "Former Yemen Arab Republic;"                               if strpos(source_0,"extrapolated_ratio_yemen")
+replace method = period +  "Data projected backwards using the average growth of exchange rates of " ///
+				+ "modern Montenegro and Serbia"                              if strpos(source_0,"extrapolated_ratio_RS_MK")
+
+* Generate source
+gen source = ""
+replace source = period +  `"[URL][URL_LINK]https://www.imf.org/en/publications/weo/weo-database/2025/april/download-entire-database[/URL_LINK][URL_TEXT]IMF "' ///
+		+ `"World Economic Outlook (04/$year)[/URL_TEXT][/URL];"' if strpos(source_0,"IMF")
+replace source = period + `"[URL][URL_LINK]http://data.worldbank.org/[/URL_LINK][URL_TEXT]World Bank[/URL_TEXT][/URL];"' if strpos(source_0,"WB")
+replace source = period + `"[URL][URL_LINK]http://unstats.un.org/unsd/snaama/Introduction.asp[/URL_LINK][URL_TEXT]United"' ///
+		+ `"Nations National Accounts Main Aggregates Database[/URL_TEXT][/URL]; "' if strpos(source_0,"UN_SNA")
+replace source =  period + `"[URL][URL_LINK]http://openexchangerates.org/[/URL_LINK][URL_TEXT]Open Exchange rates[/URL_TEXT][/URL];"' if strpos(source_0,"openexchangerate")
+replace source = period + `"[URL][URL_LINK]https://wid.world/document/unequal-exchange-and-north-south-relations-evidence-from-global-trade-flows-and-the-world-balance-of-payments-1800-2025-world-inequality-lab-working-paper-2025-11/[/URL_LINK][URL_TEXT]"' ///
+		+ `"Nievas, G., Piketty, T. (2025). "' ///
+		+ `"Unequal Exchange & North-South Relations: Evidence from Global Trade Flows and the World Balance of Payments, 1800-2025[/URL_TEXT][/URL];"' /// 
+		if strpos(source_0,"np")
+replace source = period + `"[URL][URL_LINK]https://www.mataf.net/en[/URL_LINK][URL_TEXT]Mataf.net[/URL_TEXT][/URL];"' if strpos(source_0,"mataf")
+
+replace source = substr(method, 1, strlen(method)-1) + " (Series inherited from" ///
+				+ " another country with available " + substr(source_0,1,3) + "-denominated series);" if strpos(source_0,"_assumed_")
+replace source = substr(method, 1, strlen(method)-1) + " (Series inherited from " ///
+				+ substr(source_0,1,2) + ");" if strpos(source_0,"_assumed_as_")
+
+// Concatenate sources and methods
+* Note: the following wode works well only if the same source is not intermitent across years within the same country
+duplicates tag iso sixlet source_0, gen(dup)
+assert dup==0
+
+
+//  Concatenate the methods and the sources
+
+* Generate index per period
+sort iso sixlet from
+bysort iso sixlet: gen index = _n
+keep iso sixlet method source index
+
+* Reshape
+reshape wide method source, i(iso sixlet) j(index)
+
+
+* concatenate
+egen    method_conc = concat(method*), punct(" ") 
+replace method_conc = substr(method_conc, 1, strlen(method_conc)-1) + "." if !missing(method_conc)
+
+egen source_conc = concat(source*), punct(" ") 
+replace source_conc = substr(source_conc, 1, strlen(source_conc)-1) + "." if !missing(source_conc)
+
+keep iso sixlet method_conc source_conc
+duplicates drop
+
+rename *_conc *
+
+*Export
+keep iso sixlet method source
+
 label data "Generated by import-exchange-rates.do"
-save "$work_data/exchange-rates.dta", replace
-
-
-
-
-keep   if widcode == "xlcusx999i"
-rename    value exrate_usd
-save "$work_data/USS-exchange-rates.dta", replace
-
-
-
-
-
-
-
-
-/*
-*checking GDP in USD
-u "$work_data/exchange-rates.dta", clear
-keep if widcode == "xlcusx999i"
-ren value exrate_usd
-
-merge 1:1 iso year using "$work_data/retropolate-gdp.dta", nogen keepusing(gdp)
-merge 1:1 iso year using "$work_data/price-index.dta", nogen
-
-kountry iso, from(iso2c)
-rename NAMES_STD country
-replace country = "Serbia" if iso == "RS"
-replace country = "United Arab Emirates" if iso == "AE"
-replace country = "Curaçao" if iso == "CW"
-replace country = "Sint Maarten (Dutch part)" if iso == "SX"
-replace country = "Kosovo" if iso == "KS"
-replace country = "Soviet Union" if iso == "SU"
-replace country = "Yugoslavia" if iso == "YU"
-replace country = "Bonaire, Saint Eustatius and Saba" if iso == "BQ"
-replace country = "Guernsey" if iso == "GG"
-replace country = "Jersey" if iso == "JE"
-replace country = "Isle of Man" if iso == "IM"
-
-
-foreach var in gdp {
-
-gen `var'_idx = `var'*index
-	gen `var'_usd = `var'_idx/exrate_usd
-}
-
-gen corecountry = .
-foreach c of global corecountries {
-	replace corecountry = 1 if iso == "`c'"
-}
-keep if corecountry == 1 & year >= 1970
-
-keep if inlist(iso, "JE", "GG", "GI", "QA", "BQ", "IM")
-gen long obsno = _n
-
-levelsof iso, local(ctries)
-foreach c of local ctries {
-     su obs if iso == "`c'", meanonly 
-     local country = country[r(min)]
-     tsline gdp_usd if iso == "`c'" & year >= 1970, title("`country'") ytitle("") xtitle("") legend(off) xlabel(1970(5)2022)
-     graph export "/Users/gaston/Dropbox/WIL/W2ID/Temp/temporary/new/`c'.pdf", replace 
-}
-
-
-}
-}
-}
-
-inlist(iso, "AZ", "AM", "BY", "KG", "KZ")
-inlist(iso, "TJ", "MD", "TM", "UA", "UZ")
-inlist(iso, "EE", "LT", "LV", "RU")
-
-
+save "$work_data/exchange-rates-metadata.dta", replace

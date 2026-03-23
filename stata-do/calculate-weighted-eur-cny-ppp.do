@@ -15,7 +15,7 @@ save `eurgdp'
 // 2. Process PPP
 * Bring PPP
 use "$work_data/ppp.dta", clear
-
+drop data_quality
 * Isolate EUR data of funder countries
 preserve 
 	keep if currency == "EUR" ///	
@@ -37,7 +37,7 @@ preserve
 	
 	
 	tempfile ppp_ea
-	save "`ppp_ea'" 
+	save "`ppp_ea'"
 restore
 
 preserve
@@ -51,10 +51,10 @@ restore
 
 
 // Generate a table for aggregate-macro-regions and calcuate sector factor shares
-use "`ppp_ea'"
+use "`ppp_ea'", clear
 merge 1:1 year using "`ppp_cn'", nogenerate
 
-drop refyear currency
+drop refyear currency 
 
 
 label data "Generate by calculate-weighted-eur-cny-ppp.do"

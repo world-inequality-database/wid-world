@@ -55,6 +55,9 @@ replace tokeep = 1 if inlist(widcode, "afainc992j", "sfainc992j", "tfainc992j")
 
 
 keep if tokeep==1
+// [NOTE] in clean-up-revised.do we treat all other distributions that are not
+// tokeep=1. Therefore, if this group of distributions changes, please also 
+// change it accordingly in clean-up-revised.do. 
 drop tokeep
 
 tab widcode  
@@ -136,8 +139,11 @@ bys iso year widcode : replace n = cond(_N == _n, 100000 - p, p[_n + 1] - p)
 tab widcode // wealth & post tax are not fully complete is not complete 
 rename (valueahweal992i valueanninc992i valueahweal999i valueanninc999i) (ahweal992i anninc992i ahweal999i anninc999i) 
 
-*save "aux.dta", replace
-*u "aux.dta", clear
+//------- Checkpoint ---------------//
+save "$work_data/auxh1.dta", replace
+u "$work_data/auxh1.dta", clear
+//----------------------------------//
+
 *---------* 2.3 Filling Missing Values & Producing Top and Bottom Groups *---------*  
 egen double average = total(a*n/1e5) if !missing(a), by(iso year widcode)
 replace average = . if average == 0
@@ -164,11 +170,17 @@ foreach x in 992 999{
 
 * Factor income: 
 replace a = a/average*anninc992i        if !missing(a) & inlist(widcode, "fainc992j") & !missing(anninc992i)
-replace a = ((s/1000)/n*1e5)*ahweal992i if missing(a)  & inlist(widcode, "fainc992j") & !missing(anninc992i)
+replace a = ((s/1000)/n*1e5)*ahweal992i if missing(a)  & inlist(widcode, "fainc992j") & !missing(anninc992i) // change ahweal to anninc? 
 
+// correcting thresholds for observations where threshold is missing
 sort iso year widcode p
 by iso year widcode: replace t = (a[_n - 1] + a)/2 if missing(t)
 by iso year widcode: replace t = min(0, 2*a)       if missing(t) & p == 0 
+
+//-----------Checkpoint---------------//
+save "$work_data/auxh2.dta", replace
+u "$work_data/auxh2.dta", clear
+//----------------------------------//
 
 gsort iso year widcode -p
 by iso year widcode: generate double ts = sum(s)
@@ -180,21 +192,74 @@ by iso year widcode: replace         ta = sum(a*n)/(1e5 - p) if !missing(a) & !m
 by iso year widcode: replace         ta = sum(a*n)/(1e5 - p) if !missing(a) & !missing(anninc999i)  & inlist(widcode, "diinc999j") // This ensure that ptinc and diinc p0p100 will be equivalent.
                      *replace         ta = anninc992i         if !missing(a) & !missing(anninc992i)  & inlist(widcode, "ptinc992j", "diinc992j") & p==0 
 by iso year widcode: replace         ta = sum(a*n)/(1e5 - p) if !missing(a) & (!missing(ahweal992i) | !missing(average) ) & inlist(widcode, "hweal992j")
-by iso year widcode: replace         ta = sum(a*n)/(1e5 - p) if !missing(a) & (!missing(ahweal999i) | !missing(average) ) & inlist(widcode, "hweal999j")
+by iso year widcode: replace         ta = sum(a*n)/(1e5 - p) if !missing(a ) & (!missing(ahweal999i) | !missing(average) ) & inlist(widcode, "hweal999j")
 
 *by iso year widcode: generate double bs = 1 - ts
 by iso year widcode: generate double bs = 1000 - ts
 					 replace bs = 0 if abs(ts - 1000) < 0.0001
-by iso year widcode: generate double ba = ((bs/1000) / (1 - p / 1e5)) * anninc992i if inlist(widcode, "ptinc992j") & !missing(anninc992i)
-by iso year widcode: replace         ba = ((bs/1000) / (1 - p / 1e5)) * anninc992i if inlist(widcode, "diinc992j") & !missing(anninc992i)
-by iso year widcode: replace         ba = ((bs/1000) / (1 - p / 1e5)) * anninc992i if inlist(widcode, "fainc992j") & !missing(anninc992i)
-by iso year widcode: replace         ba = ((bs/1000) / (1 - p / 1e5)) * ahweal992i if inlist(widcode, "hweal992j") & (!missing(ahweal992i))
-by iso year widcode: replace         ba = ((bs/1000) / (1 -p  / 1e5)) * average    if inlist(widcode, "hweal992j") & (!missing(average))
+*gsort iso year widcode p
+*by iso year widcode: generate double bs = sum(s) - s // constructing bs as sum of shares from the bottom 
 
-by iso year widcode: replace         ba = ((bs/1000) / (1 - p / 1e5)) * anninc999i if inlist(widcode, "ptinc999j") & !missing(anninc999i)
-by iso year widcode: replace         ba = ((bs/1000) / (1 - p / 1e5)) * anninc999i if inlist(widcode, "diinc999j") & !missing(anninc999i)
-by iso year widcode: replace         ba = ((bs/1000) / (1 - p / 1e5)) * ahweal999i if inlist(widcode, "hweal999j") & (!missing(ahweal999i))
-by iso year widcode: replace         ba = ((bs/1000) / (1 -p  / 1e5)) * average    if inlist(widcode, "hweal999j") & (!missing(average))
+// there was a previous mistake in calculating bottom averages. It used to be ba = anninc * bs/(1- p/1e5) 
+by iso year widcode: generate double ba = ((bs/1000) / (p / 1e5)) * anninc992i if inlist(widcode, "ptinc992j") & !missing(anninc992i)
+by iso year widcode: replace         ba = ((bs/1000) / (p / 1e5)) * anninc992i if inlist(widcode, "diinc992j") & !missing(anninc992i)
+by iso year widcode: replace         ba = ((bs/1000) / (p / 1e5)) * anninc992i if inlist(widcode, "fainc992j") & !missing(anninc992i)
+by iso year widcode: replace         ba = ((bs/1000) / (p / 1e5)) * ahweal992i if inlist(widcode, "hweal992j") & (!missing(ahweal992i))
+by iso year widcode: replace         ba = ((bs/1000) / (p / 1e5)) * average    if inlist(widcode, "hweal992j") & (!missing(average)) & missing(ba) // only if missing ba
+
+by iso year widcode: replace         ba = ((bs/1000) / (p / 1e5)) * anninc999i if inlist(widcode, "ptinc999j") & !missing(anninc999i)
+by iso year widcode: replace         ba = ((bs/1000) / (p / 1e5)) * anninc999i if inlist(widcode, "diinc999j") & !missing(anninc999i)
+by iso year widcode: replace         ba = ((bs/1000) / (p / 1e5)) * ahweal999i if inlist(widcode, "hweal999j") & (!missing(ahweal999i))
+by iso year widcode: replace         ba = ((bs/1000) / (p / 1e5)) * average    if inlist(widcode, "hweal999j") & (!missing(average)) & missing(ba) // only if missing ba
+
+// ---------------------- BOTTOM AVERAGES TEST ---------------------------------
+// testing that the calculation of ba is correct by comparing with other formula: 
+// ba = sum( average in each percentile * pop share of each percentile) / pop 
+// share of bottom group. this becomes [ sum(a*n) - a*n / p ] because for ex. 
+//summing up to p=5000 would be actually summing up to p0p6 and we want p0p5 so 
+// need to minus a*n 
+
+// this test is introduced because the old way of calculating bottom shares as 
+// bs=1000-ts was generating discrepancies in bottom averages depending on the 
+//formula used. Now ts=sum(s) from the bottom, so both formulas for ba yield 
+//equivalent results. 
+sort iso year widcode p
+by iso year widcode: generate double ba2 = (sum(a*n) - a*n) / p if !missing(a) & !missing(anninc992i)  & inlist(widcode, "ptinc992j")
+by iso year widcode: replace         ba2 = (sum(a*n) - a*n) / p if !missing(a) & !missing(anninc992i)  & inlist(widcode, "diinc992j")
+by iso year widcode: replace         ba2 = (sum(a*n) - a*n) / p if !missing(a) & !missing(anninc992i)  & inlist(widcode, "fainc992j")
+by iso year widcode: replace         ba2 = (sum(a*n) - a*n) / p if !missing(a) & !missing(anninc999i)  & inlist(widcode, "ptinc999j")
+by iso year widcode: replace         ba2 = (sum(a*n) - a*n) / p if !missing(a) & !missing(anninc999i)  & inlist(widcode, "diinc999j")
+by iso year widcode: replace         ba2 = (sum(a*n) - a*n) / p if !missing(a) & (!missing(ahweal992i) | !missing(average) ) & inlist(widcode, "hweal992j")
+by iso year widcode: replace         ba2 = (sum(a*n) - a*n) / p if !missing(a) & (!missing(ahweal999i) | !missing(average) ) & inlist(widcode, "hweal999j")
+
+gen badif = (ba - ba2) / ba
+gen baflag = abs(badif) > 0.01 if !missing(badif)
+drop ba2 baflag badif
+
+// ---------------------------- SHARES TEST ------------------------------------
+// reconstructing shares from averages, now that averages have been scaled to macro totals
+// to test if this changes shares (they should be the same because they are calibrated)
+gen double 	s2 = a*(n/1e5)/ahweal992i if widcode=="hweal992j"
+replace   	s2 = a*(n/1e5)/ahweal999i if widcode=="hweal999j"
+replace   	s2 = a*(n/1e5)/anninc992i if inlist(widcode, "ptinc992j", "diinc992j", "fainc992j") 
+replace   	s2 = a*(n/1e5)/anninc999i if inlist(widcode, "ptinc999j", "diinc999j") 
+replace s2=s2*1000
+
+gen sdif = (s - s2) / s
+gen sflag = abs(sdif) > 0.01 if !missing(sdif)
+drop s2 sdif sflag
+
+// ---------------------------- BOTTOM SHARES TEST -----------------------------
+// calculating bs as sum of shares from bottom to compare with bs as residual of ts
+// comparing different approaches to calculate bottom shares. 
+gsort iso year widcode p
+gen bs2 = sum(s) - s 
+gen bsdif = (bs - bs2) / bs
+gen bsflag = abs(bsdif) > 0.01 if !missing(bsdif)
+drop bs2 bsdif bsflag
+
+//end of tests. 
+//------------------------------------------------------------------------------
 
 
 //------------------- A last cleanning -----------------------------------------
@@ -209,7 +274,7 @@ sort iso year widcode p
 by iso year widcode (p): gen double for_a = a[_n+1]
 by iso year widcode (p): gen double for_t = t[_n+1]
 
-gen double dif1 = a - for_a 
+gen double dif1 = a - for_a
 gen double dif3 = a - for_t 
 
 * Anticipating possible value drops in more than 1 percentile continouisly
@@ -260,7 +325,6 @@ replace t = t / 1000
 //-----------------------------------
 //------------------------------------------------------------------------------
 
-
 //------ Transformation 1 -----------
 * Bring back the values of shares to normal scale
 replace s  = s  / 1000
@@ -275,11 +339,14 @@ replace a = . if miss_t == 1
 replace t = . if miss_t == 1
 drop test_t miss_t
 
+
 tempfile final
 save `final'
 
-//temporary file to accerlate some basic checks 
-*save "$work_data/homogenize-interim.dta", replace
+//-----------Checkpoint---------------//
+*save "$work_data/auxh3.dta", replace
+*u "$work_data/auxh3.dta", clear
+//----------------------------------//
 
 // ----------- 3. Reshape Long and prepare for WID format.  --------------------
 keep year iso widcode p a s t
@@ -450,8 +517,8 @@ save "`mid40_pretax_posttax_wealth'"
 // ------- 6. Combine all tempfiles in the long shape. -------------------------
 
 use "`full_pretax_posttax_wealth'", clear
-merge 1:1 iso year p widcode using "`deciles_pretax_posttax_wealth'", nogen
-merge 1:1 iso year p widcode using "`mid40_pretax_posttax_wealth'", nogen
+merge 1:1 iso year p widcode using "`deciles_pretax_posttax_wealth'", nogen update replace 
+merge 1:1 iso year p widcode using "`mid40_pretax_posttax_wealth'", nogen update replace 
 duplicates report // no duplicates 
 
 

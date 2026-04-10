@@ -396,6 +396,15 @@ assert data_quality!=. if strpos(widcode, "cainc")
 assert data_quality!=. if strpos(widcode, "hweal") & p !="pall"  & p!="p0p100"
 bysort iso year widcode: assert data_quality == data_quality[1] // assuring dataquality is constant at iso-year-widcode
 
+// identify countries with historical wealth series for metadata later
+preserve
+	keep if inlist(widcode, "shweal992j", "ahweal992j", "thweal992j") & year==1820 // keep on historical wealth distributions
+	gen sixlet = substr(widcode, 1, 6)
+	keep iso sixlet
+	duplicates drop
+	tempfile historicalwealthcountry
+	save `historicalwealthcountry'
+restore 
 
 // --------- 4.  Save
 compress
@@ -440,41 +449,90 @@ keep if is_long_run
 drop is_long_run
 drop if source =="long-run"
 collapse (firstnm) year, by(iso)
-generate method1 = "Before " + string(year) + ", pretax income shares estimated based on methodology in long-run paper: see source."
+generate method1 = " Before " + string(year) + ", pretax income shares estimated based on methodology in long-run paper (see sources)."
 *gen source1 = "[URL][URL_LINK]https://wid.world/document/longrunpaper/[/URL_LINK][URL_TEXT]Chancel, L., Piketty, T. (2021). Global Income Inequality, 1820-2020: The Persistence and Mutation of Extreme Inequality[/URL_TEXT][/URL]"
-keep iso method1 //source1
+keep iso method1 //source
 
 tempfile longrun
 save "`longrun'" 
 
 *Imputed metadata
-use "$wid_dir/Country-Updates/Historical_series/2022_December/merge-longrun-all-output.dta", clear
-collapse (min) year, by(iso source)
-keep if source == "historical inequality technical note"
-generate method2 = string(year) + " based on methodology described in source"
+*use "$wid_dir/Country-Updates/Historical_series/2022_December/merge-longrun-all-output.dta", clear
+*collapse (min) year, by(iso source)
+*keep if source == "historical inequality technical note"
+*generate method2 = string(year) + " based on methodology described in source"
 *gen source2 = "[URL][URL_LINK]https://wid.world/document/historical-inequality-series-on-wid-world-updates-world-inequality-lab-technical-note-2023-01/[/URL_LINK][URL_TEXT]Chancel, L., Moshrif, R., Piketty, T., Xuereb, S. (2021). Historical Inequality Series in WID.world: 2022 updates[/URL_TEXT][/URL]" //NEED TO ADD LINK TO TECH NOTE WHEN IT IS ONLINE
-keep iso method2 //source2
+*keep iso method2 //source2
 
-tempfile technote
-save "`technote'"
+*tempfile technote
+*save "`technote'"
+
 
 *Add new metadata to old metadata
 use "$work_data/distribute-national-income-metadata.dta", clear
 
 merge n:1 iso using "`longrun'", gen(m1)
-merge n:1 iso using "`technote'", gen(m2)
+*merge n:1 iso using "`technote'", gen(m2)
 
 replace method = rtrim(method)
+
+// adding comment in method for fiinc based countries
+replace method = method + " Before 1980, series is constructed based on the trend observed in the fiscal income data available (see sources)." if strpos(sixlet, "ptinc") & ///
+inlist(iso, "AR", "BG", "CH", "CL", "CM", "DE", "DK", "DZ") | ///
+inlist(iso, "ES", "FI", "FR", "GB", "GH", "GR", "HR", "HU") ///
+| inlist(iso, "ID", "IE", "IN", "IT", "JP", "KE", "KR", "MU", "MW") ///
+| inlist(iso, "MY", "NG", "NL", "NO", "PL", "PT", "SC", "SE","SG") ///
+| inlist(iso, "TN", "TW", "TZ", "UG", "US", "VN", "ZA", "ZM", "ZW") ///
+
+
 generate newmethod = method1 if m1==3 & strpos(sixlet, "ptinc") 
-replace newmethod = method2 if m2==3 & strpos(sixlet, "ptinc") 
-replace method = method + ". " + newmethod if !missing(newmethod) & strpos(sixlet, "ptinc")
+*replace newmethod = method2 if m2==3 & strpos(sixlet, "ptinc") 
+replace method = method + newmethod if !missing(newmethod) & strpos(sixlet, "ptinc")
+
+// add Arias et al techote to main countries ptinc series 
+preserve 
+	use "$work_data/import-country-codes-output.dta", clear
+	keep if region2=="" & corecountry==1
+	keep iso
+	gen fivelet = "ptinc"
+	tempfile maincountry
+	save `maincountry'
+restore
+gen fivelet = substr(sixlet, 2,5)
+merge m:1 iso fivelet using `maincountry', gen(maincountry)
+drop fivelet 
+replace source = source + ///
+`"; "' + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/wid-income-and-wealth-distributional-series-updated-and-extended-coverage-1800-2024-world-inequality-lab-technical-note-2025-10/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Arias-Osorio, M., Baulus, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Moshrif, R., Piketty, T. (2026) "WID Income and Wealth Distributional Series Updated and Extended Coverage, 1800-2024" "' + `"[/URL_TEXT][/URL]"' ///
+if maincountry == 3
+
+
+// add Arias et al techote to non-main countries ptinc series that were involved (see list in Annex 3)
+replace source = source + ///
+`"; For the series before 1980: "' + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/wid-income-and-wealth-distributional-series-updated-and-extended-coverage-1800-2024-world-inequality-lab-technical-note-2025-10/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Arias-Osorio, M., Baulus, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Moshrif, R., Piketty, T. (2026) "WID Income and Wealth Distributional Series Updated and Extended Coverage, 1800-2024" "' + `"[/URL_TEXT][/URL]"' ///
+if inlist(iso, "BG", "CH", "CM", "FI", "GH", "GR", "HR", "HU") ///
+| inlist(iso, "IE", "MU", "SC", "MW", "TZ", "UG", "ZM") ///
+| inlist(iso, "MY", "SG", "PL", "PT", "TN", "ZW") 
+
+
+// add Arias et al techote to counrties with longrun/historical wealth series (1820+)
+merge m:1 iso sixlet using `historicalwealthcountry', gen(historicalwealth)
+replace source = source + ///
+`"; For long run series, "' + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/wid-income-and-wealth-distributional-series-updated-and-extended-coverage-1800-2024-world-inequality-lab-technical-note-2025-10/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Arias-Osorio, M., Baulus, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Moshrif, R., Piketty, T. (2026) "WID Income and Wealth Distributional Series Updated and Extended Coverage, 1800-2024" "' + `"[/URL_TEXT][/URL]"' ///
+if historicalwealth == 3
+
 
 *replace source = rtrim(source)
 *generate newsource = source1 if m1==3 & strpos(sixlet, "ptinc") 
 *replace newsource = source2 if m2==3 & strpos(sixlet, "ptinc")
 *replace source = source + " " + newsource if !missing(newsource) & strpos(sixlet, "ptinc")
 
-drop m1 m2 newmethod method1 method2 // newsource source1 source2
+drop m1 newmethod method1 // m2 method2 newsource source1 source2
 
 gduplicates tag iso sixlet, gen(duplicate)
 assert duplicate == 0

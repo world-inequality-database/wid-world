@@ -143,13 +143,19 @@ duplicates drop
 generate method = "Fiscal income rescaled to match the macroeconomic aggregates."
 generate source = "WID.world computations using fiscal and net national income."
 
+replace source = source + ///
+`" Main paper, "' + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/wid_working_paper_2015_2_east_africa/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Atkinson, A. B. (2015) "Top Incomes in East Africa Before and After Independence", WID.world Working Paper" "' + `"[/URL_TEXT][/URL]"' ///
+if iso =="ZZ" & sixlet=="sptinc"
+
 tempfile meta
 save "`meta'"
 
 // Modification Nov 2025: correct file below to call the latest metadata that includes LATM and Europe 
 use "$work_data/add-wealth-distribution-metadata.dta", clear
 
-merge 1:1 iso sixlet using "`meta'", nogenerate update
+merge 1:1 iso sixlet using "`meta'", update nogen
 
 gduplicates tag iso sixlet, gen(duplicate)
 assert duplicate == 0

@@ -9,13 +9,6 @@ use "$work_data/distribute-national-income-output.dta", clear
 preserve
 	keep iso year widcode data_quality
 	duplicates drop
-// sorting out duplicates iso-year-widcode with different data quality
-	replace data_quality = 4 if iso=="FR" & inlist(widcode, "aptinc992i", "tptinc992i", "sptinc992i") & year >= 1980 & year <= 1987 
-	replace data_quality = 5 if iso=="FR" & inlist(widcode, "aptinc992i", "tptinc992i", "sptinc992i") & year >= 1988 & year <= 2014
-// prioritizing data quality sent by Europe coordinators
-	replace data_quality = 5 if iso=="FR" & inlist(widcode, "aptinc992j", "tptinc992j", "sptinc992j") & year >= 1980 & year <= 1987
-	
-	duplicates drop 
 	isid iso year widcode 
 	tempfile dataquality
 	save `dataquality'

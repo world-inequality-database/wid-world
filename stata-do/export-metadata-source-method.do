@@ -7,43 +7,63 @@
 // Latest modifications: A. Van Der Ree, 20 Nov 2025
 
 //--------------------- INDEX ------------------------------------------------//
-//       1. Load metadata: [	World-and-regional-aggregates-metadata.dta	]
-//       2. Add data quality, labels 
-//       	  2.1. Clean up data quality 
-//       	  2.2. Clean up data imputation 
-//       3. Add interpolation/extrapolation for Africa
+//       1. Construct country quality_score
+//       2. Load metadata
+//       3. Add data quality scores
+//				3.1 correct data imputation column
 //       4. Add population notes
 //       5. Add price notes 
 //       6. Add PPP notes 
-//       7. Add data quality index notes
-//       8. Clean up source & method
-//		 9. Add source for core country regions 
-//       10. Prepare for csv export
-//		 11. Correcting countries with historical Metadata
-//		 12. Save and export final metadata: [	metadata-final.dta ]
-
+//       7. Add transparency index notes
+//		 8. clean up country codes
+//       9. syntax checks 
+//		 10. Csv export
 //----------------------------------------------------------------------------//
 
 // =============================================================================
-// ------------------------- 1. Load metadata ----------------------------------
+// -------------------- 1. Construct country quality_score ---------------------
+// =============================================================================
+
+use "$work_data/calculate-gini-coef-output.dta", clear
+
+drop if p=="p0p100" | p=="pall" // until macro dq is complete
+keep if strpos(widcode, "ptinc") | strpos(widcode, "cainc") | strpos(widcode, "diinc") | strpos(widcode, "hweal") // these are the only distributions with complete dq for now
+
+gen sixlet = substr(widcode, 1, 6)
+keep iso year sixlet data_quality
+
+duplicates drop
+isid iso year sixlet
+bysort iso sixlet year: assert data_quality == data_quality[1]
+
+drop if year == $pastyear // latest year is almost always extrapolated so we drop it for quality score
+gen d = ($pastyear - 1) - year // distance "how many years back"
+
+// [USER PARAMETERS] established by Central Team based on I. Flores graphs (03.2026)
+local c 20 
+local k  5 
+gen w = 1/(1 + exp((d - `c')/`k')) // weight
+gen wquality = w * data_quality
+bysort iso sixlet: egen double sumw = total(w)
+bysort iso sixlet: egen double sumwquality = total(wquality)
+gen double quality_score = round(sumwquality / sumw, 0.1) // adapt rounding to preference
+
+bysort iso sixlet: assert quality_score == quality_score[1]
+keep iso sixlet quality_score
+duplicates drop
+isid iso sixlet
+
+tempfile data_quality_scores
+save `data_quality_scores'
+
+// =============================================================================
+// ------------------------- 2. Load metadata ----------------------------------
 // =============================================================================
 
 use "$work_data/World-and-regional-aggregates-metadata.dta", clear
 // use "$work_data/add-carbon-series-metadata.dta", clear
 
-/*temporary fix! 
-replace data_points = "" if iso=="KH" & strpos(sixlet, "ptinc")
-replace extrapolation = "[[1980, 1990], [1990, 1996], [1996, 2003], [2020, 2023]]" if iso=="CY" & strpos(sixlet, "cainc")
-replace extrapolation = "[[2020, 2023]]" if iso=="CZ" & strpos(sixlet, "cainc")
-replace extrapolation = "[[2020, 2022]]" if iso=="GR" & strpos(sixlet, "cainc")
-replace extrapolation = "[[1820, 2013], [2015, 2024]]" if iso == "AE" & strpos(sixlet, "ptinc")
-replace extrapolation = "[[1820, 1950], [2023, 2024]]" if iso == "CA" & strpos(sixlet, "ptinc")
-replace extrapolation = "[[1820, 1950], [2023, 2024]]" if iso == "AU" & strpos(sixlet, "ptinc")
-replace extrapolation = "[[1980, 2024]]" if iso == "ER" & strpos(sixlet, "ptinc")
-replace extrapolation = "[[1820, 2024]]" if inlist(iso, "MM", "SO") & strpos(sixlet, "ptinc")
-*/
-
-// Dropping widcodes that no longer exist 
+// Dropping macro widcodes that no longer exist 
 gen fivelet = substr(sixlet, 2, 5)
 local dropcodes ///
     coef_ ceufc ceuho ceunf ceunp cwfix fkdeb fkequ fkfix fkhou fkinc fkmik ///
@@ -58,25 +78,57 @@ foreach c of local dropcodes {
 }
 drop fivelet 
 
-drop if inlist(sixlet, "icpixx", "inyixx")
-duplicates drop iso sixlet, force
+drop if sixlet=="optinc"
 drop if iso == ""
+
+duplicates drop iso sixlet, force
+
 // drop if inlist(iso, "QD", "QD-MER")
 // replace data_points = "[1988, 1993, 1998, 2002, 2008, 2014]" if iso == "CI" & strpos(sixlet, "ptinc")
 // replace extrapolation = "[[1980, $year]]" if iso == "CI" & strpos(sixlet, "ptinc")
 // replace extrapolation = "" if extrapolation == "[[2019]]"
 
 // =============================================================================
-// ------------------------ 2. Add data quality, labels ------------------------
+// ---------------------------- 3. Add quality score ---------------------------
 // =============================================================================
 
-// Make sure data quality label applies to all variable type
-generate fivelet = substr(sixlet, 2, 5)
-foreach v of varlist data_quality data_imputation data_points extrapolation {
+// bring quality scores 
+merge 1:1 iso sixlet using `data_quality_scores', nogen 
+drop data_quality // this is the old variable that is now quality_score
+
+gen fivelet=substr(sixlet, 2,5)
+assert quality_score != . if inlist(fivelet, "ptinc", "cainc", "diinc", "hweal") & sixlet!="mhweal"
+
+// --------------------------------------
+// temporarily: round data quality, rename variable to old name, string variable
+rename quality_score data_quality
+replace data_quality = round(data_quality, 1)
+tostring data_quality, replace
+replace data_quality = "" if data_quality=="."
+// --------------------------------------
+
+// Make sure metadata applies to all variable types (a,t,s) within a fivelet
+foreach v of varlist data_imputation data_points extrapolation {
 	egen tmp = mode(`v'), by(iso fivelet)
 	replace `v' = tmp
 	drop tmp
 }
+
+// ======================== 3.1 Correct data imputation ========================
+
+*replace data_imputation = "region"    if inlist(data_quality, "0")      & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+*replace data_imputation = "survey"    if inlist(data_quality, "1", "2") & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+*replace data_imputation = "tax"       if inlist(data_quality, "3", "4") & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+*replace data_imputation = "full"      if inlist(data_quality, "5")      & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+*replace data_imputation = "rescaling" if method == "Fiscal income rescaled to match the macroeconomic aggregates."
+
+replace data_imputation = "imputation"    	if inlist(data_quality, "0", "1")      & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+replace data_imputation = "interpolation"   if inlist(data_quality, "2") 	   & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+replace data_imputation = "survey"       	if inlist(data_quality, "3") 	   & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+replace data_imputation = "tax and survey"  if inlist(data_quality, "4") 	   & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+replace data_imputation = "full"      		if inlist(data_quality, "5")        & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+
+replace data_imputation = "rescaling" 		if method == "Fiscal income rescaled to match the macroeconomic aggregates."
 
 // preserve
 // 	import delimited "$input_data_dir/data-quality/data-quality-updated.dta", clear delim(";") stringcols(_all)
@@ -91,13 +143,13 @@ foreach v of varlist data_quality data_imputation data_points extrapolation {
 // [NOTE:] 	New from Nov 2025, data quality file now includes all countries and
 //			more updated data quality values. 
 
-merge m:1 iso using "$input_data_dir/data-quality/data-quality-updated.dta", nogen update //noreplace
+*merge m:1 iso using "$input_data_dir/data-quality/data-quality-updated.dta", nogen update //noreplace
 
-// ======================== 2.1 Correct data quality ===========================
+// ======================== 2.2 Correct data quality ===========================
 
 // Countries with rescaled fiscal income
 *replace data_quality = "3" if method == "Fiscal income rescaled to match the macroeconomic aggregates."
-
+/*
 replace quality = "" if (strpos(sixlet, "ptinc") == 0) & (strpos(sixlet, "diinc") == 0) & (strpos(sixlet, "cainc") == 0)
 
 replace quality = "4" if inlist(iso, "QM-MER", "QM-PPP") & inlist(fivelet, "cainc", "diinc", "ptinc")
@@ -124,19 +176,7 @@ drop if mi(sixlet)
 
 // Set France to 5 because of the DINA data
 *replace data_quality = "5" if data_quality != "" & iso == "FR"
-
-// ======================== 2.2 Correct data imputation ========================
-
-replace data_imputation = "region"    if inlist(data_quality, "0")      & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
-replace data_imputation = "survey"    if inlist(data_quality, "1", "2") & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
-replace data_imputation = "tax"       if inlist(data_quality, "3", "4") & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
-replace data_imputation = "full"      if inlist(data_quality, "5")      & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
-replace data_imputation = "rescaling" if method == "Fiscal income rescaled to match the macroeconomic aggregates."
-
-// =================== 2.3 Correct extrapolation syntax ================
-						
-replace extrapolation = "[[1905, 1988], [2018, 2024]]" if iso == "RU"
-replace extrapolation = "[[1980, 2024]]" if iso == "ZZ"
+*/
 
 
 // [NOTE Nov 2025]: The following chunk is obsolete because now Africa's 
@@ -208,7 +248,7 @@ if (sixlet == "npopul") & inlist(iso, "RS", "KS", "ZZ", "TZ", "CY")
 // =============================================================================
 // ------------------ 5. Add price index notes ---------------------------------
 // =============================================================================
-
+drop if inlist(sixlet, "icpixx", "inyixx")
 append using "$work_data/price-index-metadata.dta"
 
 // =============================================================================
@@ -216,9 +256,12 @@ append using "$work_data/price-index-metadata.dta"
 // =============================================================================
 drop if inlist(sixlet, "xlceup", "xlcusp", "xlcyup")
 append using "$work_data/ppp-metadata.dta"
+// Correct China exchange rate source
+replace source = "" if (iso == "CN" & sixlet == "xlcusx" & source == "WID.world computations")
+qui count if (iso == "CN" & sixlet == "xlcusx")
 
 // =============================================================================
-// ------------------ 7. Add data quality index note ---------------------------
+// ------------------ 7. Add transparency index note ---------------------------
 // =============================================================================
 
 preserve
@@ -243,44 +286,34 @@ append using `temp'
 drop if sixlet == "iquali" & missing(source)
 
 // =============================================================================
-// ------------------ 8. Clean up source & method ------------------------------
+// -------------------- 8. Clean up country codes ------------------------------
 // =============================================================================
 // dropping regions that no longer exist
 drop if inlist(iso, "WF", "XI", "QM", "TK", "VA", "VI", "SH")
 drop if inlist(iso, "NU", "MP", "MF", "CK", "PM")
 drop if inlist(iso, "GU", "FK", "EH", "BL", "AS", "AN")
 
-// Split the six-letter code
-generate OneLet = substr(sixlet, 1, 1)
-generate TwoLet = substr(sixlet, 2, 2)
-generate ThreeLet = substr(sixlet, 4, 3)
-
-// Clean source & method
-replace method = strtrim(method)
-replace source = strtrim(source)
+replace iso= "KS" if iso=="KV"
 
 // Correct extrapolation, source & method for 40 additional countries
-replace extrapolation = "[[1980, 2024]]" if flag==1
+*replace extrapolation = "[[1980, 2024]]" if flag==1
 
-replace source = ///
+*replace source = ///
 `"Main Paper: "' + ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/countries-with-regional-income-imputations-on-wid-world-world-inequality-lab-technical-note-2021-15/"' + `"[/URL_LINK]"'  + ///
 `"[URL_TEXT]"' + `"Chancel and Piketty (2021), "Countries with Regional Income Imputations on WID.world""' + `"[/URL_TEXT][/URL]"' ///
 if flag == 1
 
-replace method = "For countries lacking available distributional income data, the series was imputed using regional averages. " ///
+*replace method = "For countries lacking available distributional income data, the series was imputed using regional averages. " ///
 	+ "See the main source for the methodology adopted for regional income imputations, " ///
 	+ "which is applicable to this country. " ///
 if flag==1
-drop flag
+*drop flag
 
-// Correct China exchange rate source
-replace source = "" if (iso == "CN" & sixlet == "xlcusx" & source == "WID.world computations")
-qui count if (iso == "CN" & sixlet == "xlcusx")
 // assert r(N)==1
 
 // Correct for Australia
-replace method = "Adults are individuals aged 15+. The series includes transfers. Averages exclude capital gains, shares include capital gains. " ///
+*replace method = "Adults are individuals aged 15+. The series includes transfers. Averages exclude capital gains, shares include capital gains. " ///
 	+ "Shares for years from 1912 to 1920 refer to Victoria. Figures for 1912 and 1913 are for calendar years. " ///
 	+ "Figures for years from 1914 onwards are for tax years (e.g. 1914 denotes the tax year 1 July 1914 to 30 June 1915)." ///
 	if iso == "AU" & fivelet == "fiinc"
@@ -294,27 +327,20 @@ replace method = "Adults are individuals aged 15+. The series includes transfers
 // replace data_points = "[2006, 2008, 2010, 2012, 2014, 2016]" if data_points == "[2006,2008,2010,2012,2014,2016]"
 // replace data_points = "" if data_points == "[1978-2015]"
 
-replace iso= "KS" if iso=="KV"
-
-// Check for duplicates
-duplicates tag iso OneLet TwoLet ThreeLet, generate(duplicate)
-assert duplicate == 0
-drop duplicate
-
 * sixlet=="aptinc" & strpos(data_points, "2023")
 
 //==============================================================================
 // ------------------- 9. Add source for core country regions ------------------
 //==============================================================================
 
- replace source = source + ///
+ *replace source = source + ///
 `"[URL][URL_LINK]https://wid.world/document/world-totals-in-wid-core-territories-core-countries-and-core-macro-and-distributional-variables-1820-2023-world-inequality-lab-technical-note-2024-02/[/URL_LINK][URL_TEXT] ; Moshrif, R., Nievas, G., Piketty, T., Sodano, A., Chancel, L., (2024), "World Totals in WID: Core Territories, Core Countries and Core Macro and Distributional Variables, 1820-2023"[/URL_TEXT][/URL]"' ///
 if strpos(iso, "-PPP") | strpos(iso, "-MER")
 *if (inlist(iso, "OA", "OB", "OC", "OD", "OE", "OI") | inlist(iso, "OJ", "QE", "QF", "QL", "QM", "QP") | inlist(iso, "WO", "XF", "XL", "XN", "XR", "XS"))
 
 
 //==============================================================================
-// ----------------------------- 10. Final checks ------------------------------
+// ----------------------------- 9. Syntax checks ----------------------------
 //==============================================================================
 
 * 1) data_points format checks
@@ -353,8 +379,21 @@ assert (strlen(extrapolation) - strlen(subinstr(extrapolation,"[","",.))) == ///
 save "$work_data/metadata-final.dta", replace
 
 // =============================================================================
-// ------------------ 10. Prepare for csv export -------------------------------
+// ----------------------------- 10. Csv export --------------------------------
 // =============================================================================
+
+replace method = strtrim(method)
+replace source = strtrim(source)
+
+// Split the six-letter code
+generate OneLet = substr(sixlet, 1, 1)
+generate TwoLet = substr(sixlet, 2, 2)
+generate ThreeLet = substr(sixlet, 4, 3)
+
+// Check for duplicates
+duplicates tag iso OneLet TwoLet ThreeLet, generate(duplicate)
+assert duplicate == 0
+drop duplicate
 
 sort iso sixlet
 drop sixlet
@@ -369,8 +408,8 @@ order Alpha2 TwoLet ThreeLet Method Source data_quality
 
 sort Alpha2 TwoLet ThreeLet
 
-capture mkdir "$output_dir/$time"
-capture mkdir "$output_dir/$time/metadata"
+*capture mkdir "$output_dir/$time"
+*capture mkdir "$output_dir/$time/metadata"
 
 *replace Alpha2="KV" if Alpha2=="KS"
 
@@ -380,6 +419,8 @@ drop if Alpha2 == ""
 rename *, lower
 keep alpha2 twolet threelet method source data_quality imputation extrapolation data_points
 order alpha2 twolet threelet method source data_quality imputation extrapolation data_points
+
+export delimited "$output_dir/$time/metadata/var-notes-$time.csv", replace delimiter(";") quote
 
 //==============================================================================
 // ---------------- 11. Correcting countries with historical Metadata ----------
@@ -463,8 +504,6 @@ drop if inlist(fivelet, "fdimp", "fdion", "fdiop", "fdior", "fdixn", "fkfiw", "n
 		inlist(fivelet,"scirx", "scrnx", "scrpx", "scrrx") 
 drop fivelet
 */
-
-export delimited "$output_dir/$time/metadata/var-notes-$time.csv", replace delimiter(";") quote
 
 
 

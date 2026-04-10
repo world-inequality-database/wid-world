@@ -64,6 +64,8 @@ save `hist'
 *use "$wid_dir/Country-Updates/Historical_series/2025_Oct/wealth-distributions-1820-2024-lcu-final.dta", clear
 use "$wid_dir/Country-Updates/Wealth/2026_March/wealth-distributions-corrected-graded-2024-lcu-complete.dta", clear
 bysort iso year: assert data_quality == data_quality[1] // assuring dataquality is constant at iso-year-widcode
+// for next wealth delivery, ask coordinators to scale averages to macro total ahweal 
+
 
 keep if year>=1980
 drop if substr(iso,1,1)=="O" & iso!="OM"
@@ -516,6 +518,12 @@ drop if value==. & p==""
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")
 assert data_quality !=. if strpos(widcode, "hweal") & year>= 1980 & p !="pall"  & p!="p0p100" 
+
+gen sixlet = substr(widcode, 1, 6)
+bysort iso year sixlet: egen dq_min = min(data_quality) if !inlist(p, "p0p100", "pall")
+bysort iso year sixlet: egen dq_max = max(data_quality) if !inlist(p, "p0p100", "pall")
+assert dq_min == dq_max if !missing(dq_min) | !missing(dq_max)
+drop dq_min dq_max sixlet
 
 // -----------------------------------------------------------------------------
 //	                  VI. Export

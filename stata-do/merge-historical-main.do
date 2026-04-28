@@ -66,7 +66,7 @@ merge m:1 iso year using "$wid_dir/Country-Updates/Historical_series/Add-data-qu
 
 // --------- 2. Calibrate monetary amounts using nninc 
 preserve
-	use "$work_data/clean-up-output.dta", clear
+	use "$work_data/clean-up-revised-output.dta", clear
 
 	keep if inlist(widcode, "anninc992i") // , "anninc999i")
 	keep iso year widcode value 
@@ -88,15 +88,15 @@ tempfile all
 save `all'
 
 // ------------ take data quality to apply to all tom/bottom p's after ---------
-preserve
-	keep iso year data_quality
-	duplicates drop 
-	tempfile dataquality
-	save `dataquality'
-restore 
+// preserve
+// 	keep iso year data_quality
+// 	duplicates drop 
+// 	tempfile dataquality
+// 	save `dataquality'
+// restore 
 
 // --------- 3. Format series
-keep year iso  p a s t 
+keep year iso  p a s t data_quality
 
 replace p = p/1000
 bys year iso  (p) : gen p2 = p[_n+1] 
@@ -108,7 +108,7 @@ ren perc p
 // top
 preserve
 	use `all', clear
-	keep year iso  p ts 
+	keep year iso  p ts data_quality
 	replace p = p/1000
 	gen perc = "p"+string(p)+"p100"
 	drop p
@@ -121,7 +121,7 @@ restore
 // bottom
 preserve
 	use `all', clear
-	keep year iso  p bs  
+	keep year iso  p bs data_quality 
 	replace p = p/1000
 	gen perc = "p0p"+string(p)
 	drop p 
@@ -137,7 +137,7 @@ append using `bottom'
 
 * Format
 renvars t-a, prefix(value)
-greshape long value, i(iso year p ) j(widcode) string   
+greshape long value, i(iso year p data_quality) j(widcode) string   
 
 drop if missing(value)
 replace widcode = widcode + "ptinc992j"
@@ -146,7 +146,7 @@ gduplicates drop
 
 duplicates drop iso year widcode p, force
 
-merge m:1 iso year using `dataquality', nogen
+*merge m:1 iso year using `dataquality', nogen
 
 
 tempfile completehistoricalpretax
@@ -160,7 +160,7 @@ save `completehistoricalpretax'
 
 ** Countries and Other regions distributions (we duplicate from per-adult to get per-capita) - 58 main territories and 8 or 9 other regions
 
-use "$wid_dir/Country-Updates/Historical_series/2025_Oct/wealth-distributions-1820-2024-lcu-final.dta", clear
+use "$wid_dir/Country-Updates/Wealth/2026_March/wealth-distributions-corrected-graded-2024-lcu-complete.dta", clear // location may change if coordinators send historical wealth series separately 
 
 // keeping only until 1980 for historical series 
 drop if year >= 1980 
@@ -173,7 +173,7 @@ drop if inlist(p,28999, 57999,  56999, 99929) // This are wrong percentiles gene
 replace bracket_average = bracket_average/average
 replace threshold = threshold/average 
 
-keep iso year p threshold top_share bottom_share bracket_share bracket_average
+keep iso year p threshold top_share bottom_share bracket_share bracket_average data_quality
 rename (threshold top_share bottom_share bracket_share bracket_average)( t ts bs s a)
 order iso year p t ts bs s a
 
@@ -201,9 +201,12 @@ append using "$wid_dir/Country-Updates/Historical_series/2025_Nov/output4_Hist_h
 // keeping only until 1980 for historical series 
 drop if year >= 1980 
 
+// adding data quality
+merge m:1 iso year using "$wid_dir/Country-Updates/Historical_series/Add-data-quality/Hist_hweal_quality.dta", update nogen
+
 // --------- 4. Calibrate monetary amounts using nninc 
 preserve
-	use "$work_data/clean-up-output.dta", clear
+	use "$work_data/clean-up-revised-output.dta", clear
 
 	keep if inlist(widcode, "ahweal992i") & p=="p0p100" // , "anninc999i")
 	keep iso year widcode value 
@@ -227,7 +230,7 @@ save `all'
 
 
 // --------- 3. Format series
-keep year iso  p a s t 
+keep year iso  p a s t data_quality 
 
 replace p = p/1000
 bys year iso  (p) : gen p2 = p[_n+1] 
@@ -239,7 +242,7 @@ ren perc p
 // top
 preserve
 	use `all', clear
-	keep year iso  p ts 
+	keep year iso  p ts data_quality
 	replace p = p/1000
 	gen perc = "p"+string(p)+"p100"
 	drop p
@@ -252,7 +255,7 @@ restore
 // bottom
 preserve
 	use `all', clear
-	keep year iso  p bs  
+	keep year iso  p bs data_quality
 	replace p = p/1000
 	gen perc = "p0p"+string(p)
 	drop p 
@@ -269,7 +272,7 @@ append using `bottom'
 
 * Format
 renvars t-a, prefix(value)
-greshape long value, i(iso year p ) j(widcode) string   
+greshape long value, i(iso year p data_quality) j(widcode) string   
 
 drop if missing(value)
 replace widcode = widcode + "hweal992j"
@@ -278,6 +281,8 @@ replace widcode = widcode + "hweal992j"
 gduplicates drop 
 
 duplicates drop iso year widcode p, force
+
+assert data_quality !=.
 
 tempfile completehistoricalwealth
 save `completehistoricalwealth'
@@ -288,25 +293,26 @@ save `completehistoricalwealth'
 // -----------------------------------------------------------------------------
 
 // --------- 1.  Call the current WID data
-use  "$work_data/clean-up-output.dta", clear
-
-// --------- 2.  Merge Pretax Data
-rename value value_base
-rename data_quality data_quality2
-
-merge 1:1 iso year widcode p using "`completehistoricalpretax'", nogen 
+use  "$work_data/clean-up-revised-output.dta", clear
 
 // temporary fix because in clean-up.do we generate deciles and groups but not
 // in this file, so need to fill data quality for those percentiles
 preserve
-	keep iso year data_quality
+	keep iso year widcode data_quality
 	drop if data_quality ==.
 	duplicates drop 
 	tempfile dataquality
 	save `dataquality'
 restore 
 
-merge m:1 iso year using `dataquality', update nogen
+merge m:1 iso year widcode using `dataquality', update nogen
+rename data_quality data_quality2
+
+
+// --------- 2.  Merge Pretax Data
+rename value value_base
+merge 1:1 iso year widcode p using "`completehistoricalpretax'", nogen 
+
 
 rename value value_comp
 *merge 1:1 iso year widcode p using "$wid_dir/Country-Updates/Historical_series/2023_December/0H_OD_CL_ptinc_post1980.dta", nogen // This dataset contains data for OH and OD, calculated in aggregate-distribtion-regions.do except for the bottom percentiles p0pXX in averages and shares , top percentiles pXXp100 in thresholds .
@@ -333,7 +339,7 @@ replace value_base = value_comp if !mi(value_comp) & year <  1979 & iso== "RU" /
 *replace value_base = value_oocp if !mi(value_oocp) & year == 1970 & iso== "CL"
 
 // Repeat Matching the historical series for core-countries for DATA QUALITY
-// yearly data quality was added in Historical_series/add-data-quality
+// yearly data quality was added in Country_Updates/Historical_series/add-data-quality
 replace data_quality2 = data_quality if  mi(data_quality2) & year < 1980  & !inlist(iso,"AU","FR","IN","NZ","US","SG")
 replace data_quality2 = data_quality if !mi(data_quality) & year < 1910  & iso== "AU"
 replace data_quality2 = data_quality if !mi(data_quality) & year<= 1910  & iso== "FR"
@@ -349,8 +355,7 @@ drop  value_comp // value_oocp // dup corrected
 drop if missing(value)
 
 assert data_quality2 !=. if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") 
-drop data_quality
-rename data_quality2 data_quality
+rename data_quality data_quality_histpt
 
 * Keep only one observation per iso-year-widcode-p
 duplicates tag iso year p widcode, gen (dup)
@@ -361,12 +366,26 @@ drop dup
 rename value value_base
 merge 1:1 iso year widcode p using "`completehistoricalwealth'", nogen 
 rename value value_comp
-replace value_base= value_comp if year<1995 & !missing(value_comp)
-
+replace value_base= value_comp if year<1980 & !missing(value_comp) // before was 1995
 rename value_base value
 drop value_comp
 
-* Keep only one observation per iso-year-widcode-p
+replace data_quality2 = data_quality if year<1980 & strpos(widcode, "hweal") & !missing(data_quality)
+drop data_quality data_quality_histpt
+rename data_quality2 data_quality
+
+// there are some top/bottom percentiles that dont have data quality filled for IN hweal
+preserve
+	keep if iso=="IN"
+	keep if p=="p0p1" // keeping an aribtrary g-perc to ensure we grab the right dq 
+	keep iso year widcode data_quality
+	duplicates drop
+	isid iso year widcode 
+	tempfile dqindiawealth
+	save `dqindiawealth'
+restore
+merge m:1 iso year widcode using `dqindiawealth', update nogen 
+	
 duplicates tag iso year p widcode, gen (dup)
 assert dup==0
 drop dup
@@ -374,6 +393,18 @@ drop dup
 // -------- Check complete data quality
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")
+assert data_quality!=. if strpos(widcode, "hweal") & p !="pall"  & p!="p0p100"
+bysort iso year widcode: assert data_quality == data_quality[1] // assuring dataquality is constant at iso-year-widcode
+
+// identify countries with historical wealth series for metadata later
+preserve
+	keep if inlist(widcode, "shweal992j", "ahweal992j", "thweal992j") & year==1820 // keep on historical wealth distributions
+	gen sixlet = substr(widcode, 1, 6)
+	keep iso sixlet
+	duplicates drop
+	tempfile historicalwealthcountry
+	save `historicalwealthcountry'
+restore 
 
 // --------- 4.  Save
 compress
@@ -418,41 +449,90 @@ keep if is_long_run
 drop is_long_run
 drop if source =="long-run"
 collapse (firstnm) year, by(iso)
-generate method1 = "Before " + string(year) + ", pretax income shares estimated based on methodology in long-run paper: see source."
+generate method1 = " Before " + string(year) + ", pretax income shares estimated based on methodology in long-run paper (see sources)."
 *gen source1 = "[URL][URL_LINK]https://wid.world/document/longrunpaper/[/URL_LINK][URL_TEXT]Chancel, L., Piketty, T. (2021). Global Income Inequality, 1820-2020: The Persistence and Mutation of Extreme Inequality[/URL_TEXT][/URL]"
-keep iso method1 //source1
+keep iso method1 //source
 
 tempfile longrun
 save "`longrun'" 
 
 *Imputed metadata
-use "$wid_dir/Country-Updates/Historical_series/2022_December/merge-longrun-all-output.dta", clear
-collapse (min) year, by(iso source)
-keep if source == "historical inequality technical note"
-generate method2 = string(year) + " based on methodology described in source"
+*use "$wid_dir/Country-Updates/Historical_series/2022_December/merge-longrun-all-output.dta", clear
+*collapse (min) year, by(iso source)
+*keep if source == "historical inequality technical note"
+*generate method2 = string(year) + " based on methodology described in source"
 *gen source2 = "[URL][URL_LINK]https://wid.world/document/historical-inequality-series-on-wid-world-updates-world-inequality-lab-technical-note-2023-01/[/URL_LINK][URL_TEXT]Chancel, L., Moshrif, R., Piketty, T., Xuereb, S. (2021). Historical Inequality Series in WID.world: 2022 updates[/URL_TEXT][/URL]" //NEED TO ADD LINK TO TECH NOTE WHEN IT IS ONLINE
-keep iso method2 //source2
+*keep iso method2 //source2
 
-tempfile technote
-save "`technote'"
+*tempfile technote
+*save "`technote'"
+
 
 *Add new metadata to old metadata
 use "$work_data/distribute-national-income-metadata.dta", clear
 
 merge n:1 iso using "`longrun'", gen(m1)
-merge n:1 iso using "`technote'", gen(m2)
+*merge n:1 iso using "`technote'", gen(m2)
 
 replace method = rtrim(method)
+
+// adding comment in method for fiinc based countries
+replace method = method + " Before 1980, series is constructed based on the trend observed in the fiscal income data available (see sources)." if strpos(sixlet, "ptinc") & ///
+inlist(iso, "AR", "BG", "CH", "CL", "CM", "DE", "DK", "DZ") | ///
+inlist(iso, "ES", "FI", "FR", "GB", "GH", "GR", "HR", "HU") ///
+| inlist(iso, "ID", "IE", "IN", "IT", "JP", "KE", "KR", "MU", "MW") ///
+| inlist(iso, "MY", "NG", "NL", "NO", "PL", "PT", "SC", "SE","SG") ///
+| inlist(iso, "TN", "TW", "TZ", "UG", "US", "VN", "ZA", "ZM", "ZW") ///
+
+
 generate newmethod = method1 if m1==3 & strpos(sixlet, "ptinc") 
-replace newmethod = method2 if m2==3 & strpos(sixlet, "ptinc") 
-replace method = method + ". " + newmethod if !missing(newmethod) & strpos(sixlet, "ptinc")
+*replace newmethod = method2 if m2==3 & strpos(sixlet, "ptinc") 
+replace method = method + newmethod if !missing(newmethod) & strpos(sixlet, "ptinc")
+
+// add Arias et al techote to main countries ptinc series 
+preserve 
+	use "$work_data/import-country-codes-output.dta", clear
+	keep if region2=="" & corecountry==1
+	keep iso
+	gen fivelet = "ptinc"
+	tempfile maincountry
+	save `maincountry'
+restore
+gen fivelet = substr(sixlet, 2,5)
+merge m:1 iso fivelet using `maincountry', gen(maincountry)
+drop fivelet 
+replace source = source + ///
+`"; "' + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/wid-income-and-wealth-distributional-series-updated-and-extended-coverage-1800-2024-world-inequality-lab-technical-note-2025-10/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Arias-Osorio, M., Baulus, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Moshrif, R., Piketty, T. (2026) "WID Income and Wealth Distributional Series Updated and Extended Coverage, 1800-2024" "' + `"[/URL_TEXT][/URL]"' ///
+if maincountry == 3
+
+
+// add Arias et al techote to non-main countries ptinc series that were involved (see list in Annex 3)
+replace source = source + ///
+`"; For the series before 1980: "' + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/wid-income-and-wealth-distributional-series-updated-and-extended-coverage-1800-2024-world-inequality-lab-technical-note-2025-10/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Arias-Osorio, M., Baulus, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Moshrif, R., Piketty, T. (2026) "WID Income and Wealth Distributional Series Updated and Extended Coverage, 1800-2024" "' + `"[/URL_TEXT][/URL]"' ///
+if inlist(iso, "BG", "CH", "CM", "FI", "GH", "GR", "HR", "HU") ///
+| inlist(iso, "IE", "MU", "SC", "MW", "TZ", "UG", "ZM") ///
+| inlist(iso, "MY", "SG", "PL", "PT", "TN", "ZW") 
+
+
+// add Arias et al techote to counrties with longrun/historical wealth series (1820+)
+merge m:1 iso sixlet using `historicalwealthcountry', gen(historicalwealth)
+replace source = source + ///
+`"; For long run series, "' + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/wid-income-and-wealth-distributional-series-updated-and-extended-coverage-1800-2024-world-inequality-lab-technical-note-2025-10/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Arias-Osorio, M., Baulus, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Moshrif, R., Piketty, T. (2026) "WID Income and Wealth Distributional Series Updated and Extended Coverage, 1800-2024" "' + `"[/URL_TEXT][/URL]"' ///
+if historicalwealth == 3
+
 
 *replace source = rtrim(source)
 *generate newsource = source1 if m1==3 & strpos(sixlet, "ptinc") 
 *replace newsource = source2 if m2==3 & strpos(sixlet, "ptinc")
 *replace source = source + " " + newsource if !missing(newsource) & strpos(sixlet, "ptinc")
 
-drop m1 m2 newmethod method1 method2 // newsource source1 source2
+drop m1 newmethod method1 // m2 method2 newsource source1 source2
 
 gduplicates tag iso sixlet, gen(duplicate)
 assert duplicate == 0

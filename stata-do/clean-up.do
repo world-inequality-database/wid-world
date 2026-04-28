@@ -47,8 +47,8 @@ use "$work_data/extrapolate-wid-forward-output.dta", clear
 
 // Generate average fiscal incomes based on total income controls
 keep if inlist(substr(widcode, 1, 3), "afi", "mfi", "nta") & p == "pall"
-keep iso year widcode p value
-greshape wide value, i(iso year p) j(widcode) string
+keep iso year widcode p value data_quality
+greshape wide value, i(iso year p data_quality) j(widcode) string
 renpfix value
 replace mfiinc999i = mfiinc999i if mi(mfiinc999i)
 replace mfiinc999i = mfiinc992t if mi(mfiinc999i)
@@ -56,9 +56,9 @@ replace ntaxma992t = ntaxma999i if mi(ntaxma992t)
 replace ntaxad992t = ntaxad999i if mi(ntaxad992t)
 replace afiinc992t = mfiinc999i / ntaxma992t if mi(afiinc992t)
 replace afiinc992i = mfiinc999i / ntaxad992t if mi(afiinc992i)
-keep iso year p afiinc*
+keep iso year p data_quality afiinc*
 renvars afiinc*, pref(value)
-greshape long value, i(iso year p) j(widcode) string
+greshape long value, i(iso year p data_quality) j(widcode) string
 drop if mi(value)
 
 tempfile fisc_avg
@@ -104,7 +104,8 @@ gduplicates drop iso year widcode p, force
 
 tempfile data
 save "`data'"
-
+save "$work_data/data_first_cleanup_temp.dta", replace // temporary, remove before save 
+ 
 //------------------------------------------------------------------------------
 //------------------------- 3. Generating the fiinc data -----------------------
 //------------------------------------------------------------------------------
@@ -112,7 +113,18 @@ save "`data'"
 //-------- 3.1. Retain fiscal data   -------------------------------------------
 // Compute average fiscal percentile incomes
 keep if strpos(widcode,"fiinc")>0
-drop data_quality 
+
+preserve
+	keep iso year widcode data_quality
+	duplicates drop
+	duplicates tag iso year widcode, gen(dup)
+	drop if dup==1 & data_quality==.
+	drop dup
+	isid iso year widcode
+	tempfile dataquality
+	save `dataquality'
+restore
+drop data_quality
 
 tempfile fiscal
 save "`fiscal'"
@@ -155,6 +167,8 @@ drop if mi(value)
 sort iso year widcode p value
 replace widcode = "a" + widcode
 
+merge m:1 iso year widcode using `dataquality', nogen
+
 tempfile fiscal_averages
 save "`fiscal_averages'"
 
@@ -193,7 +207,7 @@ preserve
 	replace p_max = p_min + 1    if new & inrange(p_min, 99990, 99999)
 	replace p = "p" + string(round(p_min/1e3, 0.001)) + "p" + string(round(p_max/1e3, 0.001)) if new
 	drop value2 new
-	keep iso year p widcode value
+	keep iso year p widcode value data_quality
 	gduplicates drop iso year widcode p, force
 	
 	tempfile gperc_shares
@@ -213,11 +227,13 @@ egen group_perc5 = cut(p_min), at(0 99e3 100e3)
 egen group_perc6 = cut(p_min), at(99.9e3 100e3)
 egen group_perc7 = cut(p_min), at(99.99e3 100e3)
 
+bysort iso year widcode: assert data_quality == data_quality[1]
+
 tempfile groups
 forvalues i = 1/7 {
 	preserve
 	drop if missing(group_perc`i')
-	gcollapse (sum) value, by(iso year widcode group_perc`i')
+	gcollapse (sum) value, by(iso year widcode data_quality group_perc`i')
 	generate p_min = group_perc`i'
 	bysort iso year widcode (p_min): generate p_max = cond(missing(p_min[_n + 1]), 1e5, p_min[_n + 1])
 	drop group_perc`i'
@@ -229,7 +245,7 @@ forvalues i = 1/7 {
 	restore
 }
 use "`groups'", clear
-keep iso year p widcode value
+keep iso year p widcode value data_quality
 gduplicates drop iso year widcode p, force
 save "`groups'", replace
 
@@ -257,13 +273,13 @@ merge 1:n iso year widcode using "`average_shares'", nogenerate keep(match)
 replace widcode = "a" + widcode
 replace value = value*average/((p_max - p_min)/1e5)
 replace p = "p" + string(round(p_min/1e3, 0.001)) + "p" + string(round(p_max/1e3, 0.001))
-keep iso year widcode p value
+keep iso year widcode p value data_quality
 gduplicates drop iso year widcode p, force
 save "`average_shares'", replace
 
 //-------- 4.5. Calculate thresholds based on the shares   ---------------------
 use "`data'", clear
-keep iso year p widcode value
+keep iso year p widcode value data_quality
 merge 1:1 iso year widcode p using "`gperc_shares'", nogenerate update replace
 merge 1:1 iso year widcode p using "`groups'", nogenerate update replace
 merge 1:1 iso year widcode p using "`average_shares'", nogenerate update replace
@@ -272,7 +288,7 @@ merge 1:1 iso year widcode p using "`average_shares'", nogenerate update replace
 preserve
 	use "$work_data/extrapolate-wid-forward-output.dta", clear
 	keep if widcode == "anninc992i"
-	keep iso year value
+	keep iso year value 
 	rename value anninc
 	*replace iso = "KV" if iso == "KS"
 	tempfile anninc
@@ -365,7 +381,7 @@ save "`data'", replace
 
 // Re-calculate Tobin's Q
 keep if inlist(widcode, "mcwdeq999i", "mcwboo999i")
-greshape wide value, i(iso year) j(widcode) string
+greshape wide value, i(iso year data_quality) j(widcode) string
 generate value = valuemcwdeq999i/valuemcwboo999i
 drop valuemcwdeq999i valuemcwboo999i
 generate widcode = "icwtoq999i"
@@ -417,26 +433,10 @@ save `quality'
 use `data', clear
 append using `quality'
 
-// --------------------- Add yearly data quality -------------------------------
-// as long as we only have yearly data_quality for pre-tax distributions 
-// (and a few other exceptions) then we can add yearly data_quality here. 
-// Once we expand data_quality to yearly fiinc observations, need to rethink and
-// retain data_quality throughout this do-file: 
-
-// need to apply data quality to new generated top and bottom shares 
-drop data_quality
-preserve
-	use "$work_data/extrapolate-wid-forward-output.dta", clear
-	keep iso year widcode data_quality
-	duplicates drop 
-	tempfile dataquality
-	save `dataquality'
-restore 
-merge m:1 iso year widcode using `dataquality', keepusing(data_quality)
-drop _merge
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")
-// -----------------------------------------------------------------------------
+assert data_quality !=. if strpos(widcode, "hweal") & year>= 1980 & p !="pall"  & p!="p0p100"
+bysort iso year widcode: assert data_quality == data_quality[1] // assuring dataquality is constant at iso-year-widcode
 
 // Save
 sort iso year p widcode

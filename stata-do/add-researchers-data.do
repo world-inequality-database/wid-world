@@ -109,6 +109,7 @@ append using "$wid_dir/Country-Updates/France/2018/January/france-goupille2018-g
 
 // India 2018 (Bharti2018) -  distributional series (ahweal, bhweal, shweal, thweal)
 append using "$wid_dir/Country-Updates/India/2018/November/india-bharti2018.dta"
+drop if widcode=="bhweal992j" & iso=="IN" // reconstructed in calc-pareto-ceof
 
 assert !missing(iso, year, widcode)
 isid iso year p widcode, missok 
@@ -130,6 +131,7 @@ append using "$wid_dir/Country-Updates/Wealth/2021_July/macro-wealth-Jul2021.dta
 
 // Russia 2017 (NPZ2017) - macro series +  distributional series 
 append using "$wid_dir/Country-Updates/Russia/2017/August/russia-npz2017.dta"
+drop if iso=="RU" & substr(widcode, 1,1)=="b" // b variables are generated at the end of main.do
 
 // Australia, New Zealand, Canada - macro series +  distributional series 
 append using "$wid_dir/Country-Updates/North_America/2025_10/aucanz-other-macro-dist-2025.dta"
@@ -226,6 +228,7 @@ drop if iso == "IN" & author == "kumar2019"   & inlist(widcode, "npopul999i") & 
 *      combinations. As so, this file is no longer necessary.
 */
 
+drop if substr(widcode, 1,1)=="b" // b variables are re-generated at the end of main.do
 assert data_quality!=. if strpos(widcode, "ptinc") 
 
 compress, nocoalesce 
@@ -275,8 +278,21 @@ gen is_wealth_agg = regexm(lower(sixlet), "^(m[cghinp]w[a-z]{3})$") ///
 drop if is_wealth_agg
 drop is_wealth_agg    
 
-gduplicates drop iso sixlet, force
+//=========== 3.3. Cleaning metadata for files we don't update ============
 
+replace extrapolation = "[[1905, 1988], [2018, $pastyear]]" if iso == "RU" & sixlet=="sptinc"
+
+// Add sources for US scainc series only 
+replace source = ///
+`"Main Papers: "' + ///
+ `"[URL][URL_LINK]"' + `"https://wid.world/document/t-piketty-e-saez-g-zucman-distributional-national-accounts-methods-and-estimates-for-the-united-states-2016/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Piketty, Thomas; Saez, Emmanuel and Zucman, Gabriel (2016). Distributional National Accounts: Methods and Estimates for the United States; "' + `"[/URL_TEXT][/URL]"' + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/us-distributional-national-accounts-updates-world-inequality-lab-technical-note-2020-07/"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Zucman, Gabriel (2020). Technical Note "US Distributional National Accounts: Updates" "' + `"[/URL_TEXT][/URL]"' ///
+if sixlet=="scainc" & inlist(iso, "US")
+
+
+gduplicates drop iso sixlet, force
 tempfile meta
 save "`meta'"
 
@@ -305,7 +321,8 @@ replace currency = "EUR" if iso == "NL" & inlist(widcode, "inyixx999i", "mnninc9
 
 // Correcting data quality from old database 
 replace data_quality = 3 if iso=="ZZ" & strpos(widcode, "fiinc") // later this series gets converted to ptinc. Data comes from tax tabulations Atkinson 2015
-replace data_quality = 3 if iso=="GB" & strpos(widcode, "diinc") & data_quality ==. 
+replace data_quality = 3 if iso=="GB" & strpos(widcode, "diinc") & data_quality ==. & year< 1980 // old data from tax tabulations
+replace data_quality = 4 if iso=="GB" & strpos(widcode, "diinc") & data_quality ==. & inrange(year, 1981, 2014) // following regional coordinator values 
 
 replace p = "pall" if p == "p0p100"
 replace oldobs = 0 if missing(oldobs)
@@ -374,8 +391,7 @@ assert data_quality !=. if strpos(widcode, "ptinc")
 // ----- TEMPORARY FIX TO BE REMOVED AFTER DATA QUALITY PROJECT IS COMPLETE!!! ---
 
 preserve
-	*gen sixlet = substr(widcode, 1, 6)
-	keep iso year widcode data_quality // change to widcode not sixlet 
+	keep iso year widcode data_quality
 	duplicates drop
 	duplicates tag iso year widcode, gen(dup)
 	drop if data_quality ==. & iso=="DE" & strpos(widcode, "fiinc992t") & dup==1

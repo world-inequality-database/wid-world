@@ -267,7 +267,7 @@ save "`tree'", replace
 // Other macro variables
 // -------------------------------------------------------------------------- //
 
-import excel using "$codes_dictionary", sheet("Other_Macro_Variables") cellrange(A4:AA17) clear allstring
+import excel using "$codes_dictionary", sheet("Other_Macro_Variables") cellrange(A4) clear allstring
 
 gen path=D
 gen name=J
@@ -418,6 +418,7 @@ append using "`tree'"
 save "`tree'", replace
 
 drop if path == "|"
+drop if path == ".lpfcar"
 duplicates drop path comp level category name, force
 
 order path comp level category name orphan rank

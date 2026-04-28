@@ -22,6 +22,10 @@ rename iso Alpha2
 rename p   perc
 order Alpha2 year perc widcode
 
+// Create a folder for the timestamp
+capture mkdir "$output_dir/$time"
+capture mkdir "$output_dir/$time/metadata"
+
 
 //------------- 7.1 Generating pretax income data .csv
 // NOTE: if updating pretax, please update fainc, cainc and fiinc as well!!
@@ -31,13 +35,13 @@ preserve
 	keep if strpos(widcode,"ptinc")
 	keep if inlist(substr(widcode, 1, 1), "a", "t", "s")
 	keep if strpos(widcode,"999j") 
-	export delim "$output_dir/$time/wid-data-$time-ptinc2025Update-999.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-ptinc2025Update-999.csv", delimiter(";") replace
 restore
 preserve
 	keep if strpos(widcode,"ptinc")
 	keep if inlist(substr(widcode, 1, 1), "a", "t", "s")
 	keep if strpos(widcode,"992j") 
-	export delim "$output_dir/$time/wid-data-$time-ptinc2025Update-992.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-ptinc2025Update-992.csv", delimiter(";") replace
 restore
 
 //------------- 7.2 Generating posttax income data .csv
@@ -45,13 +49,13 @@ preserve
 	keep if strpos(widcode,"diinc")
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
 	keep if strpos(widcode,"999j") 
-	export delim "$output_dir/$time/wid-data-$time-diinc2025Update-999.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-diinc2025Update-999.csv", delimiter(";") replace
 restore
 preserve
 	keep if strpos(widcode,"diinc")
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
 	keep if strpos(widcode,"992j") 
-	export delim "$output_dir/$time/wid-data-$time-diinc2025Update-992.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-diinc2025Update-992.csv", delimiter(";") replace
 restore
 
 //------------- 7.3 Generating wealth distribution data .csv
@@ -59,13 +63,13 @@ preserve
 	keep if strpos(widcode,"hweal")
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
 	keep if strpos(widcode,"999j") 
-	export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-999.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-999.csv", delimiter(";") replace
 restore
 preserve
 	keep if strpos(widcode,"hweal")
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
 	keep if strpos(widcode,"992j") 
-	export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-992.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-hweal2025_Update-992.csv", delimiter(";") replace
 restore
 
 //------------- 7.4 Generating factor income data .csv
@@ -73,7 +77,7 @@ preserve
 	keep if strpos(widcode,"fainc")
 	keep if strpos(widcode,"999j") | strpos(widcode,"992j") 
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
-	export delim "$output_dir/$time/wid-data-$time-fainc2025_Update.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-fainc2025_Update.csv", delimiter(";") replace
 restore
 
 //------------- 7.5 Generating fiscal income data .csv
@@ -81,7 +85,7 @@ preserve
 	keep if strpos(widcode,"fiinc")
 	keep if strpos(widcode,"992i") 
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
-	export delim "$output_dir/$time/wid-data-$time-fiinc2025_Update.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-fiinc2025_Update.csv", delimiter(";") replace
 restore
 
 //------------- 7.6 Generating cash inflows data .csv
@@ -89,7 +93,15 @@ preserve
 	keep if strpos(widcode,"cainc")
 	keep if strpos(widcode,"992j") 
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
-	export delim "$output_dir/$time/wid-data-$time-cainc2025_Update.csv", delimiter(";") replace
+	*export delim "$output_dir/$time/wid-data-$time-cainc2025_Update.csv", delimiter(";") replace
+restore
+
+//------------- 7.7 Generating all distributions data .csv
+preserve
+	keep if strpos(widcode,"ptinc") | strpos(widcode,"diinc") | strpos(widcode,"hweal") ///
+			| strpos(widcode,"fainc") |strpos(widcode,"fiinc") | strpos(widcode,"cainc")
+	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
+	export delim "$output_dir/$time/wid-data-$time-all_distributions2025_Update.csv", delimiter(";") replace
 restore
 
 
@@ -139,12 +151,12 @@ preserve
 
 	keep if inlist(substr(widcode, 1, 1), "r", "b", "g")
 	keep if strpos(widcode,"992j")  |  strpos(widcode,"999j") 
-	keep if strpos(widcode,"diinc") | strpos(widcode,"ptinc") | strpos(widcode,"hweal") | strpos(widcode,"fainc")
-	keep if strpos(widcode,"ptinc") | strpos(widcode,"fainc") | strpos(widcode,"cainc") | strpos(widcode,"fiinc")
+	keep if strpos(widcode,"diinc") | strpos(widcode,"ptinc") | strpos(widcode,"hweal") | strpos(widcode,"fainc") | ///
+	strpos(widcode,"fiinc") | strpos(widcode,"cainc")
 	replace value = round(value, 0.0001)
 
 	// Export
-	export delim "$output_dir/$time/wid-data-$time-RGB_ptinc_fainc_cainc_fiinc_2025Update.csv", delimiter(";") replace
+	export delim "$output_dir/$time/wid-data-$time-RGB_ptinc_fainc_cainc_fiinc_hweal_diinc_2025Update.csv", delimiter(";") replace
 restore
 
 //-------- 8.4  Generating the Gini data CSV for ptinc and diinc

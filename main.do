@@ -361,7 +361,8 @@ do "$do_dir/extrapolate-wid-1980.do"
 do "$do_dir/extrapolate-wid-forward.do"
 
 // Clean up percentiles, etc.
-do "$do_dir/clean-up.do"
+//do "$do_dir/clean-up.do"
+do "$do_dir/clean-up-revised.do"
 
 // Merge longrun series with main data, update metadata
 do "$do_dir/merge-historical-main.do"
@@ -409,7 +410,7 @@ do "$do_dir/export-distributions.do"
 // Export the metadata
 do "$do_dir/export-metadata-source-method.do"
 
-// do "$do_dir/export-metadata-other.do"
+do "$do_dir/export-metadata-other.do"
 
 // Create flag variables to indicate extrapolation/interpolations
 *do "$do_dir/create-flag-variables.do"
@@ -427,7 +428,7 @@ do "$do_dir/export-metadata-source-method.do"
 // do "$do_dir/export-countries.do"
 //
 // // Make the variable tree
-// do "$do_dir/make-variable-tree.do"
+do "$do_dir/make-variable-tree.do"
 
 // -------------------------------------------------------------------------- //
 // Report updated and deleted data
@@ -455,7 +456,7 @@ do "$do_dir/export-metadata-source-method.do"
 
 *do "$do_dir/update-check.do"
 
-
+do "$do_dir/sanity-checks.do"
 
 // -------------------------------------------------------------------------- //
 // Summary table

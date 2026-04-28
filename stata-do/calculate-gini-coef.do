@@ -1,6 +1,7 @@
 // Import data
 use "$work_data/calculate-pareto-coef-output.dta", clear
 
+
 // Keep data for which we can calculate Ginis
 keep if regexm(p, "^p(.*)p100$")
 keep if substr(widcode, 1, 1) == "s"
@@ -16,8 +17,18 @@ generate pnum = round(1000*real(regexs(1))) if regexm(p, "^p(.*)p100$")
 drop p
 rename pnum p
 
+//------ Transformation 1 -----------
+replace value= value*1000 if substr(widcode,1,1)=="s"
+//-----------------------------------
+
 // Calulate the Gini
-generate bottom_share = 1 - value
+generate bottom_share = 1000 - value
+
+//------ Transformation 1 -----------
+replace value= value/1000 if substr(widcode,1,1)=="s"
+replace bottom_share= bottom_share/1000
+//-----------------------------------
+
 generate equality_line = p/1e5
 sort iso widcode year p
 by iso widcode year: generate bracket_size = cond(_n == _N, 1 - p/1e5, (p[_n + 1] - p)/1e5)
@@ -40,6 +51,13 @@ use "$work_data/calculate-pareto-coef-output.dta", clear
 drop if substr(widcode, 1, 1) == "g"
 
 append using "`gini'"
+
+// Final checks for data quality
+assert data_quality!=. if strpos(widcode, "ptinc") 
+assert data_quality!=. if strpos(widcode, "cainc")
+assert data_quality!=. if strpos(widcode, "diinc")
+assert data_quality!=. if strpos(widcode, "hweal") & p!="p0p100" & p!="pall"
+bysort iso year widcode: assert data_quality == data_quality[1]
 
 compress
 save "$work_data/calculate-gini-coef-output.dta", replace

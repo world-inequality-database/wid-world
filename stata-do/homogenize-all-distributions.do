@@ -140,8 +140,8 @@ tab widcode // wealth & post tax are not fully complete is not complete
 rename (valueahweal992i valueanninc992i valueahweal999i valueanninc999i) (ahweal992i anninc992i ahweal999i anninc999i) 
 
 //------- Checkpoint ---------------//
-save "$work_data/auxh1.dta", replace
-u "$work_data/auxh1.dta", clear
+*save "$work_data/auxh1.dta", replace
+*u "$work_data/auxh1.dta", clear
 //----------------------------------//
 
 *---------* 2.3 Filling Missing Values & Producing Top and Bottom Groups *---------*  
@@ -178,8 +178,8 @@ by iso year widcode: replace t = (a[_n - 1] + a)/2 if missing(t)
 by iso year widcode: replace t = min(0, 2*a)       if missing(t) & p == 0 
 
 //-----------Checkpoint---------------//
-save "$work_data/auxh2.dta", replace
-u "$work_data/auxh2.dta", clear
+*save "$work_data/auxh2.dta", replace
+*u "$work_data/auxh2.dta", clear
 //----------------------------------//
 
 gsort iso year widcode -p
@@ -441,12 +441,12 @@ generate a  = s * anninc992i / 0.1 if inlist(widcode, "ptinc992j") & !missing(an
 replace  a  = s * anninc992i / 0.1 if inlist(widcode, "diinc992j") & !missing(anninc992i)
 replace  a  = s * anninc992i / 0.1 if inlist(widcode, "fainc992j") & !missing(anninc992i)
 replace  a  = s * ahweal992i / 0.1 if inlist(widcode, "hweal992j") & (!missing(ahweal992i))
-replace  a  = s * average / 0.1    if inlist(widcode, "hweal992j") & (!missing(average))
+replace  a  = s * average / 0.1    if inlist(widcode, "hweal992j") & (!missing(average)) & missing(a) // only if missing a
 
 replace  a  = s * anninc999i / 0.1 if inlist(widcode, "ptinc999j") & !missing(anninc999i)
 replace  a  = s * anninc999i / 0.1 if inlist(widcode, "diinc999j") & !missing(anninc999i)
 replace  a  = s * ahweal999i / 0.1 if inlist(widcode, "hweal999j") & (!missing(ahweal999i))
-replace  a  = s * average / 0.1    if inlist(widcode, "hweal999j") & (!missing(average))
+replace  a  = s * average / 0.1    if inlist(widcode, "hweal999j") & (!missing(average)) & missing(a) // only if missing a
 
 generate test_t = missing(t)
 egen miss_t = mode(test_t), by(iso year widcode)

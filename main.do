@@ -361,7 +361,8 @@ do "$do_dir/extrapolate-wid-1980.do"
 do "$do_dir/extrapolate-wid-forward.do"
 
 // Clean up percentiles, etc.
-do "$do_dir/clean-up.do"
+//do "$do_dir/clean-up.do"
+do "$do_dir/clean-up-revised.do"
 
 // Merge longrun series with main data, update metadata
 do "$do_dir/merge-historical-main.do"
@@ -455,7 +456,7 @@ do "$do_dir/make-variable-tree.do"
 
 *do "$do_dir/update-check.do"
 
-
+do "$do_dir/sanity-checks.do"
 
 // -------------------------------------------------------------------------- //
 // Summary table

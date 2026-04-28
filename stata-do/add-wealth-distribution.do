@@ -210,6 +210,7 @@ preserve
 	keep year iso p bs ba data_quality
 	replace p = p/1000
 	gen perc = "p0p"+string(p)
+	drop if perc=="p0p1" // to avoid duplicates with g-perc p0p1
 	drop p 
 	rename perc p
 	rename bs shweal992j

@@ -66,7 +66,7 @@ merge m:1 iso year using "$wid_dir/Country-Updates/Historical_series/Add-data-qu
 
 // --------- 2. Calibrate monetary amounts using nninc 
 preserve
-	use "$work_data/clean-up-output.dta", clear
+	use "$work_data/clean-up-revised-output.dta", clear
 
 	keep if inlist(widcode, "anninc992i") // , "anninc999i")
 	keep iso year widcode value 
@@ -206,7 +206,7 @@ merge m:1 iso year using "$wid_dir/Country-Updates/Historical_series/Add-data-qu
 
 // --------- 4. Calibrate monetary amounts using nninc 
 preserve
-	use "$work_data/clean-up-output.dta", clear
+	use "$work_data/clean-up-revised-output.dta", clear
 
 	keep if inlist(widcode, "ahweal992i") & p=="p0p100" // , "anninc999i")
 	keep iso year widcode value 
@@ -293,7 +293,7 @@ save `completehistoricalwealth'
 // -----------------------------------------------------------------------------
 
 // --------- 1.  Call the current WID data
-use  "$work_data/clean-up-output.dta", clear
+use  "$work_data/clean-up-revised-output.dta", clear
 
 // temporary fix because in clean-up.do we generate deciles and groups but not
 // in this file, so need to fill data quality for those percentiles

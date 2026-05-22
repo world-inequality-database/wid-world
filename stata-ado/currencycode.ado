@@ -567,6 +567,7 @@ program currencycode, nclass
 			replace `generate' = "USD" if (`iso2c' == "VI") & (`curr' == "u.s. dollar")
 			replace `generate' = "USD" if (`iso2c' == "ZW") & (`curr' == "u.s. dollar")
 			replace `generate' = "ZWD" if (`iso2c' == "ZW") & (`curr' == "zimbabwean dollar")
+			replace `generate' = "ZWD" if (`iso2c' == "ZW") & (`curr' == "zimbabwean zimbabwe gold")
 			replace `generate' = "USD" if (`iso2c' == "MP") & (`curr' == "u.s. dollar")
 			replace `generate' = "USD" if (`iso2c' == "SV") & (`curr' == "u.s. dollar")
 			replace `generate' = "USD" if (`iso2c' == "AS") & (`curr' == "u.s. dollar")

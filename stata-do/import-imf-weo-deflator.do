@@ -1,9 +1,16 @@
-import delimited "$imf_data/world-economic-outlook/WEO-$pastyear.csv", ///
+*import delimited "$imf_data/world-economic-outlook/WEO-$pastyear.csv", ///
 	clear varnames(1) encoding("utf8") // delimiter(",") 
+	
+// 2026 update: import excel file directly instead of csv 
+import excel "$imf_data/world-economic-outlook/WEO-$pastyear.xlsx", sheet("Countries") firstrow clear
+rename *, lower
 
 cap dropmiss, obs force
 cap dropmiss, obs
-foreach v of varlist v* {
+drop dataset series_code countryid indicator-methodology_notes historical_data_source-primary_domestic_currency
+ds country indicatorid, not
+
+foreach v of varlist `r(varlist)' { // UP2026: adapted loop slightly for excel format
 	local year: var label `v'
 	if ("`year'" == "") {
 		drop `v'
@@ -14,30 +21,30 @@ foreach v of varlist v* {
 	}
 }
 
-keep if weosubjectcode == "NGDP_D" | weosubjectcode == "PPPEX"
-drop iso weocountrycode subjectdescriptor units ///
+keep if indicatorid == "NGDP_D" | indicatorid == "PPPEX"
+*drop iso weocountrycode subjectdescriptor units ///
 	scale countryseriesspecificnotes
-
-
-replace country = "Côte d'Ivoire" if country == "C�te d'Ivoire"
-replace country = "Côte d'Ivoire" if country == "CÙte d'Ivoire"
-
-
-replace country = "São Tomé and Príncipe" if country == "S�o Tom� and Pr�ncipe"
-replace country = "Côte d'Ivoire"         if country == "Cte d'Ivoire"
-replace country = "São Tomé and Príncipe" if country == "S„o TomÈ and PrÌncipe"
-replace country = "São Tomé and Príncipe" if country == "So Tom and Prncipe"
 replace country = "Côte d'Ivoire"         if country == "C�te d'Ivoire"
 replace country = "São Tomé and Príncipe" if country == "S�o Tom� and Pr�ncipe"
+replace country="Côte d'Ivoire"           if (country == "Cte d'Ivoire" | country == "CÙte d'Ivoire")
+replace country="São Tomé and Príncipe"   if (country == "So Tom and Prncipe" | country == "S„o TomÈ and PrÌncipe")
+replace country="Turkey" 				  if country == "T¸rkiye"
 replace country = "Swaziland"             if country == "Eswatini"
-replace country = "Turkey" 				  if country == "T¸rkiye"
+replace country = "Democratic Republic of the Congo" if country == "Congo, Democratic Republic of the"
+replace country = substr(country, 1, strpos(country, ",") - 1) if strpos(country, ",") > 0 // correcting country names 
 
 countrycode country, generate(iso) from("imf weo")
-drop country
+drop country 
 
-drop subjectnotes
-reshape long value, i(iso weosubjectcode) j(year)
-reshape wide value, i(iso year) j(weosubjectcode) string
+rename valueLATEST_ACTUAL_ANNUAL_DATA estimatesstartafter
+
+reshape long value, i(iso indicatorid) j(year)
+// adding this to ensure reshape results in no duplicate iso-year obs
+bys iso: egen esa_fill = max(estimatesstartafter)
+replace estimatesstartafter = esa_fill if missing(estimatesstartafter)
+drop esa_fill
+
+reshape wide value, i(iso year) j(indicatorid) string
 
 // Zimbabwe: IMF moved to RTGS dollars unlike other databases: convert back to USD
 replace valueNGDP_D = valueNGDP_D/valuePPPEX if iso == "ZW"

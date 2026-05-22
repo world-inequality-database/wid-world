@@ -1,3 +1,4 @@
+
 // Old data--------------------------------------------------------------------//
 * Note: the data of the  WB in EXCEL format only presents data for the last 28 
 *       years so each year we lose an observaiton.
@@ -54,7 +55,7 @@ drop if value >= .
 replace value = value*1e6
 rename value gdp_lcu_gem
 
-drop if year>=$pastyear - 28
+drop if year>=$pastyear - 28 
 
 tempfile old_data
 save `old_data'
@@ -83,10 +84,10 @@ rename _var1 country
 
 replace country = "Macedonia, FYR"       if country == "North Macedonia"
 replace country = "Moldova".             if country == "Moldova, Rep."
-replace country = "Egypt, Arab Rep."     if country == "Egypt Arab Rep."
+replace country = "Egypt, Arab Rep."     if country == "Egypt Arab Rep"
 replace country = "Hong Kong SAR, China" if country == "Hong Kong China"
 replace country = "Iran, Islamic Rep."   if country == "Iran Islamic Rep."
-replace country = "Korea, Rep."          if country == "Korea Rep."
+replace country = "Korea, Rep."          if country == "Korea Rep"
 replace country = "Macedonia, FYR"       if country == "Macedonia FYR"
 replace country = "Slovakia"             if country == "Slovak Republic"
 replace country = "Taiwan, China"        if country == "Taiwan China"
@@ -123,11 +124,14 @@ rename value gdp_lcu_gem
 
 drop if year==$year
 
-append using "`old_data'"
+append using "`old_data'", gen(oldobs)
 
 duplicates tag iso year, gen (dup)
-assert dup==0
+drop if dup==1 & oldobs==1
 drop dup
+duplicates tag iso year, gen (dup)
+assert dup==0
+drop dup oldobs
 
 sort iso year
 

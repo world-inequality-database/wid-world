@@ -708,7 +708,7 @@ enforce (gdp = gvago + gvaco + gvmhn + gsrhn + ptxgo) ///
 order iso year ceugo nsrgo ceuco ceuhn gsrco gsrgo nsrco gmxhn nmxhn gsrhn nsrhn cfcgo cfcco ccmhn ccshn comnx pinnx comhn  ptxgo
 
 
-gen gvato = ceugo + nsrgo + ceuco+ ceuhn+ nsrco+ nmxhn+ nsrhn+ cfcgo+ cfcco+ ccmhn+ ccshn
+replace gvato = ceugo + nsrgo + ceuco+ ceuhn+ nsrco+ nmxhn+ nsrhn+ cfcgo+ cfcco+ ccmhn+ ccshn if iso!= "PE"
 /*
 gen ndp_fp = ceugo + nsrgo + ceuco+ ceuhn+ nsrco+ nmxhn+ nsrhn
 gen gni_fp = gvato + comnx + pinnx

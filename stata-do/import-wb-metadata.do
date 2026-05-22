@@ -27,6 +27,11 @@ replace countryname = "Korea, Dem. People's Rep." if countryname == "Korea, Dem.
 replace countryname = "Czechia" if countryname == "Czech Republic" 
 replace countryname = "Turkiye" if countryname == "Türkiye" 
 
+// 2026 update: there have been some small changes in countrynames. reverting back to 2025 name 
+*replace countryname = "Puerto Rico" if countryname == "Puerto Rico (US)" 
+*replace countryname = "Somalia" if countryname == "Somalia, Fed. Rep." 
+replace countryname = "Virgin Islands (U.S.)" if countryname == "Virgin Islands (US)" 
+
 replace currency = "swaziland lilangeni" if currency == "Swazi lilangeni"
 drop if missing(currency)
 

@@ -101,9 +101,9 @@ assert quality_score != . if inlist(fivelet, "ptinc", "cainc", "diinc", "hweal")
 
 // --------------------------------------
 // temporarily: round data quality, rename variable to old name, string variable
-rename quality_score data_quality
-replace data_quality = round(data_quality, 1)
-tostring data_quality, replace
+*rename quality_score data_quality
+*replace data_quality = round(data_quality, 1)
+tostring data_quality, replace force
 replace data_quality = "" if data_quality=="."
 // --------------------------------------
 
@@ -122,13 +122,13 @@ foreach v of varlist data_imputation data_points extrapolation {
 *replace data_imputation = "full"      if inlist(data_quality, "5")      & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
 *replace data_imputation = "rescaling" if method == "Fiscal income rescaled to match the macroeconomic aggregates."
 
-replace data_imputation = "imputation"    	if inlist(data_quality, "0", "1")      & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
-replace data_imputation = "interpolation"   if inlist(data_quality, "2") 	   & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
-replace data_imputation = "survey"       	if inlist(data_quality, "3") 	   & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
-replace data_imputation = "tax and survey"  if inlist(data_quality, "4") 	   & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
-replace data_imputation = "full"      		if inlist(data_quality, "5")        & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+*replace data_imputation = "imputation"    	if inlist(data_quality, "0", "1")      & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+*replace data_imputation = "interpolation"   if inlist(data_quality, "2") 	   & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+*replace data_imputation = "survey"       	if inlist(data_quality, "3") 	   & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+*replace data_imputation = "tax and survey"  if inlist(data_quality, "4") 	   & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
+*replace data_imputation = "full"      		if inlist(data_quality, "5")        & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "cainc"))
 
-replace data_imputation = "rescaling" 		if method == "Fiscal income rescaled to match the macroeconomic aggregates."
+*replace data_imputation = "rescaling" 		if method == "Fiscal income rescaled to match the macroeconomic aggregates."
 
 // preserve
 // 	import delimited "$input_data_dir/data-quality/data-quality-updated.dta", clear delim(";") stringcols(_all)

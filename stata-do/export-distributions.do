@@ -16,7 +16,7 @@ replace value = round(value, 1)      if inlist(substr(widcode, 1, 1), "m", "n")
 replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s")
 					  
 drop if missing(value)
-keep iso year p widcode value 
+keep iso year p widcode value data_quality
 
 rename iso Alpha2
 rename p   perc
@@ -112,7 +112,7 @@ restore
 
 u "$work_data/calculate-gini-coef-output.dta", clear
 drop if missing(value)
-keep iso year p widcode value 
+keep iso year p widcode value data_quality
 
 replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "r","b","g")
 drop if iso=="XX"
@@ -153,7 +153,7 @@ preserve
 	keep if strpos(widcode,"992j")  |  strpos(widcode,"999j") 
 	keep if strpos(widcode,"diinc") | strpos(widcode,"ptinc") | strpos(widcode,"hweal") | strpos(widcode,"fainc") | ///
 	strpos(widcode,"fiinc") | strpos(widcode,"cainc")
-	replace value = round(value, 0.0001)
+	*replace value = round(value, 0.0001)
 
 	// Export
 	export delim "$output_dir/$time/wid-data-$time-RGB_ptinc_fainc_cainc_fiinc_hweal_diinc_2025Update.csv", delimiter(";") replace

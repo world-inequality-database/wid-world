@@ -154,11 +154,13 @@ program define run_checks
 end
 
 run_checks, grid(g127) nb(127)
+di "Monotonicity checks for 127 g-percentiles finished :)"
+
 run_checks, grid(decile) nb(10)
-di "Running monotonicity checks finished :)"
+di "Monotonicity checks for deciles finished :)"
 
 *u "$work_data/checks_g127.dta", clear
-*u "$work_data/checks_decile.dta", clear
+u "$work_data/checks_decile.dta", clear
 
 
 //==============================================================================

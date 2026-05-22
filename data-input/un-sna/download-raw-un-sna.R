@@ -9,7 +9,7 @@ library(glue)
 library(haven)
 library(janitor)
 
-setwd("/Users/manuelestebanarias/Documents/GitHub/wid-world/data-input/un-sna")
+setwd("/Users/anavanderree/Documents/GitHub/wid-world/data-input/un-sna")
 
 # List of table names on the UN website
 table_names <- c(
@@ -59,7 +59,7 @@ for (i in 1:n_tables) {
     cat(glue("--> {name}\n\n"))
     
     table <- tibble()
-    for (year in 1946:2024) {
+    for (year in 1946:2025) {
         cat(glue("* {year}..."))
         
         url <- glue(paste0("http://data.un.org/Handlers/DownloadHandler.ashx?",

@@ -46,7 +46,7 @@ global un_countries "AD AE AF AG AI AL AM AO AR AS AT AU AW AZ BA BB BD BE BF BG
 //      5.7. Aggregations for Channel Islands                       [Assembling]
 //  6. Complete data for ZZ (Zanzibar)                                 [Forking]
 //      6.1. Bring Data from TZ and from ZZ from UN-SNA
-//      6.2. Calcualte ratios of ZZ an tZ
+//      6.2. Calculate ratios of ZZ an tZ
 //      6.3. Extrapolate backwards 
 //      6.4. Append data 
 //  7. Complete data for German Democratic Republic                    [Forking]
@@ -576,7 +576,7 @@ drop value2 newobs inUSSR
 egen value2 = total(value) if inlist(iso, "SX", "CW", "BQ"), by(year widcode /*age sex*/)
 
 expand 2 if (iso == "CW"), generate(newobs)
-replace iso = "AN" if newobs // Inherit ata quality from CW
+replace iso = "AN" if newobs // Inherit data quality from CW
 replace value = value2 if newobs
 replace data_quality = 1 if newobs
 drop value2 newobs
@@ -637,7 +637,7 @@ preserve
 	drop ratio_* _merge value_sna_zz sna_total
 	expand 2 if (iso == "TZ") & (year >= 1990), generate(new)
 	
-	*Exend ratios if pas_year not available
+	*Exend ratios if past_year not available
 	bys iso age sex (year) : carryforward a, replace
 	bys iso age sex (year) : carryforward b, replace
 	
@@ -846,8 +846,8 @@ expand 2 if (iso == "DE") & inrange(year, 1950, 1990), generate(newobs)
 replace iso = "DD" if newobs
 replace npopul999i = npopul999i_un - npopul999i_wid if (iso == "DD")
 replace npopul992i = npopul992i_un - npopul992i_wid if (iso == "DD")
-replace data_qualitynpopul992i = data_qualitynpopul992i if (iso == "DD")
-replace data_qualitynpopul999i = data_qualitynpopul999i if (iso == "DD")
+replace data_qualitynpopul992i = data_qualitynpopul992i_un if (iso == "DD")
+replace data_qualitynpopul999i = data_qualitynpopul999i_un if (iso == "DD")
 drop newobs
 
 *replacing DE for UN from 1950 to 1990 
@@ -1049,7 +1049,7 @@ replace method = method + "; Calculated by combining the populations of Bosnia a
 
 ** 5.5. Aggregations for USSR
 replace method = method + "; Calculated by combining the populations of AM, AZ, BY,"  + ///
-		 " EE, GE, KZ, KG, LV, LT, MD, RU, TJ, TM, UA and UZ." if inlist(iso,"YU")
+		 " EE, GE, KZ, KG, LV, LT, MD, RU, TJ, TM, UA and UZ." if inlist(iso,"SU")
 
 ** 5.6. Aggregations for Antilles
 replace method = method + "; Calculated by combining the populations of Bonaire,"  + ///

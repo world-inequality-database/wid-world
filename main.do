@@ -245,7 +245,7 @@ do "$do_dir/import-oecd-data.do"
 // ImportWTOTradeMerchandise
 do "$do_dir/import-wto-trademerchandise.do"
 
-// Import data from other sources
+// Import data from IMF BOP
 do "$do_dir/import-imf-bop.do"
 //do "$do_dir/import-imf-dottrade.do"
 //do "$do_dir/import-combine-gravityimftrade.do"
@@ -253,9 +253,11 @@ do "$do_dir/importing-gravity-trade.do"
 do "$do_dir/imfbop-trade-gravity.do"
 do "$do_dir/imfbop-remittances.do"
 do "$do_dir/currentaccount.do"
+
+// Import data from other sources
 do "$do_dir/commodities-decomposition.do"
 do "$do_dir/import-income-researchers.do"
-do "$do_dir/reformat-wid-data.do"
+do "$do_dir/reformat-wid-data.do" // HERE ENTERS THE METADATA FROM THE DARK PART( there is also a full metadata called)
 
 // Retropolate, combine, impute, calibrate and decompose series
 do "$do_dir/retropolate-combine-series.do"
@@ -324,7 +326,11 @@ do "$do_dir/complete-variables.do"
 do "$do_dir/calculate-wealth-income-ratios.do"
 
 // Per capita/per adults series
+
 do "$do_dir/calculate-per-capita-series.do"
+
+// Generate Macro metadata
+do "$do_dir/generate-macro-metadata.do"
 
 //------------------- END OF MACRO PART---------------------------------------//
 

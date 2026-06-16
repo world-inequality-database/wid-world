@@ -52,6 +52,8 @@ use "$work_data/calculate-per-capita-series-output.dta", clear
 generate fivelet = substr(widcode, 2, 5)
 generate tokeep = 0
 
+drop if p!="p0p100"
+
 foreach l in `fivelet' {
 	replace tokeep = 1 if fivelet == "`l'"
 }

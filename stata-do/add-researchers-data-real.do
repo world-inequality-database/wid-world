@@ -181,6 +181,10 @@ isid iso sixlet
 
 replace method = " " if method == ""
 
+*Remove methadata that was already generated in the macro part:
+drop if inlist(substr(sixlet,2,5),"hwbol","hwbus","hwcud","hwdeb","hwequ","hwfie","hwfin") | ///
+        inlist(substr(sixlet,2,5),"hwfix","hwhou","hwnfa","hwpen","gdpro","nninc")
+
 tempfile meta
 save "`meta'"
 
@@ -192,25 +196,9 @@ use iso year p widcode value author data_quality using "`researchers'", clear
 // append using "$work_data/aggregate-regions-output.dta", generate(oldobs)
 // append using "$work_data/add-populations-output.dta", generate(oldobs)
 
-// ===!========!=======!=============!=======!======!======!====!====!====!====!
-// ===!========!=======!=============!=======!======!======!====!====!====!====!
-// ===!========!=======!=============!=======!======!======!====!====!====!====!
-// ----- TEMPORARY FIX TO BE REMOVED AFTER DATA QUALITY PROJECT IS COMPLETE!!! ---
-preserve
-	use "$work_data/calculate-per-capita-series-output.dta", clear
-	merge m:1 iso year widcode using "$work_data/data-quality-add-researchers-data-output.dta", update 
-	drop if _merge == 2 // only from add-researchers
-	drop _merge 
-	tempfile interimdata
-	save `interimdata'
-restore 
 
-append using `interimdata', generate(oldobs)
-*append using "$work_data/calculate-per-capita-series-output.dta", generate(oldobs)
-// ===!========!=======!=============!=======!======!======!====!====!====!====!
-// ===!========!=======!=============!=======!======!======!====!====!====!====!
-// ===!========!=======!=============!=======!======!======!====!====!====!====!
-
+append using "$work_data/calculate-per-capita-series-output.dta", generate(oldobs)
+drop s_
 
 // France 2017: drop specific widcodes
 drop if (inlist(widcode, "ahwbol992j", "ahwbus992j", "ahwcud992j", "ahwdeb992j", "ahweal992j") ///
@@ -262,7 +250,8 @@ save "$work_data/add-researchers-data-real-output.dta", replace
 // -----------------------------------------------------------------------------
 
 // use "$work_data/aggregate-regions-metadata-output.dta", clear
-use "$work_data/metadata-no-duplicates.dta", clear
+// use "$work_data/metadata-no-duplicates.dta", clear
+use "$work_data/generate-macro-metadata.dta", clear
 drop if iso == "CN" & mi(source) & inlist(sixlet, "xlcusx", "xlcyux")
 
 merge 1:1 iso sixlet using "`meta'", force nogenerate update replace 

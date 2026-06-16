@@ -50,6 +50,12 @@ destring year, replace
 rename *3 *
 keep iso year ptxgo gsrhn ccshn ceugo cfcgo gmxhn ceuhn ccmhn nsrhn nsrgo gsrco cfcco ceuco nsrco gsrhn nsrhn ccshn nmxhn
 
+ds iso year, not
+foreach v in `r(varlist)' {
+	gen q_`v' = 4                    if !missing(`v')
+	gen s_`v'       = "PikettyZucman2013" if !missing(`v')
+}
+
 // Define Series For been used in combine-retrpolate series
 gen series = 900
 * create break in the series so that the historical series are used as they are not not shifted through retroplate

@@ -210,6 +210,8 @@ drop *2
 
 reshape long value,i(iso year) j(widcode) string
 
+gen s_ = "dietrich25"
+gen q_ = 4
 // ------ 7. Export  -----------------------------------------------------------
 drop if missing(value)
 gen p="pall"

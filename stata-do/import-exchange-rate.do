@@ -177,7 +177,7 @@ expand 2 if year == 2019, gen(new)
 replace value = 24362.04727494*(1/.97969919)/(1/.98220074) if new
 replace year = 2020 if new
 drop new
-generate source="UN_SNA"
+generate source="UNSNA"
 
 tempfile somalia
 save "`somalia'"
@@ -193,7 +193,7 @@ rename amaexchangerate value
 gen iso = "VE"
 gen currency = "VES"
 gen widcode = "xlcusx999i"
-generate source2="UN_SNA"
+generate source2="UNSNA"
 
 tempfile ves
 sa `ves'
@@ -313,7 +313,7 @@ destring imfxrt, replace force
 destring amaxrt, replace force
 
 * Gen source
-generate source2="UN_SNA" if !missing(amaxrt) | !missing(imfxrt)
+generate source2="UNSNA" if !missing(amaxrt) | !missing(imfxrt)
 
 // Soviet
 * Calculate yearly growth
@@ -347,7 +347,7 @@ foreach xr in ama imf {
 	gen double extrap_`xr'_soviet = 1   if missing(`xr'xrt) & soviet == 1
 	replace extrap_`xr'_soviet = 0      if missing(extrap_`xr'_soviet)
 	replace `xr'xrt = aux1`xr'          if extrap_`xr'_soviet == 1
-	replace source2="extrapolated_ratio_soviet" if extrap_`xr'_soviet == 1
+	replace source2="extrapolated_ratiosoviet" if extrap_`xr'_soviet == 1
 }
 drop aux* growth*
 
@@ -376,7 +376,7 @@ foreach xr in ama imf {
 	gen double extrap_`xr'_yugosl = 1   if missing(`xr'xrt) & yugosl == 1
 	replace extrap_`xr'_yugosl = 0      if missing(extrap_`xr'_yugosl)
 	replace `xr'xrt = aux1`xr'          if extrap_`xr'_yugosl == 1
-	replace source2="extrapolated_ratio_yugosl" if extrap_`xr'_yugosl == 1
+	replace source2="extrapolated_ratioyugosl" if extrap_`xr'_yugosl == 1
 }
 drop aux* growth*
 
@@ -405,7 +405,7 @@ foreach xr in ama imf {
 	gen double extrap_`xr'_yem = 1      if missing(`xr'xrt) & country == "Yemen"
 	replace extrap_`xr'_yem = 0         if missing(extrap_`xr'_yem)
 	replace `xr'xrt = aux1`xr'          if extrap_`xr'_yem == 1
-	replace source2="extrapolated_ratio_yemen" if extrap_`xr'_yem == 1
+	replace source2="extrapolated_ratioyemen" if extrap_`xr'_yem == 1
 }
 drop aux* growth*
 
@@ -436,7 +436,7 @@ foreach xr in ama imf {
 	gen double extrap_`xr'_eu = 1       if missing(`xr'xrt) & euro == 1
 	replace extrap_`xr'_eu = 0          if missing(extrap_`xr'_eu)
 	replace `xr'xrt = aux1`xr'          if extrap_`xr'_eu == 1
-	replace source2="extrapolated_ratio_euro" if extrap_`xr'_eu == 1
+	replace source2="extrapolated_ratioeuro" if extrap_`xr'_eu == 1
 }
 drop aux* growth*
 
@@ -481,12 +481,12 @@ tab countryname if missing(country)
 drop if country == "CW" & year < 1994
 expand 2 if (country == "AN") & inrange(year, 1970, 1993), generate(newobsCW)
 replace country = "CW"      if newobsCW
-replace source = country+ "_assumed_as_" + source if newobsCW
+replace source = source + "_"+ country+ "assumedas" if newobsCW
 
 drop if country == "SX" & year < 2000
 expand 2 if (country == "AN") & inrange(year, 1970, 1999), generate(newobsSX)
 replace country = "SX"        if newobsSX
-replace source = country+"_assumed_as_"+ source if newobsSX
+replace source = source + "_" + country+"assumedas" if newobsSX
 drop newobs* 
 
 drop if missing(country) | unit == "..."
@@ -625,7 +625,7 @@ generate source="WB"
 // Replace exchange rate by 1 for El Salvadore and Liberia and Zimbabwe (series in dollars)
 replace value = 1 if inlist(iso, "ZW", "SV", "LR", "EC")   
 
-replace source= currency+"_assumed_"+source if inlist(iso, "ZW", "SV", "LR", "EC")   
+replace source= source + "_" + currency +"assumed" if inlist(iso, "ZW", "SV", "LR", "EC")   
 
 append using "`xrate'"
 replace source=source2 if missing(source)
@@ -673,7 +673,7 @@ replace valuexlcusx999i = 1             if iso == "ZW"
 replace p = "pall"                      if iso == "ZW"
 
 egen source_aux = mode(source), by(year currency)
-replace source =  currency + "_assumed_"+ source_aux if iso == "ZW"
+replace source =  source_aux + "_"+ currency + "assumed"  if iso == "ZW"
 drop if _fillin & iso != "ZW"
 drop _fillin source_aux
 
@@ -699,7 +699,7 @@ drop currency2
 replace p = "pall"
 egen value2 = mean(valuexlcusx999i), by(year currency)
 egen source_aux = mode(source), by(year currency)
-replace source = currency + "_assumed_"+ source_aux   if missing(valuexlcusx999i) & !missing(value2)
+replace source = source_aux+ "_" +currency + "assumed"   if missing(valuexlcusx999i) & !missing(value2)
 replace valuexlcusx999i = value2       if missing(valuexlcusx999i)
 drop value2 _fillin source_aux
 
@@ -889,7 +889,7 @@ replace value8=71.7148 if currency=="YUN" & year==2020
 replace value8=77.3620 if currency=="YUN" & year==2021
 replace value8=89.1162 if currency=="YUN" & year==2022
 */
-replace source = source + "_RS_MK" if missing(valuexlcusx999i) & iso=="YU"
+replace source = source + "_RSMK" if missing(valuexlcusx999i) & iso=="YU"
 replace valuexlcusx999i = value8 if missing(valuexlcusx999i) & iso=="YU"
 
 drop value3-value8 currency3
@@ -906,7 +906,7 @@ drop xrate_twd_usd source2
 
 // *************** PART Main.9 : + NievasPiketty (2025)  ********
 merge 1:1 iso year using "$work_data/nievaspiketty2025_xrate.dta", nogenerate keepusing(xrate_usd)
-gen source2="np" if !missing(xrate_usd)
+gen source2="np2025" if !missing(xrate_usd)
 
 replace source= source2 if !missing(xrate_usd)
 replace valuexlcusx999i= xrate_usd if !missing(xrate_usd)
@@ -955,7 +955,7 @@ drop if missing(value)
 gen data_quality=.
 
 replace data_quality=5 if strpos(source,"WB")  | strpos(source,"openexchangerate") | ///
-						  strpos(source,"IMF") | strpos(source,"UN_SNA") | strpos(source,"mataf")
+						  strpos(source,"IMF") | strpos(source,"UNSNA") | strpos(source,"mataf")
 replace data_quality=4 if strpos(source,"np")
 replace data_quality=3 if strpos(source,"interpolated")
 replace data_quality=2 if strpos(source,"carryforward")
@@ -967,8 +967,10 @@ assert widcode=="xlcusx999i"
 
 rename value exrate_usd
 
-preserve
-	drop source widcode
+*preserve
+	drop widcode //source
+	
+	rename source s_
 	recast int year	
 	recast double exrate_usd
 
@@ -981,8 +983,8 @@ preserve
 	label data "Generated by import-exchange-rates.do"
 	save "$work_data/USS-exchange-rates.dta", replace
 	*/
-restore
-
+*restore
+/*
 // *************** PART Main.13 : + Generate and export metadata ***
 keep iso year source widcode currency
 

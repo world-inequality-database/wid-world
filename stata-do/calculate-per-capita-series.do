@@ -1,8 +1,9 @@
 use "$work_data/calculate-wealth-income-ratio-output.dta", clear
-
+keep iso year p widcode value
 // Data with adult population
 keep if inlist(widcode, "npopul999i", "npopul992i")
 replace p="pall" if p=="p0p100"
+
 reshape wide value, i(iso year p) j(widcode) string
 keep iso year p valuenpopul992i valuenpopul999i
 tempfile pop
@@ -20,22 +21,31 @@ drop if substr(widcode, 1, 6) == "mfiinc"
 
 merge n:1 iso year using "`pop'", nogenerate keep(match)
 
-generate value999i = value/valuenpopul999i
-generate value992i = value/valuenpopul992i
+generate        value999i = value/valuenpopul999i
+generate data_quality999i = data_quality
+generate           s_999i = s_
 
-keep iso year widcode p currency value999i value992i
+generate        value992i = value/valuenpopul992i
+generate data_quality992i = data_quality
+generate           s_992i = s_
 
-reshape long value, i(iso year p widcode) j(pop) string
+drop *popul* value data_quality s_
+
+reshape long value data_quality s_, i(iso year p widcode) j(pop) string
 replace widcode = "a" + substr(widcode, 2, 5) + pop
 
 drop pop
 drop if missing(value)
 
+gen new=1
+
 append using "$work_data/calculate-wealth-income-ratio-output.dta"
 
-duplicates drop iso year p widcode, force
-
-
+duplicates tag iso year p widcode, gen(dup)
+drop if new!=1 & dup==1
+duplicates tag iso year p widcode, gen(dup2)
+assert dup2==0
+drop dup* new
 
 //---------- 8. Variable cleaning and checks -----------------------------------
 

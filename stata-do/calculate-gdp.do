@@ -384,15 +384,15 @@ egen hasbreak = total(seriebreak), by(iso)
 drop if hasbreak & catbreak == 0
 
 // Generate note for level
-generate level_src = notelev if (year == refyear)
+generate  level_src = notelev if (year == refyear)
 generate level_year = refyear
 
 // 4. Convert series to Real
 //------- 4.1 Add Maddison real series for East Germany
 merge 1:1 iso year using "$work_data/east-germany-gdp.dta", ///
 	nogenerate
-replace level_src = "OECD"       if (year == 1991) & (iso == "DD")
-replace level_year = 1991            if (year == 1991) & (iso == "DD")
+replace level_src = "OECD"               if (year == 1991) & (iso == "DD")
+replace level_year = 1991                if (year == 1991) & (iso == "DD")
 replace growth2_src = "growth_Mad95_usd" if (year != 1991) & (iso == "DD")
 
 // ------- 4.2 Add price index and convert to real
@@ -470,9 +470,11 @@ drop currency
 rename currency2 currency
 
 egen level_year2 = mode(level_year), by(iso)
+egen level_year3 = max(level_year), by(iso)
 drop level_year
 rename level_year2 level_year
-
+replace level_year=level_year3 if inlist(iso,"SX","CW")
+drop level_year3
 
 // 6. Export
 replace growth2 = substr(growth2_src,8,.)

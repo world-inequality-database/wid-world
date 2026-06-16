@@ -9,7 +9,7 @@ tempfile types
 save "`types'"
 
 import excel "$codes_dictionary", ///
-	sheet("Income_Macro_Variables") cellrange(D4:D138) clear allstring
+	sheet("Income_Macro_Variables") cellrange(D4:D383) clear allstring
 rename D widcode
 replace widcode = subinstr(widcode, "*", "", 1)
 replace widcode = substr(widcode, 2, 5) if strlen(widcode) == 6

@@ -50,6 +50,8 @@ tab iso if missing(index) & !inlist(iso, "CZ", "RU", "AU", "NZ", "CA", "ES") ///
 // We do not convert World Regions because they do not have a price index.
 // They will be taken care of in calibrate-dina.do
 
+// We do not change the data quality
+
 drop index is_region
 
 compress

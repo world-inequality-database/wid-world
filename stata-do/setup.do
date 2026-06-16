@@ -3,6 +3,7 @@
 // -------------------------------------------------------------------------- //
 
 clear all
+set maxvar 10000
 
 // Directory (Gethin / Blanchet / Myczkowski)
 if substr("`c(pwd)'",1,10)=="/Users/tho"{

@@ -1,10 +1,15 @@
 // -------------------------------------------------------------------------- //
+//    Import extend EWN .do-File
+// -------------------------------------------------------------------------- //
+
+
 // Import data from LaneMilesi and Ferreti
 // Extend series backwards
-// -------------------------------------------------------------------------- //
+
+
 clear all 
 
-// -------------------------------------------------------------------------- //
+// ------- 1. Import data --------------------------------------------------- //
 import excel "$input_data_dir/ewn-data/EWN-database-$pastyear.xlsx", sheet("Dataset") clear firstrow case(lower)
 assert $pastyear == 2024 // If this assertion fails change the name of the import file and the replace the assertion value for $past year
 rename gdpus gdp
@@ -15,30 +20,31 @@ ren country countryname
 ren fdiassets fdixa
 ren fdiliabilities fdixd 
 
+// ------- 2. Recalculate gross values -------------------------------------- //
 // whenever gross assets are negative, adding them to their counterpart to ensure everything is positive
 foreach v in fdixa fdixd portfolioequityassets debtassets financialderivativesassets portfoliodebtassets otherinvestmentassets portfoliodebtliabilities otherinvestmentliabilities portfolioequityliabilities debtliabilities financialderivativesliabiliti {
-	gen neg`v' = 1 if `v' < 0
+	gen     neg`v' = 1 if `v' < 0
 	replace neg`v' = 0 if mi(neg`v')	
 }
 
-replace nwgxa_lm = nwgxa_lm - fxreservesminusgold if fxreservesminusgold < 0
-replace fxreservesminusgold =. if fxreservesminusgold < 0
+replace            nwgxa_lm = nwgxa_lm - fxreservesminusgold if fxreservesminusgold < 0
+replace fxreservesminusgold =.                               if fxreservesminusgold < 0
 
 *adding the negative values to the other gross aggregated component
-replace nwgxa_lm = nwgxa_lm - portfolioequityassets if negportfolioequityassets == 1
+replace nwgxa_lm = nwgxa_lm - portfolioequityassets      if negportfolioequityassets      == 1
 replace nwgxa_lm = nwgxa_lm - portfolioequityliabilities if negportfolioequityliabilities == 1
 replace nwgxd_lm = nwgxd_lm - portfolioequityliabilities if negportfolioequityliabilities == 1
-replace nwgxd_lm = nwgxd_lm - portfolioequityassets if negportfolioequityassets == 1
-gen     aux      = 1 if negportfolioequityassets == 1 & negportfolioequityliabilities == 1
+replace nwgxd_lm = nwgxd_lm - portfolioequityassets      if negportfolioequityassets      == 1
+gen     aux      = 1 if negportfolioequityassets == 1 & negportfolioequityliabilities     == 1
 replace negportfolioequityassets      = 0 if aux == 1 
 replace negportfolioequityliabilities = 0 if aux == 1 
 cap swapval portfolioequityassets portfolioequityliabilities            if aux == 1 
-replace portfolioequityassets         = abs(portfolioequityassets)      if aux == 1
-replace portfolioequityliabilities    = abs(portfolioequityliabilities) if aux == 1
-replace portfolioequityassets         = portfolioequityassets - portfolioequityliabilities if negportfolioequityliabilities == 1
-replace portfolioequityliabilities    = 0 if negportfolioequityliabilities == 1 
-replace portfolioequityliabilities    = portfolioequityliabilities - portfolioequityassets if negportfolioequityassets == 1 
-replace portfolioequityassets         = 0 if negportfolioequityassets == 1
+replace portfolioequityassets      = abs(portfolioequityassets)      if aux == 1
+replace portfolioequityliabilities = abs(portfolioequityliabilities) if aux == 1
+replace portfolioequityassets      = portfolioequityassets - portfolioequityliabilities if negportfolioequityliabilities == 1
+replace portfolioequityliabilities = 0 if negportfolioequityliabilities == 1 
+replace portfolioequityliabilities = portfolioequityliabilities - portfolioequityassets if negportfolioequityassets == 1 
+replace portfolioequityassets      = 0 if negportfolioequityassets      == 1
 drop aux 
 
 replace nwgxa_lm = nwgxa_lm - portfoliodebtassets      if negportfoliodebtassets == 1
@@ -49,12 +55,12 @@ gen          aux = 1                                   if negportfoliodebtassets
 replace negportfoliodebtassets      = 0 if aux == 1 
 replace negportfoliodebtliabilities = 0 if aux == 1 
 cap swapval portfoliodebtassets portfoliodebtliabilities            if aux == 1 
-replace portfoliodebtassets         = abs(portfoliodebtassets)      if aux == 1
-replace portfoliodebtliabilities    = abs(portfoliodebtliabilities) if aux == 1
-replace portfoliodebtassets         = portfoliodebtassets - portfoliodebtliabilities if negportfoliodebtliabilities == 1
-replace portfoliodebtliabilities    = 0                             if negportfoliodebtliabilities == 1 
-replace portfoliodebtliabilities    = portfoliodebtliabilities - portfoliodebtassets if negportfoliodebtassets == 1 
-replace portfoliodebtassets         = 0                             if negportfoliodebtassets == 1
+replace portfoliodebtassets      = abs(portfoliodebtassets)      if aux == 1
+replace portfoliodebtliabilities = abs(portfoliodebtliabilities) if aux == 1
+replace portfoliodebtassets      = portfoliodebtassets - portfoliodebtliabilities if negportfoliodebtliabilities == 1
+replace portfoliodebtliabilities = 0                             if negportfoliodebtliabilities == 1 
+replace portfoliodebtliabilities = portfoliodebtliabilities - portfoliodebtassets if negportfoliodebtassets == 1 
+replace portfoliodebtassets      = 0                             if negportfoliodebtassets == 1
 drop aux 
 
 replace nwgxa_lm = nwgxa_lm - debtassets      if negdebtassets == 1
@@ -132,13 +138,13 @@ replace `v' = . if `v'<0
 
 egen ptfxa = rowtotal(portfolioequityassets debtassets financialderivativesassets fxreservesminusgold), missing
 
-replace ptfxa =. if ptfxa == 0 & missing(nwgxa_lm)
-replace ptfxa =. if missing(nwgxa) & round(ptfxa,.1) == round(fxreservesminusgold,.1)
-replace ptfxa =. if missing(nwgxa) & round(ptfxa,.01) == round(fxreservesminusgold,.01)
-replace ptfxa =. if missing(nwgxa) & round(ptfxa,.001) == round(fxreservesminusgold,.001)
-replace ptfxa =. if missing(nwgxa) & round(ptfxa,.0001) == round(fxreservesminusgold,.0001)
+replace ptfxa =. if ptfxa == 0     & missing(nwgxa_lm)
+replace ptfxa =. if missing(nwgxa) & round(ptfxa,.1)      == round(fxreservesminusgold,.1)
+replace ptfxa =. if missing(nwgxa) & round(ptfxa,.01)     == round(fxreservesminusgold,.01)
+replace ptfxa =. if missing(nwgxa) & round(ptfxa,.001)    == round(fxreservesminusgold,.001)
+replace ptfxa =. if missing(nwgxa) & round(ptfxa,.0001)   == round(fxreservesminusgold,.0001)
 egen ptfxd = rowtotal(portfolioequityliabilities debtliabilities financialderivativesliabiliti), missing
-replace ptfxd =. if ptfxd == 0 & missing(nwgxd_lm)
+replace ptfxd =. if ptfxd == 0     & missing(nwgxd_lm)
 replace ptfxd =. if countryname == "New Caledonia" & year == 2001
 
 
@@ -155,6 +161,7 @@ foreach v of varlist nwgxa_lm nwgxd_lm gdp fdixa fdixd ptfxa ptfxd portfolioequi
 	replace `v' = `v'*1e6
 }
 
+// ------- 3. Format -------------------------------------------------------- //
 kountry ifs_code, from(imfn) to(iso2c)
 rename _ISO2C_ iso
 replace iso = "AD" if countryname == "Andorra"
@@ -191,19 +198,30 @@ replace ptfxd =. if inlist(iso, "TJ", "AE", "VN") & missing(nwgxd)
 replace nwgxa_lm = fdixa + ptfxa if (missing(nwgxa_lm) | nwgxa_lm == 0) & (!missing(fdixa) & fdixa !=0) & (!missing(ptfxa) & ptfxa !=0)
 replace nwgxd_lm = fdixd + ptfxd if (missing(nwgxd_lm) | nwgxd_lm == 0) & (!missing(fdixd) & fdixd !=0) & (!missing(ptfxd) & ptfxd !=0)
 
+// Generate metadata
+ds countryname ifs_code year gdp  iso neg*, not
+foreach v in `r(varlist)' {
+	gen q_`v' = 4                if !missing(`v')
+	gen s_`v' = "MilesiFerretti" if !missing(`v')
+}
+
+// ------- 4. Complete data  ------------------------------------------------ //
 // There is data for Netherlands Antilles
 // Curacao and Sint Maarten will be calculated based on GDP shares
 
 merge m:1 iso using "$work_data/ratioCWSX_AN.dta", nogen 
 
 foreach v in nwgxa_lm nwgxd_lm fdixa fdixd ptfxa ptfxd { 
-bys year : gen aux`v' = `v' if iso == "AN"
-bys year : egen `v'AN = mode(aux`v')
+	bys year : gen aux`v' = `v'          if iso == "AN"
+	bys year : egen `v'AN = mode(aux`v')
 }
 
 foreach v in nwgxa_lm nwgxd_lm fdixa fdixd ptfxa ptfxd { 
 	foreach c in CW SX {
-		replace `v' = `v'AN*ratio`c'_ANusd if iso == "`c'" & missing(`v')
+		local v_dash = subinstr("`v'", "_", "-", .)
+		replace q_`v' = 1                    if iso == "`c'" & missing(`v')
+		replace s_`v' = "`v_dash'(AN)_ratio`c'/AN"      if iso == "`c'" & missing(`v')
+		replace `v'   = `v'AN*ratio`c'_ANusd if iso == "`c'" & missing(`v')
 	}
 }	
 drop aux* *AN *ANlcu ratio*
@@ -214,53 +232,56 @@ keep if corecountry == 1 & year >= 1970
 ren gdp gdp_lm 
 
 * generate GDP in usd current prices
-merge 1:1 iso year using "$work_data/retropolate-gdp.dta", nogenerate keepusing(gdp) keep(master matched)
-merge 1:1 iso year using "$work_data/USS-exchange-rates.dta", nogen keepusing(exrate_usd) keep(master matched)
-merge 1:1 iso year using "$work_data/price-index.dta", nogen keep(master matched)
+merge 1:1 iso year using "$work_data/retropolate-gdp.dta", nogen keep(master matched) keepusing(gdp)       
+merge 1:1 iso year using "$work_data/exchange-rates.dta",  nogen keep(master matched) keepusing(exrate_usd) 
+merge 1:1 iso year using "$work_data/price-index.dta",     nogen keep(master matched) keepusing(index) 
 
 gen gdp_idx = gdp*index
 gen gdp_usd = gdp_idx/exrate_usd
 	
 preserve
 	keep iso year gdp* 
-	sa "$work_data/gdp_ewn.dta", replace
+	save "$work_data/gdp_ewn.dta", replace
 restore
 
-drop gdp 	
+drop  gdp 	
 order gdp_usd, after(gdp_lm)
 ren gdp_usd gdp_wid
-ren gdp_lm gdp 
+ren gdp_lm  gdp 
 
 replace gdp = gdp_wid if inlist(iso, "CW", "SX")
 replace gdp = gdp_wid if missing(gdp)
 
-// applying HP filter to GDP 
+//---------- 4.1 applying HP filter to GDP 
 foreach v in nwgxa_lm nwgxd_lm ptfxa ptfxd fdixa fdixd gdp portfolioequityassets debtassets ///
        financialderivativesassets fxreservesminusgold portfoliodebtassets otherinvestmentassets ///
 	   portfoliodebtliabilities otherinvestmentliabilities portfolioequityliabilities debtliabilities ///
 	   financialderivativesliab {
-gen log_`v' = ln(`v')
+	gen log_`v' = ln(`v')
 }
 
 encode iso, gen(i)
 xtset i year 
 tsfilter hp cycle = log_gdp, trend(trend)
 
-ren nwgxa_lm nwgxa 
-ren nwgxd_lm nwgxd
+ren *nwgxa_lm *nwgxa 
+ren *nwgxd_lm *nwgxd
 
 foreach v in nwgxa nwgxd { // ptfxa ptfxd fdixa fdixd
+	replace s_`v' = s_`v' + "_HPfilter" if !missing(log_`v') & !missing(trend)
+	replace q_`v' = 2                  if !missing(log_`v') & !missing(trend)
 	replace `v' = log_`v'/trend
 }
 
 order countryname iso year ptfxa ptfxd fdixa fdixd nwgxa nwgxd
 
-********Regional averages extrapolation 
-
+//---------- 4.2 Interpolation
 foreach v in nwgxd nwgxa { 
-	replace `v' =. if `v' == 0
-	bys iso : egen tot`v' = total(abs(`v')), missing
-	gen flagcountry`v' = 1 if tot`v' == .
+	replace          q_`v' =.  if `v' == 0
+	replace          s_`v' ="" if `v' == 0
+	replace            `v' =.  if `v' == 0
+	bys iso :  egen tot`v' = total(abs(`v')), missing
+	gen     flagcountry`v' = 1 if tot`v' == .
 	replace flagcountry`v' = 0 if missing(flagcountry`v')
 	drop tot`v'
 }
@@ -268,10 +289,13 @@ foreach v in nwgxd nwgxa {
 so iso year
 foreach v in nwgxd nwgxa { 
 	by iso : ipolate `v' year if corecountry == 1 & flagcountry`v' == 0, gen(x`v') 
-	replace `v' = x`v' if missing(`v') 
-	drop x`v'
+	*by iso : egen min_q`v' = min(q_`v')
+	replace q_`v' = 3      if missing(`v') & !missing(x`v')  //min_q`v' If we put 3, the interpolation would be higher than source date from HP
+	replace s_`v' = "ipol" if missing(`v') & !missing(x`v') 
+	replace   `v' = x`v'   if missing(`v') 
+	drop x`v' // min_q`v'
 }
-
+//---------- 4.3 Regional averages extrapolation 
 // using regional growth rates instead of carrying last value
 foreach level in undet un {
 	kountry iso, from(iso2c) geo(`level')
@@ -299,9 +323,14 @@ drop NAMES_STD
 gen soviet = 1 if inlist(iso, "AZ", "AM", "BY", "KG", "KZ", "GE") ///
 				| inlist(iso, "TJ", "MD", "TM", "UA", "UZ") ///
 				| inlist(iso, "EE", "LT", "LV", "RU", "SU")
+				
 foreach var in ptfxa ptfxd fdixa fdixd nwgxa nwgxd {				
-replace `var' = . if iso == "UZ" & year == 1992 
-replace `var' = . if iso == "RU" & year == 1992 
+	replace s_`var' = "" if iso == "UZ" & year == 1992 
+	replace q_`var' = .  if iso == "UZ" & year == 1992 
+	replace   `var' = .  if iso == "UZ" & year == 1992 
+	replace s_`var' = "" if iso == "RU" & year == 1992 
+	replace q_`var' = .  if iso == "RU" & year == 1992 
+	replace   `var' = .  if iso == "RU" & year == 1992 
 }
 
 gen yugosl = 1 if inlist(iso, "BA", "HR", "MK", "RS") ///
@@ -311,41 +340,54 @@ gen other = 1 if inlist(iso, "ER", "EH", "CS", "CZ", "SK", "SD", "SS", "TL") ///
 			   | inlist(iso, "ID", "SX", "CW", "AN", "YE", "ZW", "IQ", "TW")
 			   
 foreach v in nwgxa nwgxd { 
-	gen flag`v' = 1 if missing(`v')
+	gen     flag`v' = 1 if missing(`v')
 	replace flag`v' = 0 if missing(flag`v')
 }
 			   
 foreach v in nwgxa nwgxd { 
-xtset i year
-gen auxgr`v' = (`v' - l.`v')/l.`v'
+	xtset i year
+	gen auxgr`v' = (`v' - l.`v')/l.`v'
 	foreach level in undet un {
-bys geo`level' year : egen gr`level'`v' = mean(auxgr`v') if corecountry == 1 & TH == 0
+		bys geo`level' year : egen gr`level'`v' = mean(auxgr`v') if corecountry == 1 & TH == 0
 	}
-xtset i year
-gen gr`v' = grundet`v'
-replace gr`v' = grun`v' if missing(gr`v')
-replace gr`v' = grun`v' if (soviet == 1 | yugosl == 1 | other == 1 | geoun == "Oceania" | geoundet == "Eastern Europe" | geoundet == "South-Eastern Asia" ) // | geoundet == "Southern Europe"
+	xtset i year
+	gen     gr`v' = grundet`v'
+	replace gr`v' = grun`v' if missing(gr`v')
+	replace gr`v' = grun`v' if (soviet == 1 | yugosl == 1 | other == 1 | geoun == "Oceania" ///
+							| geoundet == "Eastern Europe" | geoundet == "South-Eastern Asia" ) // | geoundet == "Southern Europe"
+	
+	gen     region`v' = geoundet
+	replace region`v' = geoun if missing(gr`v')
+	replace region`v' = geoun if (soviet == 1 | yugosl == 1 | other == 1 | geoun == "Oceania" ///
+							| geoundet == "Eastern Europe" | geoundet == "South-Eastern Asia" ) // | geoundet == "Southern Europe"
 
-gen aux1`v' = `v' 
-gen aux2`v' = f.`v'/(1+f.gr`v')
+	gen aux1`v' = `v' 
+	gen aux2`v' = f.`v'/(1+f.gr`v')
 
 	forvalues i = 2016(-1)1969 { 
-	replace aux1`v' = aux2`v' if year == `i'+1 & missing(aux1`v') & corecountry == 1
-	replace aux2`v' = f.aux1`v'/(1+f.gr`v') if year == `i' & corecountry == 1
+		replace aux1`v' = aux2`v'               if year == `i'+1 & missing(aux1`v') & corecountry == 1
+		replace aux2`v' = f.aux1`v'/(1+f.gr`v') if year == `i' & corecountry == 1
 	}
-replace `v' = aux1`v' if missing(`v') & corecountry == 1 & flagcountry`v' == 0 & TH == 0
+	
+	replace s_`v' = "projectreg"+region`v' if missing(`v') & corecountry == 1 & flagcountry`v' == 0 & TH == 0
+	replace q_`v' = 0       if missing(`v') & corecountry == 1 & flagcountry`v' == 0 & TH == 0
+	replace   `v' = aux1`v' if missing(`v') & corecountry == 1 & flagcountry`v' == 0 & TH == 0
 }
-drop aux* gr*  
+drop aux* gr*  region*
 
-// Carry last value as last resort\
+//---------- 4.4 Carry last value as last resort\
 foreach v in nwgxa nwgxd { 
 so iso year
 by iso: carryforward `v' if corecountry == 1 & flagcountry`v' == 0 & TH == 0, replace cfindic(carriedforward`v')
 
 gsort iso -year 
 by iso: carryforward `v' if corecountry == 1 & flagcountry`v' == 0 & TH == 0, replace cfindic(carriedforward2`v')
+
+replace s_`v' = "carryfor" if carriedforward`v' | carriedforward2`v'
+replace q_`v' = 1          if carriedforward`v' | carriedforward2`v'
 }
 drop carriedforward* 
+
 
 // Also flagging countries with always zero
 foreach v in nwgxa nwgxd { 
@@ -355,35 +397,43 @@ foreach v in nwgxa nwgxd {
 	drop tot`v'
 }
 
+//---------- 4.5  Complete data  for TH 
 // Same procedure for TH. Instead of regional average TH average
 // Here we could also not use NL, BE or IE
 *replace TH = 0 if inlist(iso, "BE", "IE", "NL")
 foreach v in nwgxa nwgxd { 
-xtset i year
-gen auxgr`v' = (`v' - l.`v')/l.`v'
+	xtset i year
+	gen auxgr`v' = (`v' - l.`v')/l.`v'
 
-bys year : egen gr`v' = mean(auxgr`v') if corecountry == 1 & TH == 1
-xtset i year
-gen aux1`v' = `v' 
-gen aux2`v' = f.`v'/(1+f.gr`v')
+	bys year : egen gr`v' = mean(auxgr`v') if corecountry == 1 & TH == 1
+	xtset i year
+	gen aux1`v' = `v' 
+	gen aux2`v' = f.`v'/(1+f.gr`v')
 
-	forvalues i = 2022(-1)1969 { 
-	replace aux1`v' = aux2`v' if year == `i'+1 & missing(aux1`v') & corecountry == 1
-	replace aux2`v' = f.aux1`v'/(1+f.gr`v') if year == `i' & corecountry == 1
-	}
-replace `v' = aux1`v' if missing(`v') & corecountry == 1 & flagcountry`v' == 0 & TH == 1
+		forvalues i = 2022(-1)1969 { 
+		replace aux1`v' = aux2`v'               if year == `i'+1 & missing(aux1`v') & corecountry == 1
+		replace aux2`v' = f.aux1`v'/(1+f.gr`v') if year == `i' & corecountry == 1
+		}
+
+	replace s_`v' = "project" if missing(`v') & corecountry == 1 & flagcountry`v' == 0 & TH == 1 & !missing( aux1`v')
+	replace q_`v' = 1         if missing(`v') & corecountry == 1 & flagcountry`v' == 0 & TH == 1 & !missing( aux1`v')
+	replace   `v' = aux1`v'   if missing(`v') & corecountry == 1 & flagcountry`v' == 0 & TH == 1
 }
 drop aux* gr* 
 
-// Carry last value as last resort\
+//---------- 4.6  Carry last value as last resort TH
 foreach v in nwgxa nwgxd { 
-so iso year
-by iso: carryforward `v' if corecountry == 1 & flagcountry`v' == 0 & TH == 1, replace cfindic(carriedforward`v')
+	so iso year
+	by iso: carryforward `v' if corecountry == 1 & flagcountry`v' == 0 & TH == 1, replace cfindic(carriedforward`v')
 
-gsort iso -year 
-by iso: carryforward `v' if corecountry == 1 & flagcountry`v' == 0 & TH == 1, replace cfindic(carriedforward2`v')
+	gsort iso -year 
+	by iso: carryforward `v' if corecountry == 1 & flagcountry`v' == 0 & TH == 1, replace cfindic(carriedforward2`v')
+
+	replace s_`v' = "carryfor" if carriedforward`v' | carriedforward2`v'
+	replace q_`v' = 1          if carriedforward`v' | carriedforward2`v'
 }
 drop carriedforward* 
+
 
 // going back to share of current GDP
 gen log_gdp_wid = ln(gdp_wid)
@@ -395,20 +445,19 @@ foreach v in nwgxa nwgxd { // ptfxa ptfxd fdixa fdixd
 	replace `v' = `v'/gdp_wid
 }
 
-
-
-ren financialderivativesliabiliti financialderivativesliab
+//---------- 4.7 Trasnform to logarithms
+ren *financialderivativesliabiliti *financialderivativesliab
 foreach v in ptfxa ptfxd fdixa fdixd portfolioequityassets debtassets ///
        financialderivativesassets fxreservesminusgold portfoliodebtassets otherinvestmentassets ///
 	   portfoliodebtliabilities otherinvestmentliabilities portfolioequityliabilities debtliabilities ///
 	   financialderivativesliab { 
 	drop log_`v'
-	gen log_`v' = ln(`v')
+	gen     log_`v' = ln(`v')
 	replace log_`v' = log_`v'/trend
 	replace log_`v' = (log_`v'*trendwid)
 	replace log_`v' = exp(log_`v')
 	replace log_`v' = log_`v'/gdp_wid
-	replace `v' = log_`v' if !missing(log_`v')
+	replace     `v' = log_`v' if !missing(log_`v')
 }
 
 // flagging years where both variables have data
@@ -417,94 +466,129 @@ gen nonmissd = fdixd + ptfxd + nwgxd
 
 // shares
 foreach x in a d {
-gen share_fdi`x' = fdix`x'/nwgx`x' if nonmiss`x' > 0 & !missing(nonmiss`x')
-gen share_ptf`x' = ptfx`x'/nwgx`x' if nonmiss`x' > 0 & !missing(nonmiss`x')
-so iso year
-by iso : carryforward share_fdi`x', replace
-by iso : carryforward share_ptf`x', replace
-gsort iso -year
-by iso : carryforward share_fdi`x', replace
-by iso : carryforward share_ptf`x', replace
+	gen    s_share_fdi`x' = "_ratiofdix`x'/nwgx`x'" if nonmiss`x' > 0 & !missing(nonmiss`x')
+	gen    s_share_ptf`x' = "_ratioptfx`x'/nwgx`x'" if nonmiss`x' > 0 & !missing(nonmiss`x')
+	gen      share_fdi`x' = fdix`x'/nwgx`x' if nonmiss`x' > 0 & !missing(nonmiss`x')
+	gen      share_ptf`x' = ptfx`x'/nwgx`x' if nonmiss`x' > 0 & !missing(nonmiss`x')
+	so iso year
+	by iso : carryforward share_fdi`x', replace
+	by iso : carryforward share_ptf`x', replace
+	gsort iso -year
+	by iso : carryforward share_fdi`x', replace
+	by iso : carryforward share_ptf`x', replace
+	replace s_share_fdi`x' = "_carriedratiofdix`x'/nwgx`x'" if !missing(share_fdi`x') & missing(s_share_fdi`x')
+	replace s_share_ptf`x' = "_carriedratioptfx`x'/nwgx`x'" if !missing(share_ptf`x') & missing(s_share_ptf`x')
 }
 so iso year
+
 // shares
 foreach x in a d {
-replace fdix`x' = share_fdi`x'*nwgx`x' if missing(fdix`x')
-replace ptfx`x' = share_ptf`x'*nwgx`x' if missing(ptfx`x')
-replace fdix`x' = nwgx`x' - ptfx`x' if fdix`x' < 0
-replace ptfx`x' = nwgx`x' - fdix`x' if ptfx`x' < 0
-} 
-gen checka = fdixa + ptfxa
-replace nwgxa = ptfxa + fdixa if round(checka,.1) != round(nwgxa,.1) // (295 real changes made)
-gen checkd = fdixd + ptfxd
-replace nwgxd = ptfxd + fdixd if round(checkd,.1) != round(nwgxd,.1) // (312 real changes made)
+	replace s_fdix`x' = "nwgx`x'" +s_share_fdi`x' if missing(fdix`x') & !missing(nwgx`x')
+	replace s_ptfx`x' = "nwgx`x'" +s_share_ptf`x' if missing(ptfx`x') & !missing(nwgx`x')
+	replace s_fdix`x' = "nwgx`x',ptfx`x'" if fdix`x' < 0 & !missing(nwgx`x')
+	replace s_ptfx`x' = "nwgx`x',fdix`x'" if ptfx`x' < 0 & !missing(nwgx`x')
+
+	replace q_fdix`x' = min(3, q_nwgx`x') if missing(fdix`x') & !missing(nwgx`x')
+	replace q_ptfx`x' = min(3, q_nwgx`x') if missing(ptfx`x') & !missing(nwgx`x')
+	replace q_fdix`x' = min(3, cond(nwgx`x' >= ptfx`x', q_nwgx`x', q_ptfx`x')) if fdix`x' < 0      & !missing(nwgx`x')
+	replace q_ptfx`x' = min(3, cond(nwgx`x' >= fdix`x', q_nwgx`x', q_ptfx`x')) if ptfx`x' < 0      & !missing(nwgx`x')
+
+	replace fdix`x' = share_fdi`x'*nwgx`x' if missing(fdix`x')
+	replace ptfx`x' = share_ptf`x'*nwgx`x' if missing(ptfx`x')
+	replace fdix`x' = nwgx`x' - ptfx`x'    if fdix`x' < 0
+	replace ptfx`x' = nwgx`x' - fdix`x'    if ptfx`x' < 0
+}
+
+gen      checka = fdixa + ptfxa
+replace s_nwgxa = "ptfxa,fdixa" if round(checka,.1) != round(nwgxa,.1) // (295 real changes made)
+replace q_nwgxa = min(3, cond(ptfxa>=fdixa, q_ptfxa, q_fdixa)) if round(checka,.1) != round(nwgxa,.1) // (295 real changes made)
+replace   nwgxa = ptfxa + fdixa         if round(checka,.1) != round(nwgxa,.1) // (295 real changes made)
+gen      checkd = fdixd + ptfxd
+replace s_nwgxd = "ptfxd,fdixd" if round(checkd,.1) != round(nwgxd,.1) // (312 real changes made)
+replace q_nwgxd = min(3, cond(ptfxd>=fdixd, q_ptfxd, q_fdixd)) if round(checkd,.1) != round(nwgxd,.1) // (312 real changes made)
+replace   nwgxd = ptfxd + fdixd         if round(checkd,.1) != round(nwgxd,.1) // (312 real changes made)
 drop check* 
 
-// Completing with regional average for countries with missing values or zeros
+//---------- 4.8 Completing with regional average for countries with missing values or zeros
 // Countries with missing values: BQ, CU GL KP KS MC PR
 // Countries with zeros: none
 
 foreach v in nwgxa nwgxd { 
-bys geoundet year : egen avg`v' = mean(`v') if corecountry == 1 & TH == 0
-replace `v' = avg`v' if corecountry == 1 & (flagcountry`v' == 1 | flagcountry2`v' == 1) & TH == 0
+	bys geoundet year : egen avg`v' = mean(`v') if corecountry == 1 & TH == 0
+	replace s_`v' = "reg"+geoundet if corecountry == 1 & (flagcountry`v' == 1 | flagcountry2`v' == 1) & TH == 0
+	replace q_`v' = 0                   if corecountry == 1 & (flagcountry`v' == 1 | flagcountry2`v' == 1) & TH == 0
+	replace   `v' = avg`v'              if corecountry == 1 & (flagcountry`v' == 1 | flagcountry2`v' == 1) & TH == 0
 }
 drop avg* 
 
 // Completing with TH average
 foreach v in nwgxa nwgxd { 
-bys year : egen avg`v' = mean(`v') if corecountry == 1 & TH == 1
-replace `v' = avg`v' if corecountry == 1 & (flagcountry`v' == 1 | flagcountry2`v' == 1) & TH == 1
+	bys year : egen avg`v' = mean(`v') if corecountry == 1 & TH == 1
+	replace s_`v' =  "regTH"   if corecountry == 1 & (flagcountry`v' == 1 | flagcountry2`v' == 1) & TH == 1
+	replace q_`v' = 0            if corecountry == 1 & (flagcountry`v' == 1 | flagcountry2`v' == 1) & TH == 1
+	replace   `v' = avg`v'       if corecountry == 1 & (flagcountry`v' == 1 | flagcountry2`v' == 1) & TH == 1
 }
 drop avg* 
 
 foreach v in fdixa fdixd portfolioequityassets debtassets portfoliodebtassets otherinvestmentassets portfoliodebtliabilities otherinvestmentliabilities portfolioequityliabilities debtliabilities {
-	replace `v' = 0 if neg`v' == 1
+	replace s_`v' = "assumed" if neg`v' == 1
+	replace q_`v' = 0         if neg`v' == 1
+	replace   `v' = 0         if neg`v' == 1
 }
 
+// ------- 5. Disaggregate variables  --------------------------------------- //
 // dividing into portfolio and FDI
 foreach v in ptfxa fdixa {
 	gen share_`v' = `v'/nwgxa
 	bys geoundet year : egen auxsh_`v' = mean(share_`v') if corecountry == 1 & (flagcountrynwgxa == 0 | flagcountry2nwgxa == 0) & TH == 0
-	bys geoundet year : egen sh_`v' = mode(auxsh_`v')
-	replace `v' = sh_`v'*nwgxa if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 0
+	bys geoundet year : egen    sh_`v' = mode(auxsh_`v')
+	replace s_`v' = "nwgxa_ratiomean[`v'/nwgxa]reg" + geoundet if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 0
+	replace q_`v' = min(3,q_nwgxa)           if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 0
+	replace `v' = sh_`v'*nwgxa  if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 0
 }
 drop aux* sh*
 foreach v in ptfxd fdixd {
 	gen share_`v' = `v'/nwgxd
 	bys geoundet year : egen auxsh_`v' = mean(share_`v') if corecountry == 1 & (flagcountrynwgxd == 0 | flagcountry2nwgxd == 0) & TH == 0
-	bys geoundet year : egen sh_`v' = mode(auxsh_`v')
-	replace `v' = sh_`v'*nwgxd if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 0
+	bys geoundet year : egen    sh_`v' = mode(auxsh_`v')
+	replace s_`v' = "nwgxd_ratiomean[`v'/nwgxd]reg" + geoundet if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 0
+	replace q_`v' = min(3,q_nwgxd) if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 0
+	replace   `v' = sh_`v'*nwgxd   if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 0
 }
 drop aux* sh*
 *TH
 foreach v in ptfxa fdixa {
 	gen share_`v' = `v'/nwgxa
 	bys year : egen auxsh_`v' = mean(share_`v') if corecountry == 1 & (flagcountrynwgxa == 0 | flagcountry2nwgxa == 0) & TH == 1
-	bys year : egen sh_`v' = mode(auxsh_`v')
-	replace `v' = sh_`v'*nwgxa if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 1
+	bys year : egen    sh_`v' = mode(auxsh_`v')
+	replace s_`v' = "nwgxa_ratiomean[`v'/nwgxa]reg" + geoundet  if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 1
+	replace q_`v' = min(3,q_nwgxa) if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 1
+	replace   `v' = sh_`v'*nwgxa   if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 1
 }
 drop aux* sh*
 foreach v in ptfxd fdixd {
 	gen share_`v' = `v'/nwgxd
 	bys year : egen auxsh_`v' = mean(share_`v') if corecountry == 1 & (flagcountrynwgxd == 0 | flagcountry2nwgxd == 0) & TH == 1
-	bys year : egen sh_`v' = mode(auxsh_`v')
-	replace `v' = sh_`v'*nwgxd if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 1
+	bys year : egen    sh_`v' = mode(auxsh_`v')
+	replace s_`v' = "nwgxa_ratiomean[`v'/nwgxd]reg" + geoundet  if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 1
+	replace q_`v' = min(3,q_nwgxd) if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 1
+	replace   `v' = sh_`v'*nwgxd   if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 1
 }
 drop aux* sh*
 
 
-//dividing subcomponents 
+// dividing subcomponents 
 
 bys iso: gen nonmissconda = (!missing(portfolioequityassets, portfoliodebtassets, otherinvestmentassets, financialderivativesassets, fxreservesminusgold))
-ren financialderivativesassets finderivass
+ren *financialderivativesassets *finderivass
 
 foreach v in portfolioequityassets portfoliodebtassets otherinvestmentassets finderivass fxreservesminusgold {
-gen share_`v' = `v'/ptfxa if nonmissconda == 1
+	gen share_`v' = `v'/ptfxa if nonmissconda == 1
 }
 egen check = rowtotal(share_portfolioequityassets share_portfoliodebtassets share_otherinvestmentassets share_finderivass share_fxreservesminusgold)
 
 foreach v in portfolioequityassets portfoliodebtassets otherinvestmentassets finderivass fxreservesminusgold {
-gen share2_`v' = share_`v'/check
+	gen share2_`v' = share_`v'/check
 }
 
 egen check2 = rowtotal(share2_portfolioequityassets share2_portfoliodebtassets share2_otherinvestmentassets share2_finderivass share2_fxreservesminusgold)
@@ -512,39 +596,41 @@ egen check2 = rowtotal(share2_portfolioequityassets share2_portfoliodebtassets s
 drop check* 
 
 foreach v in portfolioequityassets portfoliodebtassets otherinvestmentassets finderivass fxreservesminusgold {
+	so iso year
+	by iso: carryforward share2_`v' if nonmissconda == 0, replace
+	gsort iso -year 
+	by iso: carryforward share2_`v' if nonmissconda == 0, replace
 
-so iso year
-by iso: carryforward share2_`v' if nonmissconda == 0, replace
-gsort iso -year 
-by iso: carryforward share2_`v' if nonmissconda == 0, replace
+	*regional averages for missing ratios
 
-*regional averages for missing ratios
+	bys geoundet year : egen avsh_`v' = mean(share2_`v') 
+	replace                share2_`v' = avsh_`v'  if missing(share2_`v')
 
-bys geoundet year : egen avsh_`v' = mean(share2_`v') 
-replace share2_`v' = avsh_`v' if missing(share2_`v')
+	bys geoun year : egen   avshu_`v' = mean(share2_`v') 
+	replace                share2_`v' = avshu_`v' if missing(share2_`v')
 
-bys geoun year : egen avshu_`v' = mean(share2_`v') 
-replace share2_`v' = avshu_`v' if missing(share2_`v')
-
-replace `v' = share2_`v'*ptfxa 
+	replace s_`v' = "ptfxa_ratio`v'/ptfxa"        if !missing(ptfxa) & !missing(share_`v')  & missing(share2_`v')
+	replace s_`v' = "ptfxa_carriedratio`v'/ptfxa" if !missing(ptfxa) & !missing(share2_`v')
+	replace q_`v' = min(3,q_ptfxa)                   if !missing(ptfxa)
+	replace   `v' = share2_`v'*ptfxa 
 }
 drop avsh* share*
 
 
 bys iso: gen nonmisscondl = (!missing(portfolioequityliabilities, portfoliodebtliabilities, otherinvestmentliabilities, financialderivativesliab))
-ren financialderivativesliab finderivliab
-ren otherinvestmentliabilities otherinvliab 
-ren portfolioequityliabilities portfolioequityliab
-ren portfoliodebtliabilities portfoliodebtliab
+ren *financialderivativesliab   *finderivliab
+ren *otherinvestmentliabilities *otherinvliab 
+ren *portfolioequityliabilities *portfolioequityliab
+ren *portfoliodebtliabilities   *portfoliodebtliab
 
 foreach v in portfolioequityliab portfoliodebtliab otherinvliab finderivliab {
-gen share_`v' = `v'/ptfxd if nonmisscondl == 1
+	gen share_`v' = `v'/ptfxd if nonmisscondl == 1
 }
 
 egen check = rowtotal(share_portfolioequityliab share_portfoliodebtliab share_otherinvliab share_finderivliab)
 
 foreach v in portfolioequityliab portfoliodebtliab otherinvliab finderivliab {
-gen share2_`v' = share_`v'/check
+	gen share2_`v' = share_`v'/check
 }
 
 egen check2 = rowtotal(share2_portfolioequityliab share2_portfoliodebtliab share2_otherinvliab share2_finderivliab)
@@ -552,21 +638,23 @@ egen check2 = rowtotal(share2_portfolioequityliab share2_portfoliodebtliab share
 drop check* 
 
 foreach v in portfolioequityliab portfoliodebtliab otherinvliab finderivliab {
+	so iso year
+	by iso: carryforward share2_`v' if nonmisscondl == 0, replace
+	gsort iso -year 
+	by iso: carryforward share2_`v' if nonmisscondl == 0, replace
 
-so iso year
-by iso: carryforward share2_`v' if nonmisscondl == 0, replace
-gsort iso -year 
-by iso: carryforward share2_`v' if nonmisscondl == 0, replace
+	*regional averages for missing ratios
 
-*regional averages for missing ratios
+	bys geoundet year : egen avsh_`v' = mean(share2_`v') 
+	replace share2_`v' =     avsh_`v' if missing(share2_`v')
 
-bys geoundet year : egen avsh_`v' = mean(share2_`v') 
-replace share2_`v' = avsh_`v' if missing(share2_`v')
-
-bys geoun year : egen avshu_`v' = mean(share2_`v') 
-replace share2_`v' = avshu_`v' if missing(share2_`v')
-
-replace `v' = share2_`v'*ptfxd
+	bys geoun year : egen avshu_`v' = mean(share2_`v') 
+	replace share2_`v' =  avshu_`v' if missing(share2_`v')
+	
+	replace s_`v' = "ptfxd_ratio`v'/ptfxd"        if !missing(ptfxd) & !missing(share_`v') &  missing(share2_`v')
+	replace s_`v' = "ptfxd_carriedratio`v'/ptfxd" if !missing(ptfxd) &  missing(share_`v')  & !missing(share2_`v') & !strpos(s_ptfxd,"(carried")
+	replace q_`v' = min(3,q_ptfxd)                   if !missing(ptfxd)
+	replace    `v' = share2_`v'*ptfxd
 }
 drop avsh* share*
 
@@ -575,10 +663,12 @@ drop avsh* share*
 drop corecountry flagcountry* geo* i flagcountry2* TH
 sort iso year 
 
-keep year iso nwgxa nwgxd ptfxa ptfxd fdixa fdixd flag* portfolioequityliab portfoliodebtliab otherinvliab finderivliab ///
-     portfolioequityassets portfoliodebtassets otherinvestmentassets finderivass fxreservesminusgold
+drop log_* neg*
+keep year iso *nwgxa *nwgxd *ptfxa *ptfxd *fdixa *fdixd flag* *portfolioequityliab *portfoliodebtliab *otherinvliab *finderivliab ///
+     *portfolioequityassets *portfoliodebtassets *otherinvestmentassets *finderivass *fxreservesminusgold
+
 	 
-//Rescale variables 
+// ------- 6. Rescale variables  -------------------------------------------- //
 
 gen ratio= (ptfxa + fdixa)/nwgxa
 replace ptfxa = ptfxa/ratio 
@@ -607,18 +697,27 @@ replace portfoliodebtliab=portfoliodebtliab/ratio
 replace otherinvliab= otherinvliab/ratio 
 replace finderivliab=finderivliab/ratio 
 
-gen debtass = portfoliodebtassets+otherinvestmentassets	
-gen debtliab = portfoliodebtliab+otherinvliab 
+gen s_debtass  = "portfoliodebtassets,otherinvestmentassets"	
+gen s_debtliab = "portfoliodebtliab,otherinvliab"
+gen q_debtass  = min(q_portfoliodebtassets, q_otherinvestmentassets)	
+gen q_debtliab = min(q_portfoliodebtliab,   q_otherinvliab)
+gen debtass    = portfoliodebtassets + otherinvestmentassets	
+gen debtliab   = portfoliodebtliab   + otherinvliab 
+drop *portfoliodebtassets *otherinvestmentassets *portfoliodebtliab *otherinvliab ratio
 
-drop portfoliodebtassets otherinvestmentassets portfoliodebtliab otherinvliab ratio
 
-ren portfolioequityliab ptfxd_eq 
-ren portfolioequityassets ptfxa_eq 
-ren fxreservesminusgold ptfxa_res 
-ren debtass ptfxa_deb
-ren debtliab ptfxd_deb 
-ren finderivass ptfxa_fin 
-ren finderivliab ptfxd_fin
+// ------- 7. Export --------------------------------------------------------- //
+ren *portfolioequityliab   *ptfxd_eq 
+ren *portfolioequityassets *ptfxa_eq 
+ren *fxreservesminusgold   *ptfxa_res 
+ren *debtass     		   *ptfxa_deb
+ren *debtliab    		   *ptfxd_deb 
+ren *finderivass 	       *ptfxa_fin 
+ren *finderivliab 	       *ptfxd_fin
 
-save "$input_data_dir/ewn-data/foreign-wealth-total-EWN_new.dta", replace 
 
+keep iso year *ptfxa *ptfxd *fdixa *fdixd *nwgxa *nwgxd *ptfxa_eq *ptfxd_eq *ptfxa_fin ///
+		*ptfxd_fin *ptfxa_res flagnwgxa flagnwgxd *ptfxa_deb *ptfxd_deb
+
+label data "Generate by import-extend-ewn.do"
+save "$work_data/foreign-wealth-total-EWN_new.dta", replace 

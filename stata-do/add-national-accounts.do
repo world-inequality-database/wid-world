@@ -25,32 +25,11 @@ generate fivelet = substr(widcode, 2, 5)
 
 // Remove series with old widcodes to be replaced with equivalent series with
 // new widcodes
-drop if fivelet == "psavi"
-drop if fivelet == "psgro"
-drop if fivelet == "psdep"
-drop if fivelet == "hsavi"
-drop if fivelet == "hsgro"
-drop if fivelet == "hsdep"
-drop if fivelet == "isavi"
-drop if fivelet == "isgro"
-drop if fivelet == "isdep"
-drop if fivelet == "csavi"
-drop if fivelet == "csgro"
-drop if fivelet == "csdep"
-drop if fivelet == "gsavi"
-drop if fivelet == "gsgro"
-drop if fivelet == "gsdep"
-drop if fivelet == "nsavi"
-drop if fivelet == "nsgro"
-drop if fivelet == "gsgro"
-drop if fivelet == "csgro"
-drop if fivelet == "isgro"
-drop if fivelet == "hsgro"
-drop if fivelet == "nsdep"
-drop if fivelet == "dsavi"
-drop if fivelet == "fsavi"
-drop if fivelet == "nvatp"
-
+drop if inlist(fivelet, "psavi", "psgro", "psdep", "hsavi", "hsgro", "hsdep") ///
+     | inlist(fivelet, "isavi", "isgro", "isdep", "csavi", "csgro", "csdep") ///
+     | inlist(fivelet, "gsavi", "gsgro", "nsavi", "nsgro", "nsdep", "nsdep") ///
+     | inlist(fivelet, "dsavi", "fsavi", "nvatp")
+	 
 // Remove series to be replaced
 merge n:1 iso year fivelet using "`to_replace'", nogenerate keep(master)
 drop fivelet
@@ -67,7 +46,7 @@ save "$work_data/add-national-accounts-output.dta", replace
 // -------------------------------------------------------------------------- //
 // Correct metadata file
 // -------------------------------------------------------------------------- //
-
+/*
 // Make list of widcode to be replaced
 use "$work_data/national-accounts.dta", clear
 generate fivelet = substr(widcode, 2, 5)
@@ -77,48 +56,33 @@ tempfile to_replace
 save "`to_replace'"
 
 // Import old metadata
-use "$work_data/correct-widcodes-metadata.dta", clear
+use "$work_data/add-price-index-metadata.dta", clear
 
 generate fivelet = substr(sixlet, 2, 5)
 
 // Remove widcodes that have changed
-drop if fivelet == "psavi"
-drop if fivelet == "psgro"
-drop if fivelet == "psdep"
-drop if fivelet == "hsavi"
-drop if fivelet == "hsgro"
-drop if fivelet == "hsdep"
-drop if fivelet == "isavi"
-drop if fivelet == "isgro"
-drop if fivelet == "isdep"
-drop if fivelet == "csavi"
-drop if fivelet == "csgro"
-drop if fivelet == "csdep"
-drop if fivelet == "gsavi"
-drop if fivelet == "gsgro"
-drop if fivelet == "gsdep"
-drop if fivelet == "nsavi"
-drop if fivelet == "nsgro"
-drop if fivelet == "gsgro"
-drop if fivelet == "csgro"
-drop if fivelet == "isgro"
-drop if fivelet == "hsgro"
-drop if fivelet == "nsdep"
-drop if fivelet == "dsavi"
-drop if fivelet == "fsavi"
+drop if inlist(fivelet, "psavi", "psgro", "psdep", "hsavi", "hsgro", "hsdep") ///
+     | inlist(fivelet, "isavi", "isgro", "isdep", "csavi", "csgro", "csdep") ///
+     | inlist(fivelet, "gsavi", "gsgro", "nsavi", "nsgro", "nsdep", "nsdep") ///
+     | inlist(fivelet, "dsavi", "fsavi", "nvatp")
+	 
 
 // Remove widcodes that have been replaced
 merge n:1 iso fivelet using "`to_replace'", nogenerate keep(master)
 drop fivelet
+
+gen old=1
 
 // Add new metadata
 append using "$work_data/na-metadata.dta"
 
 // Check that we haven't created duplicates
 gduplicates tag iso sixlet, gen(dup)
-assert dup == 0
-drop dup
+drop if dup!=0 & old==1
+gduplicates tag iso sixlet, gen(dup2)
+assert dup2 == 0
+drop dup* old
 
 // Save
 compress
-save "$work_data/metadata-no-duplicates.dta", replace
+save "$work_data/add-national-accounts-metadata.dta", replace

@@ -2,6 +2,7 @@
 // Bauluz + W/I imputations and extrapolations provided by Thomas Blanchet 
 // dta file exist in BBM_wealthinequality
 
+// -------------- A. Data --------------------------- //
 // 1. Prepare the wealth aggreggates
 use "$wid_dir/Country-Updates/Wealth/2025_March/wealth-aggregates-2024.dta", clear
 replace iso="KS" if iso=="XK"
@@ -22,16 +23,33 @@ if `n_expand'!=0 {  // Loop for filling missing recent years
 	replace year = year+(n-1)
 	drop dup n
 	} 
+	
+ds *_type
+local varlist `r(varlist)'
+
+
+foreach x in `varlist' {
+	local v = substr("`x'", 1, 5)
+	gen     data_quality`v'= 5 if `x'==1  // "observed"   
+	replace data_quality`v'= 3 if `x'==21 // "observed (and extended with OLS prediction)"     
+	replace data_quality`v'= 3 if `x'==22 // "observed (and extended with regional trend)" 
+	replace data_quality`v'= 2 if `x'==3  // "predicted"                                        
+	replace data_quality`v'= 1 if `x'==4  // "predicted (and extended with regional trend)"    
+	replace data_quality`v'= 0 if `x'==5  // "fully missing (regional average was assigened)"  
+	
+}
+drop *_type
 
 tempfile wealth_shares
 save `wealth_shares'
 
 // 2. Append the wealth aggregates
 use "$work_data/add-populations-output.dta", clear
+drop s_
 
 keep if inlist(widcode, /* "mnweal999i", "mhweal999i", "mpweal999i", "mgweal999i",*/ "mnninc999i", "mgdpro999i")
 drop p currency 
-reshape wide value, i(iso year) j(widcode) string
+reshape wide value data_quality , i(iso year) j(widcode) string
 
 
 *merge 1:1 iso year using "$wid_dir/Country-Updates/Wealth/2023_December/wealth-aggregates-2023.dta", nogen
@@ -45,7 +63,6 @@ foreach var in nwnxa nwgxd nwgxa {
 // Netherlands
 // merge 1:1 iso year using "$wid_dir/Country-Updates/Netherlands/2022_11/NL_WealthAggregates_WID_tomerge", update nogen
 
-ds iso year valuemnninc999i valuemgdpro999i, not
 /*
 foreach l in `r(varlist)' {
 	replace `l' = . if inrange(year, 1990, 1994) & iso == "RU"
@@ -53,24 +70,36 @@ foreach l in `r(varlist)' {
 */
 
 * Generate the share of Net national income
-foreach x in `r(varlist)' {
-	generate valuem`x'999i = `x'*valuemnninc999i if !missing(valuemnninc999i) & !missing(`x')
-	rename `x' valuew`x'999i
+ds iso year value* data_quality* , not
+local varlist `r(varlist)'
+
+foreach x in `varlist' {
+	generate    valuem`x'999i =    `x'*valuemnninc999i if !missing(valuemnninc999i) & !missing(`x')
+	
+	rename  `x' valuew`x'999i
+	capture rename data_quality`x' data_qualityw`x'999i
+		
+	gen  data_qualitym`x'999i = data_qualitymnninc999i if !missing(valuemnninc999i) & !missing(valuew`x'999i)
 }
 
 * Generate the share of Gross Domestic Product
 foreach x in `r(varlist)' {
-	generate valuey`x'999i = valuem`x'999i/valuemgdpro999i if !missing(valuemgdpro999i) & !missing(valuem`x'999i)
+	generate    valuey`x'999i = valuem`x'999i/valuemgdpro999i if !missing(valuemgdpro999i) & !missing(valuem`x'999i)
+	gen  data_qualityy`x'999i =        data_qualitymgdpro999i if !missing(valuemnninc999i) & !missing(valuey`x'999i)
 }
 
 
-drop valuemnninc999i valuemgdpro999i
+
+
+
+drop valuemnninc999i valuemgdpro999i data_qualitymnninc999i data_qualitymgdpro999i
 
 
 *reshape long
-greshape long value, i(iso year) j(widcode) string
+greshape long value data_quality, i(iso year) j(widcode) string
 drop if missing(value)
 generate p = "pall"
+
 
 // Correting invalid widcodes and iso
 drop if strpos(widcode,"_type") 
@@ -81,26 +110,40 @@ drop if strpos(widcode,"_type")
 ******
 levelsof widcode, local(wealth_var)
 
+gen s_="wealthagg"
+
+
 tempfile macro_weal
 save "`macro_weal'"
 
 
-// Metadata
-generate sixlet = substr(widcode, 1, 6)
-ds year p widcode value , not
-keep `r(varlist)'
-duplicates drop iso sixlet, force
-
+// -------------- B. Metadata --------------------------- //
+/*
+gen sixlet=substr(widcode,1,6)
+drop widcode 
 
 generate fivelet = substr(sixlet, 2, 6)
 merge m:1 iso fivelet using "$wid_dir/Country-Updates/Wealth/2025_March/wealth-aggregates-metadata.dta", nogenerate
 drop fivelet
+gen source=""
+	
+*Identify frontier years
+gen      aux=0 
+replace  aux=1 if year>=1970
 
-replace method= method + " Additionally, this value was adjusted using Net National Income data." if substr(sixlet, 1, 1)=="m" & !missing(method)
 
+sort iso sixlet aux year
+bysort iso sixlet aux: egen firstyear = min(year)
+bysort iso sixlet aux: egen lastyear = max(year)
+	
+keep iso  sixlet firstyear lastyear source method
+	
+duplicates drop
+bysort iso sixlet (firstyear lastyear): gen categ = sum(firstyear != firstyear[_n-1] | lastyear  != lastyear[_n-1])
 
+replace method= method + " Additionally, this value was adjusted using mnninc data." if substr(sixlet, 1, 1)=="m" & !missing(method)
 
-generate source = ///
+replace source = ///
 `"[URL][URL_LINK]"' + `"https://wid.world/www-site/uploads/2019/09/WID_WORKING_PAPER_2017_23_Updates_Bauluz.pdf"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Balauz, Luis (2017). “Revised and extended national wealth series: Australia, Canada, France, Germany, Italy, Japan, the UK and the USA”"' + `"[/URL_TEXT][/URL]; "' ///
 if inlist(iso, "AU", "CA", "FR", "DE", "JP", "IT", "GB", "US") ///
@@ -152,18 +195,46 @@ replace source = ///
 `"[URL_TEXT]"' + `"Chancel, L., Piketty, T. (2023). “Global Wealth Inequality on WID.world: Estimates and Imputations”"' + `"[/URL_TEXT][/URL]"' ///
 if missing(source)
 
+* Collase the metadata
+foreach v in source method {
+	preserve
+		generate `v'_new = string(firstyear) + ": " + `v' + ";" ///
+			if (firstyear == lastyear) & (`v'!="")
+		replace `v'_new = string(firstyear) + "-" + string(lastyear) + ///
+			": " + `v' + ";" if  (firstyear != lastyear)  & (`v'!="")
+		drop firstyear lastyear 
 
+		keep iso sixlet categ `v'_new 
+		drop if `v'_new == ""
+		duplicates drop
+
+		greshape wide `v'_new, i(iso sixlet) j(categ)
+		egen `v' = concat(`v'_new*), punct(" ")
+		keep iso sixlet `v' 
+			
+		tempfile metadata_`v'
+		save    `metadata_`v''
+	restore
+}
+
+u "`metadata_method'", clear
+merge 1:1 iso sixlet using "`metadata_source'", nogen 
+order iso sixlet method source
+replace method = substr(method, 1, length(method) - 1)
+replace source = substr(source, 1, length(source) - 1) 
 
 tempfile meta
 save `meta'
 
-use "$work_data/metadata-no-duplicates.dta", clear
+*export
+
+use "$work_data/add-populations-metadata.dta", clear
 merge 1:1 iso sixlet using "`meta'", nogenerate update replace 
 
 save "$work_data/add-wealth-aggregates-metadata.dta", replace
 
-
-// Save data & Export
+*/
+// -------------- C. Save data & Export --------------------------- //
 use "$work_data/add-populations-output.dta", clear
 replace widcode = subinstr(widcode, "fix", "fiw", .) 
 
@@ -210,8 +281,8 @@ drop wid dup*
 
 // Fill in currency
 bys iso : egen currency_2 = mode(currency)
-replace currency = currency_2 if inlist(substr(widcode, 1, 1), "a", "t", "m")
-replace currency = "" if !inlist(substr(widcode, 1, 1), "a", "t", "m")
+replace currency = currency_2 if  inlist(substr(widcode, 1, 1), "a", "t", "m")
+replace currency = ""         if !inlist(substr(widcode, 1, 1), "a", "t", "m")
 drop currency_2
 
 drop if mi(value)

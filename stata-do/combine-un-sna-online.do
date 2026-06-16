@@ -1,7 +1,12 @@
 // -------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 // Combine data from the different sectors
 // -------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
 
+// -------------------------------------------------------------------------- //
+// Import and clean data
+// -------------------------------------------------------------------------- //
 use "$work_data/un-sna-national-income.dta", clear
 merge 1:1 country_or_area year series using "$work_data/un-sna-corporations.dta", nogenerate
 merge 1:1 country_or_area year series using "$work_data/un-sna-households-npish.dta", nogenerate
@@ -71,6 +76,14 @@ replace ptxgo_va = . if iso == "DO" & series == 1000
 replace tpigo_va = . if iso == "DO" & series == 1000
 replace tpigo_va = . if iso == "CZ" & series == 100 & inlist(year, 1993, 1994)
 
+// Generate metadata
+ds  iso year series footnote*, not
+foreach v in `r(varlist)'{
+	*Genrate q_
+	gen q_`v' = 5 if `v'!=.
+	gen s_`v' =  "unsnacurr" if `v'!=.
+}
+
 // -------------------------------------------------------------------------- //
 // Calibrate series
 // -------------------------------------------------------------------------- //
@@ -87,7 +100,16 @@ enforce (comnx = comrx - compx) ///
 		(finpx = compx + pinpx + ftaxx) ///
 		(nnfin = flcin + taxnx) ///
 		(flcir = comrx + pinrx) ///
-		(flcip = compx + pinpx), fixed(nnfin) replace
+		(flcip = compx + pinpx), fixed(nnfin) prefix(new) replace
+		
+foreach v of varlist new* {
+    local base = subinstr("`v'", "new", "", .)
+
+    replace s_`base' = "enforce" if missing(`base') & !missing(`v')
+	replace q_`base' = 3         if missing(`base') & !missing(`v')
+    replace `base' = `v'
+}
+drop new* 
 
 // Gross national income of the different sectors of the economy
 // (+ specific income components)
@@ -116,16 +138,41 @@ enforce (gdpro + nnfin = prghn + prgco + prggo) ///
 		/// Social benefits
 		(ssbhn = ssbco + ssbgo) ///
 		(ssbco = ssbnf + ssbfc) ///
-		(ssbhn = ssbho + ssbnp), fixed(gdpro nnfin pinnx) replace
+		(ssbhn = ssbho + ssbnp), fixed(gdpro nnfin pinnx) prefix(new) replace
+
+drop newgdpro
+foreach v of varlist new* {
+    local base = subinstr("`v'", "new", "", .)
+	
+	replace s_`base' = "enforce" if missing(`base') & !missing(`v')
+    replace q_`base' = 3         if missing(`base') & !missing(`v')
+    replace `base' = `v'
+}
+drop new* 
 		
 // Use production taxes from generation of income account if necessary
-replace ptxgo = ptxgo_va + cond(missing(taxnx), 0, taxnx) if missing(ptxgo)
-replace tpigo = tpigo_va + cond(missing(ftaxx), 0, ftaxx) if missing(tpigo)
-replace spigo = spigo_va + cond(missing(fsubx), 0, fsubx) if missing(spigo)
-drop ptxgo_va tpigo_va spigo_va
+replace q_ptxgo = cond(missing(taxnx), q_ptxgo_va, min(q_ptxgo_va, q_taxnx)) if missing(ptxgo)
+replace s_ptxgo = "ptxgo-va" + cond(missing(taxnx), "", ", taxnx") if missing(ptxgo)
+replace   ptxgo = ptxgo_va + cond(missing(taxnx), 0, taxnx) if missing(ptxgo)
+replace q_tpigo = cond(missing(ftaxx), q_tpigo_va, min(q_tpigo_va, q_taxnx)) if missing(tpigo)
+replace s_tpigo = "tpigo-va" + cond(missing(ftaxx),"", ", ftaxx") if missing(tpigo)
+replace   tpigo = tpigo_va + cond(missing(ftaxx), 0, ftaxx) if missing(tpigo)
+replace q_spigo = cond(missing(fsubx), q_spigo_va, min(q_spigo_va, q_fsubx)) if missing(spigo)
+replace s_spigo = "spigo-va" + cond(missing(fsubx), "", ", fsubx") if missing(spigo)
+replace   spigo = spigo_va + cond(missing(fsubx), 0, fsubx) if missing(spigo)
+
+drop *ptxgo_va *tpigo_va *spigo_va 
 
 // Consumption of fixed capital
-enforce (confc = cfchn + cfcco + cfcgo), fixed(confc) replace
+enforce (confc = cfchn + cfcco + cfcgo), fixed(confc) prefix(new) replace
+foreach v of varlist new* {
+    local base = subinstr("`v'", "new", "", .)
+	
+	replace s_`base' = "enforce" if missing(`base') & !missing(`v')
+    replace q_`base' = 3         if missing(`base') & !missing(`v')
+    replace `base' = `v'
+}
+drop new*
 
 enforce (comhn = com_vahn + comnx) ///
 		/// Household + NPISH sector
@@ -189,7 +236,16 @@ enforce (comhn = com_vahn + comnx) ///
 		(ssbhn = ssbho + ssbnp) ///
 		(seghn = segho + segnp) ///
 		(savhn = savho + savnp) ///
-		(saghn = sagho + sagnp), fixed(prghn cfchn) replace
+		(saghn = sagho + sagnp), fixed(prghn cfchn) prefix(new) replace
+		
+foreach v of varlist new* {
+    local base = subinstr("`v'", "new", "", .)
+	
+	replace s_`base' = "enforce" if missing(`base') & !missing(`v')
+    replace q_`base' = 3         if missing(`base') & !missing(`v')
+    replace `base' = `v'
+}
+drop new*
 		
 sort iso series year
 *br iso year series ccmhn ccshn cfchn gmxhn nmxhn gsrhn nsrhn gsmhn nsmhn if iso == "AU"
@@ -225,7 +281,16 @@ enforce /// Combined sectors, primary income
 		(secco = secfc + secnf) ///
 		(taxco = taxfc + taxnf) ///
 		(sscco = sscfc + sscnf) ///
-		(segco = segfc + segnf), fixed(prgco cfcco) replace		
+		(segco = segfc + segnf), fixed(prgco cfcco)  prefix(new) replace		
+		
+foreach v of varlist new* {
+    local base = subinstr("`v'", "new", "", .)
+	
+	replace s_`base' = "enforce" if missing(`base') & !missing(`v')
+    replace q_`base' = 3         if missing(`base') & !missing(`v')
+    replace `base' = `v'
+}
+drop new* 
 
 // Government
 enforce ///
@@ -246,8 +311,17 @@ enforce ///
 	(congo = indgo + colgo) ///
 	(savgo = saggo - cfcgo) ///
 	/// Structure of gov spending
-	(congo = gpsgo + defgo + polgo + ecogo + envgo + hougo + heago + recgo + edugo + sopgo + othgo), fixed(prggo cfcgo) replace
+	(congo = gpsgo + defgo + polgo + ecogo + envgo + hougo + heago + recgo + edugo + sopgo + othgo), fixed(prggo cfcgo)  prefix(new) replace
+
+foreach v of varlist new* {
+    local base = subinstr("`v'", "new", "", .)
 	
+	replace s_`base' = "enforce" if missing(`base') & !missing(`v')
+    replace q_`base' = 3         if missing(`base') & !missing(`v')
+    replace `base' = `v'
+}
+drop new* 
+
 // -------------------------------------------------------------------------- //
 // Perform additional decompositions
 // -------------------------------------------------------------------------- //
@@ -257,6 +331,21 @@ generate fkpin = prphn + prico + nsrhn + prpgo
 // National savings
 generate savin = savhn + savgo + secco
 generate savig = savin + confc
+
+// Complete metadata
+egen q_fkpin= rowmin(q_prphn q_prico q_nsrhn q_prpgo)
+egen q_savin= rowmin(q_savhn q_savgo q_secco)
+egen q_savig= rowmin(q_savin q_confc)
+
+gen s_fkpin= "prphn,prico,nsrhn,prpgo"
+gen s_savin= "savhn,savgo,secco"
+gen s_savig= "savin,confc"
+
+// -------------------------------------------------------------------------- //
+// Export
+// -------------------------------------------------------------------------- //
+// Complete metadata
+ds  iso year series footnote* q_* gdpro, not
 
 label data "Generated by combine-un-sna-online.do"
 save "$work_data/un-sna-full.dta", replace

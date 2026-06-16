@@ -4,6 +4,8 @@
 
 use "$work_data/correct-widcodes-output.dta", clear
 
+// For the macro part, lets call data_quality just q_
+rename data_quality q_
 // Keep relevant macro income variables
 generate to_keep = 0
 replace to_keep = 1 if inlist(widcode, "mhsavi999i", "mhsgro999i", "mhsdep999i") // Personal sector
@@ -15,7 +17,7 @@ replace to_keep = 1 if inlist(widcode, "mnninc999i", "mgdpro999i", "mconfc999i",
 keep if to_keep
 drop to_keep p currency
 
-greshape wide value, i(iso year) j(widcode) string
+greshape wide value q_, i(iso year) j(widcode) string
 renvars value*, predrop(5)
 
 * we loose India CFC because we have here only NNI and not GDP 
@@ -42,33 +44,41 @@ foreach v of varlist `r(varlist)' {
 replace mconfc999i= mconfc999i_IN if iso=="IN" & year<=1950
 
 // Adapt widcodes
-rename mconfc999i confc
-rename mcsavi999i secco
-rename mcsdep999i cfcco
-rename mcsgro999i segco
-rename mgsavi999i savgo
-rename mgsdep999i cfcgo
-rename mgsgro999i saggo
-rename mhsavi999i savho
-rename mhsdep999i cfcho
-rename mhsgro999i sagho
-rename misavi999i savnp
-rename misdep999i cfcnp
-rename misgro999i sagnp
-rename mnnfin999i nnfin
-rename mnninc999i nninc
-rename mnsavi999i savin
-rename mnsgro999i savig
-rename mnvatp999i ptxgo
+rename *mconfc999i *confc
+rename *mcsavi999i *secco
+rename *mcsdep999i *cfcco
+rename *mcsgro999i *segco
+rename *mgsavi999i *savgo
+rename *mgsdep999i *cfcgo
+rename *mgsgro999i *saggo
+rename *mhsavi999i *savho
+rename *mhsdep999i *cfcho
+rename *mhsgro999i *sagho
+rename *misavi999i *savnp
+rename *misdep999i *cfcnp
+rename *misgro999i *sagnp
+rename *mnnfin999i *nnfin
+rename *mnninc999i *nninc
+rename *mnsavi999i *savin
+rename *mnsgro999i *savig
+rename *mnvatp999i *ptxgo
+
 drop *999i
 cap dropmiss confc-ptxgo, obs force
 cap dropmiss confc-ptxgo, obs
 
 // Ensure consistency
 generate gdpro = 1
-generate cfchn = .
-generate savhn = .
-generate saghn = .
+foreach v in cfchn  savhn  saghn {
+	gen    `v' = .
+	gen  q_`v' = .
+}
+
+ds iso year gdpro mconfc999i_IN q_*, not
+foreach v of varlist `r(varlist)' {
+	gen      s_`v' = "WID" if !missing(`v')
+	replace q_`v' = .     if  missing(`v')
+}
 
 enforce /// National income
         (nninc = gdpro - confc + nnfin) ///
@@ -83,13 +93,24 @@ enforce /// National income
 		(sagho = savho + cfcho) ///
 		(sagnp = savnp + cfcnp) ///
 		(saggo = savgo + cfcgo) ///
-		(segco = secco + cfcco), fixed(gdpro) replace
+		(segco = secco + cfcco), fixed(gdpro) prefix(new) replace
+
+// Drop main aggregates for now (to be recalculated later)
+drop *gdpro *nninc 
+
+foreach v of varlist new* {
+    local base = subinstr("`v'", "new", "", .)
+
+    replace q_`base' = 3 if missing(`base') & !missing(`v')
+    replace `base' = `v'
+}
+drop new* 
 
 generate series = 200000
 
-// Drop main aggregates for now (to be recalculated later)
-drop gdpro nninc
 
+
+label data "reformat-wid-data.do"
 save "$work_data/sna-wid.dta", replace
 
 // -------------------------------------------------------------------------- //

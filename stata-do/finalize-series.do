@@ -15,14 +15,20 @@ gegen toreplace2 = max(toreplace), by(iso)
 
 foreach s in ho hn {
 	foreach v of varlist gsm`s' nsm`s' prg`s' pri`s' seg`s' sec`s' sav`s' sag`s' {
-		replace series_cfc`s' = -1      if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
-		replace cfc`s' = imputed_cfc`s' if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
+		replace series_cfc`s' = -1               if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
+		replace      q_cfc`s' = imputed_q_cfc`s' if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
+		replace      s_cfc`s' = imputed_s_cfc`s' if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
+		replace        cfc`s' = imputed_cfc`s'   if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
 	}
-	replace series_ccs`s' = -1      if (missing(ccs`s') | toreplace2) & (!missing(gsr`s') | !missing(nsr`s')) & !missing(imputed_ccs`s')
-	replace ccs`s' = imputed_ccs`s' if (missing(ccs`s') | toreplace2) & (!missing(gsr`s') | !missing(nsr`s')) & !missing(imputed_ccs`s')
+	replace series_ccs`s' = -1               if (missing(ccs`s') | toreplace2) & (!missing(gsr`s') | !missing(nsr`s')) & !missing(imputed_ccs`s')
+	replace      q_ccs`s' = imputed_q_ccs`s' if (missing(ccs`s') | toreplace2) & (!missing(gsr`s') | !missing(nsr`s')) & !missing(imputed_ccs`s')
+	replace      s_ccs`s' = imputed_s_ccs`s' if (missing(ccs`s') | toreplace2) & (!missing(gsr`s') | !missing(nsr`s')) & !missing(imputed_ccs`s')
+	replace        ccs`s' = imputed_ccs`s'   if (missing(ccs`s') | toreplace2) & (!missing(gsr`s') | !missing(nsr`s')) & !missing(imputed_ccs`s')
 	
-	replace series_ccm`s' = -1      if (missing(ccm`s') | toreplace2) & (!missing(gmx`s') | !missing(nmx`s')) & !missing(imputed_ccm`s')
-	replace ccm`s' = imputed_ccm`s' if (missing(ccm`s') | toreplace2) & (!missing(gmx`s') | !missing(nmx`s')) & !missing(imputed_ccm`s')
+	replace series_ccm`s' = -1               if (missing(ccm`s') | toreplace2) & (!missing(gmx`s') | !missing(nmx`s')) & !missing(imputed_ccm`s')
+	replace      q_ccm`s' = imputed_q_ccm`s' if (missing(ccm`s') | toreplace2) & (!missing(gmx`s') | !missing(nmx`s')) & !missing(imputed_ccm`s')
+	replace      s_ccm`s' = imputed_s_ccm`s' if (missing(ccm`s') | toreplace2) & (!missing(gmx`s') | !missing(nmx`s')) & !missing(imputed_ccm`s')
+	replace        ccm`s' = imputed_ccm`s'   if (missing(ccm`s') | toreplace2) & (!missing(gmx`s') | !missing(nmx`s')) & !missing(imputed_ccm`s')
 }
 
 foreach s in co nf fc np go {
@@ -31,13 +37,17 @@ foreach s in co nf fc np go {
 			continue
 		}
 		
-		replace series_cfc`s' = -1      if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
-		replace cfc`s' = imputed_cfc`s' if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
+		replace series_cfc`s' = -1          if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
+		replace q_cfc`s' = imputed_q_cfc`s' if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
+		replace s_cfc`s' = imputed_s_cfc`s' if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
+		replace   cfc`s' = imputed_cfc`s'   if (missing(cfc`s') | toreplace2) & !missing(`v') & !missing(imputed_cfc`s')
 	}
 }
 
-replace series_confc = -1     if (missing(confc) | toreplace2) & !missing(imputed_confc)
-replace confc = imputed_confc if (missing(confc) | toreplace2) & !missing(imputed_confc)
+replace series_confc = -1              if (missing(confc) | toreplace2) & !missing(imputed_confc)
+replace      q_confc = imputed_q_confc if (missing(confc) | toreplace2) & !missing(imputed_confc)
+replace      s_confc = imputed_s_confc if (missing(confc) | toreplace2) & !missing(imputed_confc)
+replace        confc = imputed_confc   if (missing(confc) | toreplace2) & !missing(imputed_confc)
 
 drop imputed_* toreplace toreplace2
 
@@ -51,7 +61,9 @@ merge 1:1 iso year using "$work_data/sna-fullsector.dta", nogen update replace
 
 sort iso year
 by iso: carryforward nnfin, replace cfindic(flag)
-replace series_nnfin = -2 if flag
+replace series_nnfin = -2             if flag
+replace      q_nnfin = 1              if flag
+replace      s_nnfin = "carryfor" if flag
 drop flag 
 
 
@@ -64,7 +76,7 @@ drop flag
 //                2. comnp removed and asummed 0, and therfore comhn replaced by ceuhn
 
 * Drop innecessary variables:
-drop comnp 
+drop *comnp 
 
 enforce (comnx = comrx - compx) ///
 		(pinnx = pinrx - pinpx) ///
@@ -228,24 +240,48 @@ enforce (comnx = comrx - compx) ///
 		/// Structure of gov spending
 		(congo = gpsgo + defgo + polgo + ecogo + envgo + hougo + heago + recgo + edugo + sopgo + othgo) ///
 		/// Labor + capital income decomposition
-		(fkpin = prphn + prico + nsrhn + prpgo) , fixed(gdpro fdirx fdipx ptfrx ptfpx confc cfcgo fkpin comhn nmxhn ptxgo) replace force
+		(fkpin = prphn + prico + nsrhn + prpgo) , fixed(gdpro fdirx fdipx ptfrx ptfpx confc cfcgo fkpin comhn nmxhn ptxgo) prefix(new) replace force
+drop newgdpro
+foreach v of varlist new* {
+    local base = subinstr("`v'", "new", "", .)
 	
+	replace s_`base' = "enforce" if missing(`base') & !missing(`v')
+    replace q_`base' = 3         if missing(`base') & !missing(`v')
+    replace   `base' = `v'
+}
+drop new* 
+
 // Internal enforce of decomposition variables
 enforce (gdpro = ptxgo + gvato) ///
 		(gvahn = ceuhn + gsrhn + gmxhn) ///
 		(comhn = ceugo + ceuco + ceuhn + comrx - compx) ///
 		(gvaco = ceuco + gsrco) ///
 		(gvato = gvago + gvaco + gvahn) ///
-		(gvago = ceugo + gsrgo), fixed( gdpro ptxgo comhn comrx compx) replace force
+		(gvago = ceugo + gsrgo), fixed( gdpro ptxgo comhn comrx compx) prefix(new) replace force
+drop newgdpro
+foreach v of varlist new* {
+    local base = subinstr("`v'", "new", "", .)
+	
+	replace s_`base' = "enforce" if missing(`base') & !missing(`v')
+    replace q_`base' = 3         if missing(`base') & !missing(`v')
+    replace   `base' = `v'
+}
+drop new* 
 		
 // Edit to zero
-drop   currency gdp_idx   index // exrate_usd
-ds iso year series_* flag* exrate_usd, not
+drop   gdp_idx   index // exrate_usd currency 
+ds iso year series_* flag* exrate_usd miss* neg* q_* s_* gdpro *_gdp, not
 local varlist = r(varlist)
-
-
 foreach v of varlist `varlist' {
-	replace `v' = 0 if abs(`v') <= 1e-7
+	replace q_`v' = 0          if abs(`v') <= 1e-7
+	replace s_`v' = "assumed"  if abs(`v') <= 1e-7
+}
+
+ds iso year series_* flag* exrate_usd *q_* *s_*, not
+local varlist = r(varlist)
+foreach v of varlist `varlist' {
+	di "`v'"
+	replace `v' = 0  if abs(`v') <= 1e-7
 }
 
 * Export

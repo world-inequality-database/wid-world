@@ -9,30 +9,56 @@ u "$wid_dir/Country-Updates/Trade/UNComtrade/uncomtrade_merchandisetrade", clear
 sort iso year 
 destring year, replace
 
-renvars exp* imp* sh*, postfix(_ct)
+foreach x in imp exp {
+	foreach v in AG MA MI {
+		gen s_sh_`x'_`v' = "UNcomtrade"
+		gen q_sh_`x'_`v' = 5
+		
+		gen s_`x'ort`v'  = "UNcomtrade"
+		gen q_`x'ort`v' = 5
+	}
+}
+
+
+renvars exp* imp* sh* s_* q_*, postfix(_ct)
 destring year, replace
-merge 1:1 iso year using "$work_data/merchandisetrade.dta" 
+
+merge 1:1 iso year using "$work_data/merchandisetrade.dta", nogen
 
 // flagging missing values or 0 values
-gen flagexp = 1 if mi(sh_exp_AG) | mi(sh_exp_MA) | mi(sh_exp_MI)
+gen     flagexp = 1 if mi(sh_exp_AG) | mi(sh_exp_MA) | mi(sh_exp_MI)
 replace flagexp = 1 if sh_exp_AG == 0 | sh_exp_MA == 0 | sh_exp_MI == 0  
 replace flagexp = 0 if mi(flagexp)
 
-gen flagimp = 1 if mi(sh_imp_AG) | mi(sh_imp_MA) | mi(sh_imp_MI)
+gen     flagimp = 1 if mi(sh_imp_AG) | mi(sh_imp_MA) | mi(sh_imp_MI)
 replace flagimp = 1 if sh_imp_AG == 0 | sh_imp_MA == 0 | sh_imp_MI == 0  
 replace flagimp = 0 if mi(flagimp)
 
-foreach s in AG MA MI {
-	foreach f in exp imp {
-		replace `f'ort`s' = `f'ort`s'_ct/1e6 if flag`f' == 1	
-		replace sh_`f'_`s' = sh_`f'_`s'_ct if flag`f' == 1	
+foreach f in exp imp {	
+	foreach s in AG MA MI {	
+		replace q_`f'ort`s'  =  q_`f'ort`s'_ct  if flag`f' == 1
+		replace s_`f'ort`s'  =  s_`f'ort`s'_ct  if flag`f' == 1
+		
+		replace q_sh_`f'_`s' = q_sh_`f'_`s'_ct  if flag`f' == 1
+		replace s_sh_`f'_`s' = s_sh_`f'_`s'_ct  if flag`f' == 1
+		
+		replace    `f'ort`s' = `f'ort`s'_ct/1e6 if flag`f' == 1	
+		replace   sh_`f'_`s' =   sh_`f'_`s'_ct  if flag`f' == 1
 	}
 }
-replace exportTO = exportAG + exportMI + exportMA
-replace importTO = importAG + importMI + importMA
 
-drop flag* *ct _m
+foreach v in imp exp {
+	replace `v'ortTO = `v'ortAG + `v'ortMI + `v'ortMA
+}
+drop flag* *ct 
 
+
+foreach f in exp imp {	
+	foreach s in AG MA MI {	
+		replace q_`f'ort`s' = 1                       if inlist(iso,"SU", "CS", "YU", "AN") & !missing(`f'ort`s')
+		replace s_`f'ort`s' = s_`f'ort`s'+"("+iso+")" if inlist(iso,"SU", "CS", "YU", "AN") & !missing(`f'ort`s')
+	}
+}
 replace iso = "RU" if iso == "SU"
 replace iso = "CZ" if iso == "CS"
 replace iso = "RS" if iso == "YU"
@@ -47,18 +73,19 @@ drop _fillin
 
 sort iso year
 foreach v in exportAG exportMA exportMI exportTO importAG importMA importMI importTO {
-
     quietly {
         forvalues i = `=_N'(-1)1 {
-            quietly replace `v' =(`v'[`i'+1] + `v'[`i'+2] + `v'[`i'+3]) / 3 ///
-                if iso=="RU" & missing(`v'[`i']) & iso[`i'] == iso[`i'+1] in `i'
-        }
-    }
+			replace   `v' =(`v'[`i'+1] + `v'[`i'+2] + `v'[`i'+3]) / 3  if iso=="RU" & missing(`v'[`i']) & iso[`i'] == iso[`i'+1] in `i'
+			replace q_`v' = 1                                          if iso=="RU" & !missing(`v') & missing(q_`v')
+			replace s_`v' = "project"                                  if iso=="RU" & !missing(`v') & s_`v'==""
+            
+		}
+	}
 }
 
+
 //Keep Core countries
-merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogen keep(matched)
-drop titlename-corecountry region1 region3
+merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogen keep(matched) keepusing(region2)
 
 preserve
 	replace region2="OA" if iso=="RU" & year<=1994 // THis for compleating the regional data of OA
@@ -76,33 +103,36 @@ append using "`merchandise_reg'"
 so iso year 
 foreach v in AG MA MI {
 	gen double sh_exp_`v' = export`v'/exportTO
+	gen double sh_imp_`v' = import`v'/importTO
+	
+	replace s_sh_exp_`v' = s_export`v' if !missing(exportTO)
+	replace s_sh_imp_`v' = s_import`v' if !missing(importTO)
+	replace q_sh_exp_`v' = min(3,q_export`v')
+	replace q_sh_imp_`v' = min(3,q_import`v')
 }
-foreach v in AG MA MI {
-	gen sh_imp_`v' = import`v'/importTO
+
+foreach f in exp imp {
+	local base = substr("`f'", 2, 1)
+	gen double sh_`f'_com = sh_`f'_AG + sh_`f'_MI
+	quality    sh_`f'_AG  sh_`f'_MI, gen(q_sh_`f'_com)
+	gen      s_sh_`f'_com = "tgxmx,tgmmx" if !missing(sh_`f'_com)
 }
 
-	foreach f in exp imp {
-		gen double sh_`f'_com = sh_`f'_AG + sh_`f'_MI
-	}
 
-
-keep iso year sh* 
+keep iso year sh* s_sh* q_sh*
 
 //Format
-rename sh_exp_AG tgxmx // share of manufactured goods in exports in goods (%) (after net zero correction) (benchmark series)
-rename sh_exp_MI  tgmmx // share of manufactured goods in imports in goods (%) (after net zero correction) (benchmark series)
-rename sh_exp_com tgxcx // share of primary commodities in exports in goods (%) (after net zero correction) (benchmark series)
-rename sh_imp_com tgmcx // share of primary commodities in imports in goods (%) (after net zero correction) (benchmark series)
+rename *sh_exp_AG *tgxmx // share of manufactured goods in exports in goods (%) (after net zero correction) (benchmark series)
+rename *sh_exp_MI  *tgmmx // share of manufactured goods in imports in goods (%) (after net zero correction) (benchmark series)
+rename *sh_exp_com *tgxcx // share of primary commodities in exports in goods (%) (after net zero correction) (benchmark series)
+rename *sh_imp_com *tgmcx // share of primary commodities in imports in goods (%) (after net zero correction) (benchmark series)
 *replace widcode="" if code=="imp_AG"  // trade balance in manufactured goods (% GDP) (MER $) (after net zero correction) (benchmark series)
 *replace widcode="" if code=="imp_MI"  // exports in manufactured goods (% GDP) (MER $) (after net zero correction) (benchmark series)
-
-drop sh_*
-
+drop *sh_*
 
 
 tempfile merchandise
 save    `merchandise'
-
 
 
 // -------- 2. Trade Stats 1938-1960  ------------------------------------------						
@@ -124,7 +154,7 @@ restore
 drop region2
 append using "`hist_reg'"
 
-keep Mtot Mmanuf Xtot Xmanuf iso year
+keep iso year  Mtot Mmanuf Xtot Xmanuf 
 foreach var in Mtot Mmanuf Xtot Xmanuf {
 	replace `var' =. if `var' == 0
 }
@@ -138,18 +168,23 @@ gen double sh_export_man = Xmanuf/Xtot
 keep iso year sh*
 order iso year 
 
+foreach v in imp exp {
+	foreach x in com man {
+		gen s_sh_`v'ort_`x' = "UNTradeCom" if !missing(sh_`v'ort_`x')
+		gen q_sh_`v'ort_`x' = 4            if !missing(sh_`v'ort_`x')
+	}
+}
+
 //Format
-rename sh_export_com tgxcx //  Raw series on share of primary commodities in exports in goods (%)
-rename sh_import_com tgmcx // Raw series on share of primary commodities in imports in goods (%)
-rename  sh_export_man tgxmx //  Raw series on share of manufactured goods in exports in goods (%)
-rename sh_import_man tgmmx // Raw series on share of manufactured goods in imports in goods (%)
+rename *sh_export_com *tgxcx //  Raw series on share of primary commodities in exports in goods (%)
+rename *sh_import_com *tgmcx // Raw series on share of primary commodities in imports in goods (%)
+rename *sh_export_man *tgxmx //  Raw series on share of manufactured goods in exports in goods (%)
+rename *sh_import_man *tgmmx // Raw series on share of manufactured goods in imports in goods (%)
 
 
 
 tempfile historical
 save    `historical'
-
-
 
 //---------- 3. Checking how big is code 68 and 9  -----------------------------
 /*
@@ -248,7 +283,6 @@ save `sitc'
 use "`merchandise'", clear
 append using  "`historical'"
 *merge 1:1 iso year using "`sitc'"
-
 keep if year >=1970
 sort iso year 
 fillin iso year 
@@ -270,11 +304,10 @@ restore
 //---------- 5. Completing missing data  ---------------------------------------
 
 //Keep Core countries
-merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogen keep(matched using)
-drop titlename-corecountry region1 region3
+merge m:1 iso using "$work_data/import-core-country-codes-output.dta", nogen keep(matched using) keepusing(region2)
 rename region2 region
 
-replace year=1970 if missing(year) // this are core countries not evailable in any of the sources
+replace year=1970 if missing(year) // this are core countries not evailable in any of the s_s
 fillin iso year
 drop _fillin
 bysort iso (year): replace region = region[_n-1] if missing(region) & (iso[_n-1]==iso)
@@ -323,7 +356,7 @@ foreach v in tgxmx tgmmx tgxcx tgmcx {
 	gen double filled_`v' = `v'
     quietly {
         forvalues i = `=_N'(-1)1 {
-            quietly replace filled_`v' = (reg_`v'[`i'] * filled_`v'[`i'+1]) / reg_`v'[`i'+1]  /// 
+            replace filled_`v' = (reg_`v'[`i'] * filled_`v'[`i'+1]) / reg_`v'[`i'+1]  /// 
 			if tag_m[`i'] == 1  & missing(filled_`v'[`i']) & iso[`i'] == iso[`i'+1] in `i'
         }
     }
@@ -334,7 +367,7 @@ foreach v in tgxmx tgmmx tgxcx tgmcx {
 
     quietly {
         forvalues i = `=_N'(-1)1 {
-            quietly replace filled_`v' = (reg_`v'[`i'] * filled_`v'[`i'+1]) / reg_`v'[`i'+1] ///
+            replace filled_`v' = (reg_`v'[`i'] * filled_`v'[`i'+1]) / reg_`v'[`i'+1] ///
                 if tag_m[`i'] == 1 & missing(filled_`v'[`i']) & iso[`i'] == iso[`i'+1] in `i'
         }
     }
@@ -342,28 +375,31 @@ foreach v in tgxmx tgmmx tgxcx tgmcx {
 
 * Fill data
 foreach v in tgxmx tgmmx tgxcx tgmcx {
-	replace `v' =filled_`v'  if tag_m==1 & missing(`v')
+	replace   `v' = filled_`v'             if tag_m==1 &  missing(`v')
+	replace s_`v' = "`v'_reggrow" + region if tag_m==1 & !missing(`v') & missing(s_`v') 
+	replace q_`v' = 1                      if tag_m==1 & !missing(`v') & missing(q_`v')
 }
 foreach v in tgxmx tgmmx tgxcx tgmcx {
-	replace `v' =reg_`v'     if tag_m==1 & missing(`v')
+	replace   `v' = reg_`v'          if tag_m==1 &  missing(`v')
+	replace s_`v' = "regsh" + region if tag_m==1 & !missing(`v') & missing(s_`v') 
+	replace q_`v' = 0                if tag_m==1 & !missing(`v') & missing(q_`v')
 }
 
 drop region tag_m reg_* filled*
 // --------------> Raw series on share of var in X or M in goods (%)
 //---------- 6. Calling GDP, price index and XRate data  -----------------------
 // Bring the value of the trade balance
-merge 1:1 iso year using "$work_data/bop_currentacc.dta",  nogen                    keepusing(tgxrx tgmpx) // tgnnx
+merge 1:1 iso year using "$work_data/bop_currentacc.dta",  nogen                    keepusing(*tgxrx *tgmpx) // tgnnx
 // Bring Product 
 merge 1:1 iso year using "$work_data/retropolate-gdp.dta", nogen keep(match master) keepusing(gdp currency)
 merge 1:1 iso year using "$work_data/price-index.dta",     nogen keep(match master) keepusing(index)
-merge 1:1 iso year using "$work_data/exchange-rates.dta",  nogen keep(match master) keepusing(value)
-rename value xrateusd
+merge 1:1 iso year using "$work_data/exchange-rates.dta",  nogen keep(match master) keepusing(exrate_usd)
 keep if year>=1970
 
 
 * Calculate values in Current USD Dollars 
-replace gdp=(gdp*index)/xrateusd //GDP current Miill USD MER
-drop currency index xrateusd
+replace gdp=(gdp*index)/exrate_usd //GDP current Miill USD MER
+drop currency index exrate_usd
 
 replace tgxrx= tgxrx*gdp  //Exports of goods current Miill USD MER after net zero correction
 replace tgmpx= tgmpx*gdp //Imports of goods current Miill USD MER after net zero correction
@@ -376,8 +412,8 @@ replace tgmmx = tgmmx * tgmpx
 
 // step 2: New series on X or M in var (current millon USD) (MER) (after net zero correction) (benchmark series)
 foreach v in tgxmx tgmmx tgxcx tgmcx {
-	egen `v'_wo=sum(`v'), by(year)
-	replace `v'_wo=. if `v'_wo==0
+	egen    `v'_wo = sum(`v'), by(year)
+	replace `v'_wo = .         if `v'_wo==0
 }
 replace tgxcx = tgxcx*((((2*tgxcx_wo)+(0*tgmcx_wo)))/2)/tgxcx_wo
 replace tgmcx = tgmcx*((((2*tgmcx_wo)+(0*tgxcx_wo)))/2)/tgmcx_wo
@@ -385,8 +421,12 @@ replace tgxmx = tgxmx*((((2*tgxmx_wo)+(0*tgmmx_wo)))/2)/tgxmx_wo
 replace tgmmx = tgmmx*((((2*tgmmx_wo)+(0*tgxmx_wo)))/2)/tgmmx_wo
 
 // step 3:
-replace tgxmx = tgxrx - tgxcx
-replace tgmmx = tgmpx - tgmcx
+replace q_tgxmx = min(3, cond(tgxrx >= tgxcx,q_tgxrx, q_tgxcx))
+replace s_tgxmx = "tgxrx,tgxcx"
+replace   tgxmx = tgxrx - tgxcx
+replace q_tgmmx = min(3, cond(tgmpx >= tgmcx, q_tgmpx, q_tgmcx))
+replace s_tgmmx = "tgmpx,tgmcx"
+replace   tgmmx = tgmpx - tgmcx
 
 *assert tgxcx + tgxmx == tgxrx if !mi(tgxcx) & !mi(tgxmx)
 *assert tgmcx + tgmmx == tgmpx if !mi(tgmcx) + !mi(tgmmx)
@@ -399,7 +439,12 @@ foreach v in tgxmx tgmmx tgxcx tgmcx {
 
 // Calculate net values
 gen double tgncx = tgxcx - tgmcx
+quality tgxcx tgmcx, gen(q_tgncx)
+gen      s_tgncx = "tgxcx,tgmcx"
+
 gen double tgnmx = tgxmx - tgmmx
+quality tgxmx tgmmx, gen(q_tgnmx)
+gen      s_tgnmx = "tgxmx,tgmmx" 
 
 drop *_wo
 
@@ -518,7 +563,7 @@ enforce (tgncx = tgxcx - tgmcx) ///
 */
 //---------- 5. Export  --------------------------------------------------------
 order iso year 
-keep iso year tgncx tgxcx tgmcx tgnmx tgxmx tgmmx
+keep iso year *tgncx *tgxcx *tgmcx *tgnmx *tgxmx *tgmmx
 
 // Save
 label data "Generated by commodities-decomposition.do "

@@ -12,20 +12,23 @@ keep if inlist(substr(widcode, 1, 6), "mpweal", "mhweal", "miweal", "mgweal", "m
 replace p="pall" if p=="p0p100"
 
 drop currency
-reshape wide value, i(iso year) j(widcode) string
+reshape wide value data_quality s_, i(iso year) j(widcode) string
 
 foreach l in n p h i g {
 	generate valuewweal`l'999i = valuem`l'weal999i/valuemnninc999i
+	generate data_qualitywweal`l'999i = data_qualitymnninc999i
+	generate s_wweal`l'999i = s_m`l'weal999i
 }
 
-keep iso year valuewweal*
+keep iso year *wweal*
 
-reshape long value, i(iso year) j(widcode) string
+reshape long value data_quality s_, i(iso year) j(widcode) string
 
 drop if value >= .
 
 generate p = "pall"
 
+gen ratios=1
 tempfile ratios
 save "`ratios'"
 // -------------------------------------------------------------------------- //
@@ -72,11 +75,11 @@ drop flag
 
 * Separete the nninc for W and the gdpro for Y
 preserve          
-	drop currency p
+	drop currency p s_
 	keep if inlist(widcode,"mnninc999i","mgdpro999i") 
 
-	reshape wide value, i(iso year) j (widcode) string
-	rename (valuemnninc999i valuemgdpro999i)(valuew valuey)
+	reshape wide value data_quality, i(iso year) j (widcode) string
+	rename (*mnninc999i *mgdpro999i)(*w *y)
 	
 	
 	tempfile denominators
@@ -85,13 +88,18 @@ restore
 merge m:1 iso year using "`denominators'", nogen
 
 * Calculate ratios
-replace valuey=value/valuey // for Y
-replace valuew=value/valuew // for W
-drop value
+gen        value_y=value/valuey // for Y
+gen data_quality_y=data_qualityy // for Y
+gen            s__y=s_ // for Y
+gen        value_w=value/valuew // for W
+gen data_quality_w=data_qualityw // for W
+gen           s__w=s_ // for W
+
+keep iso year p widcode currency *_y *_w
 
 * Format
-reshape long value, i(iso year widcode p currency) j(ratio) string
-replace widcode= ratio +substr(widcode,2,.)
+reshape long value s_ data_quality, i(iso year widcode p currency) j(ratio) string
+replace widcode= substr(ratio,2,1) +substr(widcode,2,.)
 drop ratio 
 drop  if inlist(widcode,"wnninc999i","ygdpro999i") // ilogical values
 
@@ -103,7 +111,7 @@ save `full_ppp'
 // -------------------------------------------------------------------------- //
 // Labor/capital share
 // -------------------------------------------------------------------------- //
-
+/*
 use "$work_data/complete-variables-output.dta", clear
 
 keep if inlist(widcode, "mfkpin999i", "mnmxho999i", "mcomhn999i")
@@ -117,14 +125,19 @@ greshape long value, i(iso year) j(widcode) string
 
 tempfile shares
 save "`shares'"
-
+*/
 // -------------------------------------------------------------------------- //
 // Combine
 // -------------------------------------------------------------------------- //
 
 use "$work_data/complete-variables-output.dta", clear
 append using "`ratios'"
-append using "`shares'"
+
+duplicates tag iso year p widcode, gen(dup)
+drop if ratios==1 & dup==1
+drop ratios dup
+
+*append using "`shares'"
 append using "`full_ppp'"
 
 duplicates tag iso year p widcode, gen(dup)
@@ -146,7 +159,7 @@ save "$work_data/calculate-wealth-income-ratio-output.dta", replace
 // -------------------------------------------------------------------------- //
 // Add metadata
 // -------------------------------------------------------------------------- //
-
+/*
 use "`ratios'", clear
 append using "`shares'"
 
@@ -173,4 +186,4 @@ drop old dup
 
 save "$work_data/calculate-wealth-income-ratio-metadata.dta", replace
 
-
+*/

@@ -42,7 +42,7 @@ save "`codes'", replace
 
 // Income: macroeconomic variables
 import excel using "$codes_dictionary", ///
-	sheet("Income_Macro_Variables") cellrange(D4:F331) clear allstring
+	sheet("Income_Macro_Variables") cellrange(D4:F383) clear allstring
 keep D F
 rename D widcode
 rename F oldcode
@@ -54,7 +54,7 @@ save "`codes'", replace
 
 // Macro variables: other
 import excel using "$codes_dictionary", ///
-	sheet("Other_Macro_Variables") cellrange(D4:F18) clear allstring
+	sheet("Other_Macro_Variables") cellrange(D4:F22) clear allstring
 keep D F
 rename D widcode
 rename F oldcode

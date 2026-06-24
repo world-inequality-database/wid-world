@@ -301,16 +301,23 @@ keep `r(varlist)'
 duplicates drop iso sixlet, force
 
 
-merge m:1 iso sixlet using "$work_data/generate-macro-metadata.dta" , keep(master match) nogen
+merge m:1 iso sixlet using "$work_data/generate-macro-metadata.dta" , keep(match) nogen
 
+* Drop the distrubutional fivelets, it will be exported in the distribution part
+drop if inlist(substr(sixlet,2,5),"hweal","ptinc","fiinc","cainc")
  
 rename iso Alpha2
 generate twolet = substr(sixlet, 2, 2)
 generate threelet = substr(sixlet, 4, 3)
 
-
 keep Alpha2 twolet threelet method source 
 duplicates drop
+
+duplicates tag Alpha2 twolet threelet, gen(dup)
+assert dup==0
+drop dup
+
+sort Alpha2 twolet threelet
 
 gen data_quality  =. 
 gen    imputation = ""

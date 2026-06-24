@@ -593,18 +593,17 @@ foreach x in compemp otherpinc secinc foreignaid remittances othtrans capital tr
 // Calcualate exports and imports
 gen   exports = goods_credit + service_credit
 quality goods_credit service_credit, gen(q_exports)
-gen s_exports = "tgxrx,service-credit"  if !missing(q_exports)
+gen s_exports = "tgxrx,tsxrx"  if !missing(q_exports)
 
 
 gen   imports = goods_debit + service_debit 
 quality goods_debit service_debit,gen(q_imports)
-gen s_imports = "tgmpx,service-debit" if !missing(q_imports)
+gen s_imports = "tgmpx,tsmpx" if !missing(q_imports)
 
 
 gen    tradebalance = exports - imports 
 quality exports imports, gen(q_tradebalance)
-gen  s_tradebalance = s_exports if !missing(q_tradebalance)
-
+gen  s_tradebalance = "tgxrx,tgmpx,tsxrx,tsmpx" if !missing(q_tradebalance)
 
 // ren (trade_credit trade_debit net_trade) (exports imports tradebalance)
 ren (*goods_credit *goods_debit *net_goods) (*tgxrx *tgmpx *tgnnx)
@@ -721,160 +720,6 @@ foreach v of varlist new* {
     replace q_`base' = 3 if missing(`base') & !missing(`v')
 	replace s_`base' = "enforce" if missing(`base') & !missing(`v')
     replace   `base' = `v'
-}
-drop new* 
-
-//--------  Import data from Nievas Piketty 2025 ---------------------------- //
-preserve
-	* Import Data
-	use "$work_data/nievaspiketty2025_70.dta", clear
-	keep if year<=2022
-	gen fivelet=substr(widcode,2,5)
-	drop widcode p
-	keep if inlist(fivelet,"tgxrx", "tgmpx", "tsxrx", "tsmpx", "tbxrx", "tbmpx", "scirx", "scipx")
-	
-	*Format for importing
-	reshape wide value q_ s_, i(iso year) j(fivelet) string
-	rename value* *
-	
-	
-	
-	tempfile np2025
-	save `np2025'
-	
-	* Copy the subregional agregates
-	keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso, "QL","QM","WO","QE")
-	renvars scipx-tsxrx, prefix(paper_)
-	rename iso region2
-	tempfile np2025_reg
-	save `np2025_reg'
-restore
-
-*merge NP2025
-merge 1:1 iso year using "`np2025'", update replace nogenerate
-
-order iso year gdp_idx gdp_usd
-
-
-// Adjust countries in residual regions to fitin in the residual regions of NP2025
-* Step 1: Call region defintions
-merge 1:1 iso year using "$work_data/import-core-country-codes-year-output.dta", nogen keepusing(region2 corecountry)
-drop if corecountry!=1  & year>= 1970
-sort iso year 
-
- *calculate gdp of regions
-bys year region2: egen reg_gdp_usd = total(gdp_usd) 
-replace 			   reg_gdp_usd = round(reg_gdp_usd,1) 
-replace 			   reg_gdp_usd = .                    if missing(region2)
-
-* Bring regions from Paper
-merge m:1 region2 year using "`np2025_reg'", nogenerate keep(master match)
-
-* Step 2: Calculate monetary values of the variables
-foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx {
-	replace `v'=`v'* gdp_usd
-	replace paper_`v'=paper_`v'* reg_gdp_usd
-}
-
-* Step 3: Calculate total values by region-year
-foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx {
-    gen double abs_`v' = abs(`v')
-    bys region2 year: egen total_`v' = total(`v')         // Raw regional sum
-    bys region2 year: egen total_abs_`v' = total(abs_`v') // For proportional adjustment
-}
-
-* Step 4: Compute the net total (e.g. tgxrx - tgmpx) vs paper values
-foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx {
-    gen double totnet_`v' = (paper_`v'- total_abs_`v')
-}
-
-* Step 5: Allocate adjustments proportionally for tgxrx and tgmpx
-foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx{
-    gen double prop_`v'   = abs_`v' / total_abs_`v'  // Share in regional total
-    gen double adjust_`v' = prop_`v' * totnet_`v'    // Adjustment share
-    
-	replace s_`v'       = s_`v' + "_adjnp2025" if !missing(region2) & year>=1970 & year<=2022 
-	// The q_ should remain the same as we asume with the enforce
-	replace    `v'          = `v' + adjust_`v'         if !missing(region2) & year>=1970 & year<=2022 
-}
-drop corecountry paper_* abs_* adjust_* prop_*  total_* totnet_* reg_gdp_usd
-
-/*
-
-// Make sure that they add-up 0
-
-* Step 1: Calculate total values by region-year
-foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx {
-    gen double abs_`v' = abs(`v')
-    bys year: egen total_`v' = total(`v')         // Raw regional sum
-    bys year: egen total_abs_`v' = total(abs_`v') // For proportional adjustment
-}
-
-* Step 2: Compute the net total which half is the ideal point to be reach in each variable
-gen double totnet_tgnnx = (total_abs_tgxrx + total_abs_tgmpx)/2 
-gen double totnet_tsnnx = (total_abs_tsxrx + total_abs_tsmpx)/2 
-gen double totnet_tbnnx = (total_abs_tbxrx + total_abs_tbmpx)/2 
-gen double totnet_scinx = (total_abs_scirx + total_abs_scipx)/2 
-
-
-* Step 3: Allocate adjustments proportionally for variables
-foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx{
-    gen double prop_`v'   = abs_`v' / total_abs_`v'  
-	replace total_abs_`v' = total_abs_`v' - totnet_tgnnx if inlist("`v'", "tgxrx", "tgmpx")
-	replace total_abs_`v' = total_abs_`v' - totnet_tsnnx if inlist("`v'", "tsxrx", "tsmpx")
-	replace total_abs_`v' = total_abs_`v' - totnet_tbnnx if inlist("`v'", "tbxrx", "tbmpx") 
-	replace total_abs_`v' = total_abs_`v' - totnet_scinx if inlist("`v'", "scirx", "scipx")
-	gen double adjust_`v' =.
-    replace    adjust_`v' = prop_`v' * total_abs_`v' // Adjustment share
-    replace    `v'        = `v' - adjust_`v' if year>=1970 & year<=2023
-}
-drop  abs_* adjust_* prop_*  total_* totnet_*
-*/
-* Recalculate net values
-replace tgnnx = tgxrx - tgmpx
-replace tsnnx = tsxrx - tsmpx
-replace tbnnx = tbxrx - tbmpx
-replace scinx = scirx - scipx
-
-replace s_tgnnx = s_tgnnx + "_adjnp2025" if strpos(s_tgxrx,"_adjnp2025") > 0 | strpos(s_tgmpx,"_adjnp2025") > 0
-replace s_tsnnx = s_tsnnx + "_adjnp2025" if strpos(s_tsxrx,"_adjnp2025") > 0 | strpos(s_tsmpx,"_adjnp2025") > 0
-replace s_tbnnx = s_tbnnx + "_adjnp2025" if strpos(s_tbxrx,"_adjnp2025") > 0 | strpos(s_tbmpx,"_adjnp2025") > 0
-replace s_scinx = s_scinx + "_adjnp2025" if strpos(s_scirx,"_adjnp2025") > 0 | strpos(s_scipx,"_adjnp2025") > 0
-
-
-* Recalcualte the shares of the GDP
-foreach v in tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx tbnnx tgnnx tsnnx scinx {
-	replace `v'=`v'/ gdp_usd	
-} 
-drop region2 // gdp_xrate
-
-//--------------------------------------------------------------------------- //
-
-* Calibration	
-enforce (tbxrx = tgxrx + tsxrx) ///
-		(tbmpx = tgmpx + tsmpx) ///
-		(tbnnx = tgnnx + tsnnx) ///
-		(tbnnx = tbxrx - tbmpx) ///
-		(tgnnx = tgxrx - tgmpx) ///
-		(tsvnx = tsvrx - tsvpx) ///
-		(tstnx = tstrx - tstpx) ///		
-		(tsonx = tsorx - tsopx) ///		
-		(tsxrx = tsvrx + tstrx + tsorx) ///
-		(tsmpx = tsvpx + tstpx + tsopx) ///
-		(scgnx = scgrx - scgpx) ///
-		(scrnx = scrrx - scrpx) ///
-		(sconx = scorx - scopx) /// 
-		(scinx = scgnx + scrnx + sconx) /// 
-		(scinx = scirx - scipx) /// 
-		(tsnnx = tsvnx + tstnx + tsonx) /// 
-		(tsnnx = tsxrx - tsmpx), fixed(tgxrx tgmpx tsxrx tsmpx tbxrx tbmpx scirx scipx) prefix(new) replace force
-
-foreach v of varlist new* {
-    local base = subinstr("`v'", "new", "", .)
-
-    replace q_`base' = 3 if missing(`base') & !missing(`v')
-	replace s_`base' = "enforce" if missing(`base') & !missing(`v')
-    replace `base' = `v'
 }
 drop new* 
 

@@ -144,7 +144,7 @@ tempfile iip
 save "`iip'"
 */
 // EWN
-import excel "$input_data_dir/ewn-data/EWN-database-2024.xlsx", sheet("Dataset") clear firstrow case(lower)
+import excel "$input_data_dir/ewn-data/EWN-database-$pastyear.xlsx", sheet("Dataset") clear firstrow case(lower)
 
 rename portfolioequityassets      ptf_asset
 rename portfolioequityliabilities ptf_liabi
@@ -162,7 +162,7 @@ keep countryname ifsid year ptf_asset ptf_liabi fdi_asset fdi_liabi gdp
 
 foreach v of varlist ptf_asset ptf_liabi fdi_asset fdi_liabi gdp {
 	gen     q_`v' = 5       if !missing(`v')
-	gen     s_`v' = "OECD"  if !missing(`v')
+	gen     s_`v' = "lmf"  if !missing(`v')
 	replace   `v' = `v'*1e6
 }
 

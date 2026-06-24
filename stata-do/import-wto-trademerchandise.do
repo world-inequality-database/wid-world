@@ -5,10 +5,16 @@
 // importing raw data
 import delimited using "$wid_dir/Country-Updates/Trade/WTOTradeMerchandise/merchandise_values_annual_dataset_$year.csv", clear
 
+rename reportingeconomy* reporter*
+renam  partnereconomy* partner*
+rename productsector* product*
+
+
 keep if partner == "World"
 
-gen flow = "export" if indicator == "Merchandise exports by product group - annual"
-replace flow = "import" if indicator == "Merchandise imports by product group - annual"
+gen     flow = "export" if indicator == "Merchandise exports by product group – annual"
+replace flow = "import" if indicator == "Merchandise imports by product group – annual"
+assert $pastyear == 2025
 
 keep reportercode reporteriso reporter partner productcode product unit year valueflagcode valueflag value flow
 

@@ -257,7 +257,7 @@ do "$do_dir/currentaccount.do"
 // Import data from other sources
 do "$do_dir/commodities-decomposition.do"
 do "$do_dir/import-income-researchers.do"
-do "$do_dir/reformat-wid-data.do" // HERE ENTERS THE METADATA FROM THE DARK PART( there is also a full metadata called)
+do "$do_dir/reformat-wid-data.do" // HERE ENTERS THE METADATA FROM THE old part of the code(there is also a full metadata called)
 
 // Retropolate, combine, impute, calibrate and decompose series
 do "$do_dir/retropolate-combine-series.do"

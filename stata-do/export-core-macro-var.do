@@ -48,6 +48,7 @@ levelsof fivelet, local(fivelet)
 **
 use "$work_data/calculate-per-capita-series-output.dta", clear
 *use "/Users/rowaidamoshrif/Downloads/merge-historical-aggregates (22).dta", clear
+replace p = "p0p100" if p=="pall"
 
 generate fivelet = substr(widcode, 2, 5)
 generate tokeep = 0
@@ -94,7 +95,7 @@ keep if tokeep == 1
 drop if inlist(widcode, "aTH999992i", "aTH999999i", "mTH999i", "wicwtoq999i", "micwtoq999i") 
 
 
-replace p = "p0p100" if p=="pall"
+
 
 replace value = round(value, 0.1)    if inlist(substr(widcode, 1, 1), "a", "t")
 replace value = round(value, 1)      if inlist(substr(widcode, 1, 1), "m", "n")
@@ -102,7 +103,11 @@ replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s","y","w
 drop if strpos(iso, "XX")
 drop if iso == "KV"
 drop if missing(year)
-keep iso year p widcode value 
+
+replace data_quality = round(data_quality, 1)     
+
+keep iso year p widcode value data_quality
+order iso year p widcode value data_quality
 
 
 
@@ -280,34 +285,41 @@ foreach onelet in a i m n  w y x { //   p
 preserve
 	rename iso Alpha2
 	rename p   perc
-	order Alpha2 year perc widcode
-	export delim "$output_dir/$time/wid-data-$time-macro-var-2025.csv", delimiter(";") replace
+	order Alpha2 year perc widcode value data_quality
+	export delim "$output_dir/$time/wid-data-$time-macro-var-2026.csv", delimiter(";") replace
 restore
 
 
 //------------------------------------------------------------------------------
 //  Macro update Metadata
 //------------------------------------------------------------------------------
-/*
-u "`core-macro'", clear
+
+u "`core_macro'", clear
 generate sixlet = substr(widcode, 1, 6)
-ds year p widcode value , not
+ds year p widcode value data_quality, not
 keep `r(varlist)'
 duplicates drop iso sixlet, force
 
 
-merge m:1 iso sixlet using "$work_data/calculate-wealth-income-ratio-metadata.dta" 
-keep if inlist(_merge,1,3)
+merge m:1 iso sixlet using "$work_data/generate-macro-metadata.dta" , keep(master match) nogen
+
  
-rename iso alpha2
+rename iso Alpha2
 generate twolet = substr(sixlet, 2, 2)
 generate threelet = substr(sixlet, 4, 3)
 
-keep alpha2 twolet threelet method source data_quality imputation extrapolation data_points
-duplicates drop 
 
-sort alpha2 alpha2 twolet threelet
-order alpha2 twolet threelet method source data_quality imputation extrapolation data_points
-export delim "$output_dir/$time/metadata/var-notes-$time-macro-var-2024.csv", delimiter(";") replace
+keep Alpha2 twolet threelet method source 
+duplicates drop
+
+gen data_quality  =. 
+gen    imputation = ""
+gen extrapolation = ""
+gen   data_points = ""
+gen data_quality_score=.
+
+sort Alpha2 twolet threelet
+order Alpha2 twolet threelet method source data_quality imputation extrapolation data_points data_quality_score
+export delim "$output_dir/$time/metadata/var-notes-$time-macro-var-2026.csv", delimiter(";") replace
 
 /*

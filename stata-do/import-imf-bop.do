@@ -81,6 +81,7 @@ save "`gdpwid'"
 *import delimited "$input_data_dir/imf-data/balance-of-payments/BOP_01-31-2024 15-49-55-97.csv", clear encoding(utf8)
 use "$wid_dir/Country-Updates/National_Accounts/imf-data/BOP-treated-$pastyear.dta", clear
 
+
 // Trasnlate series codes into WID-fivelets
 generate widcode = ""
 * net foreign income (Primary incope - EARNED INCOME)

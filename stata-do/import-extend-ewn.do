@@ -11,14 +11,21 @@ clear all
 
 // ------- 1. Import data --------------------------------------------------- //
 import excel "$input_data_dir/ewn-data/EWN-database-$pastyear.xlsx", sheet("Dataset") clear firstrow case(lower)
-assert $pastyear == 2024 // If this assertion fails change the name of the import file and the replace the assertion value for $past year
+assert $pastyear == 2025 // If this assertion fails change the name of the import file and the replace the assertion value for $past year
 rename gdpus gdp
 
-ren totalassetsexclgold nwgxa_lm 
+*ren totalassetsexclgold nwgxa_lm 
+ren totalassets nwgxa_lm 
 ren totalliabilities nwgxd_lm 
 ren country countryname 
 ren fdiassets fdixa
 ren fdiliabilities fdixd 
+
+* Column names changed
+ren financialderivativesliab     financialderivativesliabiliti
+ren portfolioequityliabilitiesst portfolioequityliab
+ren portfolioequityliab          portfolioequityliabilities
+ren portfolioequityassetsstock   portfolioequityassets
 
 // ------- 2. Recalculate gross values -------------------------------------- //
 // whenever gross assets are negative, adding them to their counterpart to ensure everything is positive
@@ -698,9 +705,9 @@ replace otherinvliab= otherinvliab/ratio
 replace finderivliab=finderivliab/ratio 
 
 gen s_debtass  = "portfoliodebtassets,otherinvestmentassets"	
-gen s_debtliab = "portfoliodebtliab,otherinvliab"
-gen q_debtass  = min(q_portfoliodebtassets, q_otherinvestmentassets)	
-gen q_debtliab = min(q_portfoliodebtliab,   q_otherinvliab)
+gen s_debtliab = "portfoliodebtliabilities,otherinvliabilities"
+gen q_debtass  = min(3, cond(portfoliodebtassets >= otherinvestmentassets, q_portfoliodebtassets, q_otherinvestmentassets))	
+gen q_debtliab = min(3, cond(portfoliodebtliab >= otherinvliab , q_portfoliodebtliab,   q_otherinvliab))
 gen debtass    = portfoliodebtassets + otherinvestmentassets	
 gen debtliab   = portfoliodebtliab   + otherinvliab 
 drop *portfoliodebtassets *otherinvestmentassets *portfoliodebtliab *otherinvliab ratio

@@ -223,6 +223,7 @@ use  "$work_data/nievaspiketty2025_hist.dta", clear
 gen np=1
 
 append using "$work_data/dietrichetal2025sectors_hist.dta"
+drop if strpos(widcode,"confc") & year>=1970 //Keep the confc estimated in the main.do
 duplicates tag iso year widcode p, gen(dup)
 drop if np==1 & dup==1
 duplicates tag iso year widcode p, gen(dup2)
@@ -319,7 +320,7 @@ drop *b iso
 
 // --------- 2.4. Generate constant $pastyear monetary values (m)  ---------- //
 replace valuemgdpro999i= valuemgdpro999i/ valueinyixx999i if year<1970
-ds region year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlcusx999i s_* q_* , not
+ds region year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlcusx999i s_* q_* valueylsgdp999i valueycsgdp999i , not // We don't want the Factro Shares to be extended
 foreach v in `r(varlist)' {
 	local v_clean = subinstr("`v'", "value", "", .)
 	gen double       `v'_m = `v' *  valuemgdpro999i
@@ -700,7 +701,7 @@ assert dup2==0
 drop dup*
 
 append using "$work_data/dietrichetal2025sectors_hist.dta"
-
+drop if strpos(widcode,"confc") & year>=1970 //Keep the confc estimated in the main.do
 duplicates tag iso year widcode p, gen(dup)
 drop if np==1 & dup==1
 duplicates tag iso year widcode p, gen(dup2)
@@ -752,8 +753,10 @@ foreach v in mgdpro ynninc {
 }
 drop *b region
 
+
+
 * Generate aggregates
-ds iso year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlc* q_* s_*, not
+ds iso year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlc* q_* s_* valueylsgdp999i valueycsgdp999i, not // we dont want the Fractor shaares to be extended to other onlets
 foreach v in `r(varlist)' {
 	local v_clean = subinstr("`v'", "value", "", .)
 	gen double       `v'_m = `v' *  valuemgdpro999i
@@ -935,8 +938,11 @@ save `full_pre70'
 * 		what we had in the WID we avoid a suden pass from 0 until 1980 to not 0 
 *		afterwards for all the contries at the same time.
 append using  "$work_data/aggregate-regions-output.dta"
-duplicates tag iso year widcode p, gen(dup)
 
+duplicates tag iso year widcode p, gen(dup0)
+drop if new==1 & dup==1 & (inlist(substr(widcode, 2, 5), "confc", "ndpro","nnfin","nninc")) & iso=="PE"
+
+duplicates tag iso year widcode p, gen(dup)
 drop if new!=1 & dup==1 & (!inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gweal", "gwass", "gwdeb", "nwnfa") & ///
 						   !inlist(substr(widcode, 2, 5), "hweal","pweal") & !strpos(widcode,"nsrgo"))					   
 						   
@@ -947,6 +953,13 @@ drop if new==1 & dup==1 &  (inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gwe
 duplicates tag iso year widcode p, gen(dup2)
 assert dup2==0
 drop dup* new
+
+* Drop ndpro from countries included in arias et all since there is not confc for them
+gen flag_a = 1 if inlist(iso,"BG","CH","CM","FI","GH","GR","HR","HU","IE") | ///
+				 inlist(iso,"MU","MW","MY","PL","PT","SC","SG","TN","TZ") | ///
+				 inlist("UG","ZM","ZW")
+drop if strpos(widcode,"ndpro") & flag_a==1 & year<1970
+drop flag_a
 
 * Complete currencies
 bys iso : egen 		 aux = mode(currency)

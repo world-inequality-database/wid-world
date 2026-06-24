@@ -41,6 +41,17 @@ rename valueLATEST_ACTUAL_ANNUAL_DATA estimatesstartafter
 reshape long value, i(iso indicatorid estimatesstartafter) j(year)
 reshape wide value, i(iso year estimatesstartafter) j(indicatorid) string
 
+
+// keeping VEN PPP
+preserve
+	keep if iso == "ZW"
+	keep iso year valuePPPEX
+	ren valuePPPEX ppp_imf
+	keep if year == $pastyear
+	sa "$work_data/imf-zw-pppex", replace
+restore 
+
+
 // Zimbabwe: IMF moved to RTGS dollars unlike other databases: convert back to USD
 *replace valueNGDP = valueNGDP/valuePPPEX if iso == "ZW"
 drop if iso== "ZW"

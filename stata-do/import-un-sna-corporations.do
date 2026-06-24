@@ -3,11 +3,11 @@
 // -------------------------------------------------------------------------- //
 
 // Import financial, non-fiancial and combined sectors
-use "$input_data_dir/un-sna/403.dta", clear
+use "$input_data_dir/un-sna/old/403.dta", clear
 generate sector = "nf"
-append using "$input_data_dir/un-sna/404.dta"
+append using "$input_data_dir/un-sna/old/404.dta"
 replace sector = "fc" if missing(sector)
-append using "$input_data_dir/un-sna/408.dta"
+append using "$input_data_dir/un-sna/old/408.dta"
 replace sector = "co" if missing(sector)
 
 merge n:1 country_or_area year series currency using "$work_data/un-sna-current-gdp.dta", keep(match) nogenerate
@@ -114,9 +114,25 @@ drop discr1 discr2
 
 // Fix for badly sectorized data CFC
 foreach v in cfc pri sec {
-	replace `v'co = . if country_or_area == "Spain" & series == "1000" & inrange(year, 1995, 1998)
+	replace `v'co = . if country_or_area == "Spain"     & series == "1000" & inrange(year, 1995, 1998)
 	replace `v'nf = . if country_or_area == "Australia" & series == "1000"
+	
+	// Exceptions made in jun-2026 update, the cfcnf changed, teh cfcco remained intact
+	replace `v'nf = . if country_or_area == "Austria"           & series == "1000" & (inrange(year, 1995, 2000)| inrange(year, 2007, 2017))
+	replace `v'nf = . if country_or_area == "Czechia"           & series == "1000" & inrange(year, 1995, 2006)
+	replace `v'nf = . if country_or_area == "Finland"           & series == "1000" & year == 2022
+	replace `v'nf = . if country_or_area == "Greece"            & series == "1000" & inrange(year, 1995, 2007)
+	replace `v'nf = . if country_or_area == "Ireland"           & series == "1000" & inrange(year, 2013, 2019)
+	replace `v'nf = . if country_or_area == "Italy"             & series == "1000" & inrange(year, 1995, 2022)
+	replace `v'nf = . if country_or_area == "Poland"            & series == "1000" & year == 2022
+	replace `v'nf = . if country_or_area == "Portugal"          & series == "1000" & inrange(year, 2000, 2022)
+	replace `v'nf = . if country_or_area == "Republic of Korea" & series == "1000" & inrange(year, 2011, 2021)
+	replace `v'nf = . if country_or_area == "Slovakia"          & series == "1000" & inrange(year, 2009, 2022)
+	
 }
+
+
+
 assert cfcnf < cfcco if !missing(cfcco) & !missing(cfcnf) & country_or_area != "Kyrgyzstan"
 assert cfcfc < cfcco if !missing(cfcco) & !missing(cfcfc) & country_or_area != "Kyrgyzstan"
 

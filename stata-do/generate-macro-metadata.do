@@ -27,7 +27,12 @@ keep if p=="pall"
 keep iso year widcode s_
 rename s_ metadata
 
-
+* Drop non extended wealth variables
+merge m:1 iso using "$work_data/import-country-codes-output.dta", nogen keep(master match) keepusing(corecountry)
+drop if inlist(substr(widcode,2,2),"cw","gw","hw","nw","pw","iw") & substr(widcode,1,1)!="w" & corecountry!=1
+drop if strpos(widcode,"cwtoq") & substr(widcode,1,1)!="i" & corecountry!=1
+drop if  substr(widcode,1,1)=="a" & corecountry!=1
+drop corecountry
 
 * Generate sixlet
 gen sixlet=substr(widcode,1,6)
@@ -132,6 +137,8 @@ replace source = `"[URL][URL_LINK]http://unstats.un.org/unsd/snaama/Introduction
 		+ `"Nations National Accounts Main Aggregates Database[/URL_TEXT][/URL]"' if strpos(treat1,"UNSNA") & sixlet=="xlcusx"
 replace source = `"[URL][URL_LINK]http://openexchangerates.org/[/URL_LINK][URL_TEXT]Open Exchange rates[/URL_TEXT][/URL]"' if strpos(treat1,"openexchangerate") & sixlet=="xlcusx"
 replace source = `"[URL][URL_LINK]https://www.mataf.net/en[/URL_LINK][URL_TEXT]Mataf.net[/URL_TEXT][/URL]"' if strpos(treat1,"mataf") & sixlet=="xlcusx"
+replace source = `"[URL][URL_LINK]https://fred.stlouisfed.org/series/AEXTAUS[/URL_LINK][URL_TEXT]FRED[/URL_TEXT][/URL]"' if strpos(treat1,"FRED") & sixlet=="xlcusx"
+replace source = `"[URL][URL_LINK]https://unstats.un.org/unsd/snaama/Basic[/URL_LINK][URL_TEXT]UN - National Accounts Analysis of Main Aggregates (AMA)[/URL_TEXT][/URL]"' if strpos(treat1,"UN_PARE") & sixlet=="xlcusx"
 
 *** Complete the countries assumed differently
 replace source = source + "(Series inherited from another country with available " + substr(treat2,1,3) + "-denominated series)" if substr(treat2,3,.)=="assumed" & sixlet=="xlcusx"
@@ -478,13 +485,14 @@ replace method = "This value was calculated assuming y" + substr(treat1,8,5) + "
 replace method = "This value is imputed using the variable's share of GDP observed for the region " + substr(treat1,6,.) if substr(treat1,1,5)=="regsh" & missing(source)
 replace method = "This value is imputed using the median of the region " + substr(treat1,16,2) + " for the variable " + substr(treat1,1,5) if substr(treat1,7,9)=="medianreg" & missing(source)
 
-replace method = "This value is an average of the region " + substr(treat1,4,.) if substr(treat1,1,3)=="reg" & missing(method)  & !strpos(treat1,"TH") & missing(source)
-replace method = "This value is an average of the Tax Haven countries"          if substr(treat1,1,3)=="reg" & missing(method) & strpos(treat1,"TH") & missing(source) 
+replace method = "This value is an average of the region " + substr(treat1,4,.) if substr(treat1,1,3)=="reg" & missing(method)  & !strpos(treat1,"TH") & missing(source) & treat1!="regression"
+replace method = "This value is an average of the Tax Haven countries"          if substr(treat1,1,3)=="reg" & missing(method) & strpos(treat1,"TH") & missing(source) & treat1!="regression"
 
 * Inhouse calculations
 replace method = "This variable was calculated using the variables " + subinstr(treat1, ",", ", ", .)  if missing(method) & strpos(treat1,",")  & missing(source) & !missing(treat1) // Several variables
 replace method = "This variable was approximated by imputing the value of the variable " + treat1           if missing(method) & !strpos(treat1,",") & !strpos(treat1,"/") & missing(source) & !strpos(treat1,"(")  & !missing(treat1) // One variable
 
+replace method = "This value was estimated using lineal regression model" if  treat1=="regression"
 
 *Imputation from other countries
 *** Only one variable
@@ -541,8 +549,8 @@ replace adjustment2 = "(data corrected to fit into the aggregates of " + `"[URL]
 replace method = method + adjustment + adjustment2		
 
 * Complete missings 
-replace method = "Observed data"        if  missing(method) & !missing(source) 
-replace source = "In-house calculation" if !missing(method) &  missing(source) 
+replace method = "Data obtained from an external source (see data)" if  missing(method) & !missing(source) 
+replace source = "In-house calculation (see method)"                   if !missing(method) &  missing(source) 
 
 drop adjustment adjustment2
 
@@ -604,16 +612,17 @@ replace source = ///
 if missing(source) & metadata=="wealthagg"
 
 * Complete missings 
-replace method = "Observed data"        if  missing(method) & !missing(source) 
-replace source = "In-house calculation" if !missing(method) &  missing(source) 
+replace method = "Data obtained from an external source (see data)" if  missing(method) & !missing(source) 
+replace source = "In-house calculation (see method)"                if !missing(method) &  missing(source) 
 
 //---  10.  Add one-let note -------------------------------------------------//
+/*
 replace method= method + " (variable calculated as a share of GDP (y) and extended to the gdpro estimate)"   if substr(sixlet,1,1)=="m" & metadata!="wealthagg" & lastyear==$pastyear
 replace method= method + " (variable calculated as a share of nninc (w) and extended to the nninc estimate)" if substr(sixlet,1,1)=="m" & metadata=="wealthagg" & lastyear==$pastyear
 
 replace method= method + " (variable is calculated as an aggregate (m), and extended to the nninc estimate)"   if substr(sixlet,1,1)=="w" &  strpos(sixlet,"gdpro") & lastyear==$pastyear
 replace method= method + " (variable is calculated as a share of GDP (y), and extended to the nninc estimate)" if substr(sixlet,1,1)=="w" & !strpos(sixlet,"gdpro") & lastyear==$pastyear
-
+*/
 drop metadata treat1 treat2 treat3 
 
 //---  11.  Collapse ---------------------------------------------------------//
@@ -660,12 +669,13 @@ replace technote = " See [URL][URL_LINK]https://wid.world/document/wid-national-
 																											
 replace technote=  " See [URL][URL_LINK]https://wid.world/document/extending-wid-national-accounts-series-institutional-sectors-and-factor-shares-world-inequality-lab-technical-note-2025-03/[/URL_LINK][URL_TEXT] Gomez-Carrera, R., Moshirf, R., Nievas, G., Piketty, T. (2024) `Global Inequality Update 2024:New Insights from Extended WID Macro Series'[/URL_TEXT][/URL]" if missing(technote) 
 
-replace method= method + technote + "; See   [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) `Distributional National Accounts Guidelines'[/URL_TEXT][/URL]. " 
+replace method= method + technote + "; For more details see  [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) `Distributional National Accounts Guidelines'[/URL_TEXT][/URL]. " 
 
 drop technote
 
 //---  13.  Append to the rest of the data and export  -----------------------//
 gen new=1
+
 
 append using  "$work_data/correct-widcodes-metadata.dta"
 

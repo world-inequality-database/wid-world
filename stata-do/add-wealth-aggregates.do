@@ -257,6 +257,7 @@ drop if inlist(widcode, "mnwnxa999i", "mnwgxd999i", "mnwgxa999i", "mnwoff999i") 
 gen wid=1
 append using "`macro_weal'"
 
+
 duplicates tag iso year widcode p, gen(dup)
 
 

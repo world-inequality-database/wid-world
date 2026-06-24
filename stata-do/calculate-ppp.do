@@ -25,22 +25,38 @@
 * World Bank
 use "$work_data/ppp-wb.dta", clear
 replace currency = "EUR" if iso == "HR"
-drop if iso == "VE"
+
 replace ppp_wb=ppp_wb if iso=="ZW" // ZW has changed their currency and given that the data is treated in dollars this ppp fails to represent their values.
 
 * IMF for Venezuela
+drop if iso == "VE"
 append using "$work_data/imf-ven-pppex" 
 replace currency = "VES" if iso == "VE"
 
 * IMF for Taiwan
 append using "$work_data/imf-tw-pppex" 
 replace currency = "TWD" if iso == "TW"
-drop if iso == "SS"
+
 
 * IMF Sourth Soudan
+drop if iso == "SS"
 append using "$work_data/imf-ss-pppex" 
 replace currency = "SSP" if iso == "SS"
-		
+
+*IMF Zimbawe
+drop if iso == "ZW"
+append using "$work_data/imf-zw-pppex"
+replace currency = "ZWD" if iso == "ZW"		
+//-------------------------------------------
+*Note:The PPP are ment to pass from LCU to USD PPP. Given that we treat the data in USD for special country cases, these needs to be correcte as follows. Check section PartMain.1 of import-exchange-rate.do.
+merge m:1 iso year using  "$work_data/exchange-rates-cases.dta", nogenerate keep(master match) keepusing(exrate_usd)
+
+replace ppp_imf = ppp_imf/(exrate_usd/100) if inlist(iso, "ZW") //,  "LR" , "SV", "EC")
+drop exrate_usd
+//-------------------------------------------
+
+
+
 // Keep WB in priority
 generate ppp = .
 generate ppp_src = ""
@@ -63,6 +79,9 @@ if (ppp_src == "ppp_oecd")
 replace ppp_src = ///
 `"[URL][URL_LINK]https://www.imf.org/external/datamapper/PPPEX@WEO/OEMDC[/URL_LINK][URL_TEXT]International Monetary Fund[/URL_TEXT][/URL]; "' ///
 if (ppp_src == "ppp_imf")
+
+replace ppp_src = ppp_src + " Data corrected by the World Bank exchange rate of the ZWD" ///
+if (ppp_src == "ppp_imf") & iso=="ZW"
 
 generate ppp_method = "We extrapolate the PPP from the latest ICP (" + string(year) + ") using the evolution of the price index relative to the reference country"
 

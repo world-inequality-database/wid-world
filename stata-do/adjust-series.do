@@ -569,117 +569,12 @@ foreach v in         fdinx ptfnx comnx taxnx {
 }
 
 
-//--------  Import data from Nievas Piketty 2025 ---------------------------- //
-preserve
-	* Import Data
-	use "$work_data/nievaspiketty2025_70.dta", clear
-	keep if year<=2022
-	gen fivelet = substr(widcode,2,5)
-	
-	keep if inlist(fivelet,"finrx", "finpx",  "nwgxa", "nwgxd")
-	drop widcode p 
-	
-	*Format for importing
-	reshape wide value q_ s_, i(iso year) j(fivelet) string
-	rename value* *
-	
-	
-	tempfile np2025
-	save `np2025'
-	
-	keep  if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso, "QL","QM","WO","QE")
-	
-	drop q_* s_*
-	rename * paper_*
-	rename (paper_iso paper_year)(region2 year)
 
-	tempfile np2025_reg 
-	save    `np2025_reg'
-	
-restore
+*replace q_nnfin = min(3,q_pinnx) if mi(nnfin) & !mi(nnfin)
+*replace s_nnfin = "pinnx"        if mi(nnfin) & !mi(nnfin)
+*replace   nnfin =  pinnx         if mi(nnfin)
 
-merge 1:1 iso year using "`np2025'", nogen update replace
-
-// Adjust countries in residual regions to fitin in the residual regions of NP2025
-* Step 1: Prepare data
-* keep corecountries after 1970
-merge 1:1 iso year using "$work_data/import-core-country-codes-year-output.dta", nogen keepusing(region2 corecountry)
-*drop if corecountry!=1 & year>= 1970
-sort iso year 
-
-*calculate gdp of regions
-bys year region2: egen reg_gdp_usd = total(gdpusd) 
-
-* Bring regions from Paper
-merge m:1 region2 year using "`np2025_reg'", nogenerate keep(master match)
-
-* Calculate monetary values of the variables
-foreach v in finrx finpx nwgxa  nwgxd {
-	replace `v'=`v'* gdpusd if  corecountry==1 & year>= 1970 & year<=2022
-	replace paper_`v'=paper_`v'* reg_gdp_usd if  corecountry==1 & year>= 1970 & year<=2022
-}
-
-* Step 2: Calculate total values by region-year
-foreach v in finrx finpx nwgxa  nwgxd {
-    gen double abs_`v' = abs(`v')
-    bys region2 year: egen total_`v' = total(`v')         // Raw regional sum
-    bys region2 year: egen total_abs_`v' = total(abs_`v') // For proportional adjustment
-}
-
-* Step 3: Compute the net total (e.g. tgxrx - tgmpx) vs paper values
-foreach v in finrx finpx nwgxa nwgxd {
-    gen double totnet_`v' = (paper_`v'- total_abs_`v')
-}
-
-* Step 4: Allocate adjustments proportionally for tgxrx and tgmpx
-foreach v in finrx finpx nwgxa nwgxd {
-    gen prop_`v' = abs_`v' / total_abs_`v'    // Share in regional total
-    gen adjust_`v' = prop_`v' * totnet_`v' // Adjustment share
-    replace `v' = `v' + adjust_`v' if !missing(region2) & corecountry==1 & year>= 1970 & year<=2022
-}
-drop reg_gdp_usd paper_* abs_* adjust_* prop_*  total_* totnet_* region2 coreterritory
-
-* Recalculate net values
-replace q_nnfin = min(3, cond(finrx >= finpx, q_finrx, q_finpx)) if year>=1970 & year<=2022 & corecountry==1 & !mi(finrx) & !mi(finpx)
-replace s_nnfin = "finrx,finpx_adjnp2025"                        if year>=1970 & year<=2022 & corecountry==1 & !mi(finrx) & !mi(finpx)
-replace   nnfin = finrx - finpx                                  if year>=1970 & year<=2022 & corecountry==1
-
-replace q_nwnxa = min(3, cond(nwgxa >= nwgxd, q_nwgxa, q_nwgxd)) if year>=1970 & year<=2022 & corecountry==1 & !mi(nwgxa) & !mi(nwgxd)
-replace s_nwnxa = "nwgxa,nwgxd_adjnp2025"                        if year>=1970 & year<=2022 & corecountry==1 & !mi(nwgxa) & !mi(nwgxd)
-replace   nwnxa = nwgxa - nwgxd                                  if year>=1970 & year<=2022 & corecountry==1
-
-* Recalculate the shares of the GDP
-foreach v in finrx finpx nwgxa nwgxd nnfin nwnxa{
-	replace `v'=`v'/ gdpusd	if year>=1970 & year<=2022 & corecountry==1
-}
-
-* Correction for ensuring that the nnfin match with the paper.
-foreach v in         fdinx ptfnx comnx taxnx {
-*            pinnx =             comnx taxnx
-	*replace s_`v' = s_nnfin        if year>=1970  & !mi(coef_`v')  & year<=2022 
-	replace `v'   = nnfin*coef_`v' if year>=1970  & !mi(coef_`v')  & year<=2022 //New nnfin 
-}
-
-quality fdinx ptfnx,gen(temp1)
-replace temp1 = min(3, q_fdinx) if missing(ptfnx) & missing(temp1)
-replace temp1 = min(3, q_ptfnx) if missing(fdinx) & missing(temp1)
-replace q_pinnx = temp1                                                                   if year>=1970 & year<=2022  & corecountry==1 
-replace s_pinnx = cond(missing(fdinx), "", "fdinx") + cond(missing(ptfnx), "", ",ptfnx,") if year>=1970 & year<=2022  & corecountry==1
-replace   pinnx = cond(missing(fdinx), 0, fdinx) + cond(missing(ptfnx), 0, ptfnx)         if year>=1970 & year<=2022  & corecountry==1
-
-quality pinnx comnx,gen(temp2)
-replace temp2 = min(3, q_pinnx) if missing(comnx) & missing(temp2)
-replace temp2 = min(3, q_comnx) if missing(pinnx) & missing(temp2)
-replace q_flcin = temp2                                                                 if year>=1970 & year<=2022  & corecountry==1
-replace s_flcin = cond(missing(pinnx), "", "pinnx") + cond(missing(comnx), "", ",comnx") if year>=1970 & year<=2022  & corecountry==1
-replace   flcin = cond(missing(pinnx), 0, pinnx) + cond(missing(comnx), 0, comnx)       if year>=1970 & year<=2022  & corecountry==1
-drop temp*
-//----------------------------------------------------------------------------//
-
-replace q_nnfin = min(3,q_pinnx) if mi(nnfin) & !mi(nnfin)
-replace s_nnfin = "pinnx"        if mi(nnfin) & !mi(nnfin)
-replace   nnfin =  pinnx         if mi(nnfin)
-drop ratio* tot* gdpusd gdp index exrate_usd flag* neg*  country corecountry
+drop ratio* tot* gdpusd gdp index exrate_usd flag* neg*  country core*
 
 // Remove useless variables
 drop cap?? cag?? nsmnp
@@ -717,12 +612,12 @@ assert nninc>0 if year>=1970
 
 // Check metadata
 ds is year series_* TH gdp_*, not
-foreach v in `r(varlist)' {
+*foreach v in `r(varlist)' {
 	*di "`v'"
 	*asser !missing(q_`v') if !missing(`v')
 	*asser !missing(s_`v') if !missing(`v')
 	
-}
+*}
 
 label data "generated by adjust-series.do"
 save "$work_data/sna-series-adjusted.dta", replace

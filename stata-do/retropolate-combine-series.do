@@ -68,7 +68,7 @@ replace confc = . if iso == "BD" & year == 2019
 replace   confc = (.0572331473231 + .0691586434841)/2 /// Use neighboring years because of aberrant value
 				  if iso == "AE" & inlist(series, 1, 10) & year == 1974
 replace s_confc = "ipol" if iso == "AE" & inlist(series, 1, 10) & year == 1974
-replace q_confc = 3             if iso == "AE" & inlist(series, 1, 10) & year == 1974
+replace q_confc = 3      if iso == "AE" & inlist(series, 1, 10) & year == 1974
 
 replace nnfin = . if iso == "SV" & series == 1
 				  
@@ -397,6 +397,8 @@ rename series series_
 
 preserve
 save "$work_data/aux.do",replace
+
+
 u "$work_data/aux.do", clear
 restore
 
@@ -797,15 +799,15 @@ foreach v in compx comrx fsubx ftaxx {
 		bys geo`level' year : egen av`level'`v' = mean(`v') if corecountry == 1 & TH == 0 
 	}
 	
-	replace q_`v' = 0          if missing(`v') & flagcountry`v' == 1 & corecountry == 1 & !mi(avundet`v')
-	replace s_`v' = "regTH"    if missing(`v') & flagcountry`v' == 1 & corecountry == 1 & !mi(avundet`v')
-	replace   `v' = avundet`v' if missing(`v') & flagcountry`v' == 1 & corecountry == 1	
+	replace q_`v' = 0               if missing(`v') & flagcountry`v' == 1 & corecountry == 1 & !mi(avundet`v')
+	replace s_`v' = "reg"+ geoundet if missing(`v') & flagcountry`v' == 1 & corecountry == 1 & !mi(avundet`v')
+	replace   `v' = avundet`v'      if missing(`v') & flagcountry`v' == 1 & corecountry == 1	
 	
-	replace q_`v' = 0       if missing(`v') & flagcountry`v' == 1 & corecountry == 1	& !mi(avun`v')
-	replace s_`v' = "regTH" if missing(`v') & flagcountry`v' == 1 & corecountry == 1	& !mi(avun`v')
-	replace   `v' = avun`v' if missing(`v') & flagcountry`v' == 1 & corecountry == 1	
+	replace q_`v' = 0            if missing(`v') & flagcountry`v' == 1 & corecountry == 1	& !mi(avun`v')
+	replace s_`v' = "reg"+ geoun if missing(`v') & flagcountry`v' == 1 & corecountry == 1	& !mi(avun`v')
+	replace   `v' = avun`v'      if missing(`v') & flagcountry`v' == 1 & corecountry == 1	
 }
-drop av*
+drop av* 
 
 //Fill missing with TH average for TH
 foreach v in compx comrx fsubx ftaxx { 
@@ -849,8 +851,8 @@ gen `var'_idx = `var'*index
 	replace `var' = `var'_idx/exrate_usd
 }
 
-replace q_comnx = min(3, cond(comrx >= compx, q_comrx, q_compx))
-replace s_comnx = "comrx,compx"
+replace q_comnx = min(3, cond(comrx >= compx, q_comrx, q_compx)) 
+replace s_comnx = "comrx,compx" 
 replace   comnx = comrx - compx 
 
 replace q_taxnx = min(3, cond(fsubx >= ftaxx,q_fsubx, q_ftaxx))
@@ -895,9 +897,9 @@ drop TH flagcountryfdipx flagcountryfdirx flagcountryptfpx flagcountryptfrx flag
 
 
 foreach v in compx comrx fdipx fdirx fsubx ftaxx pinpx pinrx ptfpx ptfrx ptfpx_deb ptfpx_eq ptfrx_deb ptfrx_eq ptfrx_res {
-	replace q_`v' =. if `v' < 0
+	replace q_`v' =.  if `v' < 0
 	replace s_`v' ="" if `v' < 0
-	replace   `v' =. if `v' < 0
+	replace   `v' =.  if `v' < 0
 }
 
 // -------------------------------------------------------------------------- //
@@ -947,17 +949,29 @@ drop new*
 
 // Drop values that were unable to be adjusted (17/Sep/25)
 sort iso year 
-foreach v in  taxnx ftaxx fsubx {
-	bysort iso: gen growth = (`v' - `v'[_n-1]) / `v'[_n-1]
-	bysort iso: egen mu = mean(growth)
-	bysort iso: egen sd = sd(growth)
+foreach v in  taxnx ftaxx fsubx comnx comrx compx {
+	bysort iso: gen growth = (`v' - `v'[_n-1]) / `v'[_n-1]  
+	/*
+	bysort iso: egen mu = mean(growth) if year != $pastyear
+	bysort iso: egen sd = sd(growth)   if year != $pastyear
 	
-	gen outlier = 1 if  (abs(growth - mu) > 3*sd) & year==$pastyear
-	replace q_`v' = . if outlier == 1 
-	replace       s_`v' = "" if outlier == 1 
-	replace             `v' = . if outlier == 1 
-	drop outlier mu sd growth	
+	gen outlier = 1    if (abs(growth - mu) > 3*sd) & year==$pastyear
+	*/
+	bysort iso: egen med = median(cond(year != $pastyear, growth, .))
+	gen absdev = abs(growth - med)
+	bysort iso: egen mad = median(cond(year != $pastyear, absdev, .))
+	gen mad_sd = mad * 1.4826   // scales MAD to be comparable to a normal SD
+
+	gen outlier = 1 if abs(growth - med) > 3*mad_sd & year==$pastyear
+	
+	
+	replace q_`v' = .  if outlier == 1 
+	replace s_`v' = "" if outlier == 1 
+	replace   `v' = .  if outlier == 1 
+	*drop outlier mu sd growth	
+	drop growth med absdev mad mad_sd outlier
 }
+
  
 replace s_fsubx= "" if missing(ftaxx) & year==$pastyear
 replace s_ftaxx= "" if missing(fsubx) & year==$pastyear
@@ -970,6 +984,22 @@ replace q_taxnx= . if (missing(fsubx) | missing(ftaxx)) & year==$pastyear
 replace fsubx= . if missing(ftaxx) & year==$pastyear
 replace ftaxx= . if missing(fsubx) & year==$pastyear
 replace taxnx= . if (missing(fsubx) | missing(ftaxx)) & year==$pastyear
+
+
+replace s_compx= "" if missing(comrx) & year==$pastyear
+replace s_comrx= "" if missing(compx) & year==$pastyear
+replace s_comnx= "" if (missing(compx) | missing(comrx)) & year==$pastyear
+
+replace q_compx= . if missing(comrx) & year==$pastyear
+replace q_comrx= . if missing(compx) & year==$pastyear
+replace q_comnx= . if (missing(compx) | missing(comrx)) & year==$pastyear
+
+replace compx= . if missing(comrx) & year==$pastyear
+replace comrx= . if missing(compx) & year==$pastyear
+replace comnx= . if (missing(compx) | missing(comrx)) & year==$pastyear
+
+
+
 
 /*
 * Recalculate modified values

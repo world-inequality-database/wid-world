@@ -144,10 +144,11 @@ replace ratioimports = . if year <= firstyearimp - 1 & year >= firstyearimp - 5
 
 //Interpolate missing values within the series 
 foreach v in ratioexports ratioimports {
+	* Interpolate
 	replace `v' =.     if `v' == 0
 	by iso : ipolate `v' year, gen(x`v') 
 	
-	replace   `v' = x`v'   if missing(`v') 
+	replace   `v' = x`v'     if missing(`v') 
 	drop x`v'
 }
 

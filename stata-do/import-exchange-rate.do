@@ -99,6 +99,10 @@ gduplicates tag year currency, gen(dup)
 assert dup == 0
 drop dup
 
+// KR Xrate explits too strongly and the national accounts do not react as so
+assert $pastyear == 2025 // Check si the exrate was corrected or if was effectily that big and the national accounts adjusted
+replace lcu_to_usd=. if year==2025 & currency=="KPW"
+
 * Gen source
 gen source2=  "openexchangerate"
 
@@ -124,23 +128,26 @@ save "`merged'"
 // *************** PART B.2 : `merged' --> `xrate'   ***************************
 keep if year == $pastyear
 
+assert $pastyear == 2025
+
 *replace lcu_to_usd = 87.6462   if (currency == "YUN") // source: mataf.net, April 2021
-replace lcu_to_usd = 76.7601    if (currency == "YUN") // source: mataf.net, June 2025
+*replace lcu_to_usd = 76.7601    if (currency == "YUN") // source: mataf.net, June 2025
+replace lcu_to_usd =  89.1162    if (currency == "YUN") // source: mataf.net, June 2025
 replace source = "mataf" if (currency == "YUN")
 
 *replace lcu_to_usd = 1355.14   if (currency == "YER") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
-replace lcu_to_usd = 1355.116   if (currency == "YER") & $pastyear == 2024 // taken from IMF Data Exchange Rates
-replace source="IMF"            if (currency == "YER") & $pastyear == 2024 
+*replace lcu_to_usd = 1355.116   if (currency == "YER") & $pastyear == 2024 // taken from IMF Data Exchange Rates
+*replace source="IMF"            if (currency == "YER") & $pastyear == 2024 
 
 *replace lcu_to_usd = 380127.65 if (currency == "IRR") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
-replace lcu_to_usd = 42000      if (currency == "IRR") & $pastyear == 2024 // taken from IMF Data Exchange Rates
-replace source="IMF"            if (currency == "IRR") & $pastyear == 2024
+*replace lcu_to_usd = 42000      if (currency == "IRR") & $pastyear == 2024 // taken from IMF Data Exchange Rates
+*replace source="IMF"            if (currency == "IRR") & $pastyear == 2024
 
 *replace lcu_to_usd = 2289.92   if (currency == "SSP") & $pastyear == 2023 // taken from IMF WEO (GDP lcu/GDP USD)current prices
-replace lcu_to_usd = 2163.104   if (currency == "SSP") & $pastyear == 2024 // taken from IMF Data Exchange Rates
-replace source="IMF"            if (currency == "SSP") & $pastyear == 2024 
+*replace lcu_to_usd = 2163.104   if (currency == "SSP") & $pastyear == 2024 // taken from IMF Data Exchange Rates
+*replace source="IMF"            if (currency == "SSP") & $pastyear == 2024 
 
-assert $pastyear == 2024
+
 
 // Generate exchange rates with euro and yuan
 rename lcu_to_usd valuexlcusx999i
@@ -599,6 +606,7 @@ drop if inlist(iso, "SY") & (year<$pastyear)
 preserve
 	* Note: this file is usefull cor correcting the data of the WB's PPP for 
 	* 		special USD country cases
+	assert $pastyear == 2025
 	merge 1:1 iso currency year using "`merged'", update noreplace keepusing(lcu_to_usd) nogenerate
 	keep if inlist(iso, "ZW", "SV", "LR", "EC")
 	sort iso year 
@@ -606,10 +614,13 @@ preserve
 	replace value= lcu_to_usd if missing(value)
 	
 	fillin iso year
-	replace value=3266.33 if iso=="ZW" & year==2024 & missing(value) // WB data
-	ipolate value year, gen (value2)
+	ipolate value year, gen (value2)  by(iso)
 	replace value=value2 if missing(value)
 	
+	* ipolate won't extrapolate — forward-fill for out-of-range years
+	sort iso year
+	by iso: replace value = value[_n-1] if missing(value) 
+
 	keep iso year value 
 	order iso year value 
 	rename value exrate_usd
@@ -908,8 +919,8 @@ drop xrate_twd_usd source2
 merge 1:1 iso year using "$work_data/nievaspiketty2025_xrate.dta", nogenerate keepusing(xrate_usd)
 gen source2="np2025" if !missing(xrate_usd)
 
-replace source= source2 if !missing(xrate_usd)
-replace valuexlcusx999i= xrate_usd if !missing(xrate_usd)
+replace source= source2 if !missing(xrate_usd) & year<1970 & missing(valuexlcusx999i) 
+replace valuexlcusx999i= xrate_usd if !missing(xrate_usd)  & year<1970 & missing(valuexlcusx999i) 
 drop xrate_usd source2
 
 drop if missing(valuexlcusx999i)
@@ -955,7 +966,8 @@ drop if missing(value)
 gen data_quality=.
 
 replace data_quality=5 if strpos(source,"WB")  | strpos(source,"openexchangerate") | ///
-						  strpos(source,"IMF") | strpos(source,"UNSNA") | strpos(source,"mataf")
+						  strpos(source,"IMF") | strpos(source,"UNSNA") | strpos(source,"mataf") ///
+						  | strpos(source,"UN_PARE") | strpos(source,"FRED")
 replace data_quality=4 if strpos(source,"np")
 replace data_quality=3 if strpos(source,"interpolated")
 replace data_quality=2 if strpos(source,"carryforward")

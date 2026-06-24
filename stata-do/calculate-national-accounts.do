@@ -72,12 +72,16 @@ merge 1:1 iso year using "`public_finance'", nogenerate
 ds iso year gdp currency q_* s_* coef_*, not
 local varlist = r(varlist)
 foreach v of varlist `varlist' {
-	gen         q_y`v' = q_`v' 
-	gen         s_y`v' = s_`v' 
+	by iso : carryforward `v', replace
+	replace q_`v' = 2              if !missing(`v') & missing(q_`v') // &  year == $pastyear
+    replace s_`v' = "carryforward" if !missing(`v') & missing(s_`v') // &  year == $pastyear
+	
+	gen         q_y`v' = q_`v'  if !missing(`v')
+	gen         s_y`v' = s_`v'  if !mi(`v')
 	gen double    y`v' =   `v' // Keep values as onlet "Y" for Percentage of GDP
 	
 	*This will be the aggregates m
-	replace  q_`v' = q_gdp 
+	replace  q_`v' = q_gdp   if !missing(`v')
 	*replace s_`v' = s_`v' // s_ stay as it is
 	replace    `v' = `v'*gdp // Generate monetary values
 }
@@ -111,12 +115,17 @@ drop currency
 greshape wide value q_ s_, i(iso year) j(widcode) string
 
 
-foreach v in ndpro999i gdpro999i nnfin999i finrx999i finpx999i comnx999i pinnx999i nwnxa999i nwgxa999i nwgxd999i comhn999i fkpin999i confc999i comrx999i compx999i pinrx999i pinpx999i fdinx999i fdirx999i fdipx999i ptfnx999i ptfrx999i ptfpx999i flcin999i flcir999i flcip999i ncanx999i tbnnx999i scinx999i tgxcx999i tgmcx999i tgncx999i tgxmx999i tgmmx999i tgnmx999i tbxrx999i tbmpx999i tgxrx999i tgmpx999i tgnnx999i tsxrx999i tsmpx999i tsnnx999i scirx999i scipx999i fkarx999i fkapx999i fkanx999i taxnx999i fsubx999i ftaxx999i expgo999i gpsge999i defge999i polge999i ecoge999i envge999i houge999i heage999i recge999i eduge999i edpge999i edsge999i edtge999i sopge999i spige999i sacge999i sakge999i revgo999i pitgr999i citgr999i scogr999i pwtgr999i intgr999i ottgr999i {
-	gen            q_w`v' = q_mnninc999i
-	gen            s_w`v' = s_m`v'
-	gen double  valuew`v' = valuem`v'/valuemnninc999i
+foreach v of local varlist {
+	gen            q_w`v'999i = q_mnninc999i
+	gen            s_w`v'999i = s_m`v'999i
+	gen double  valuew`v'999i = valuem`v'999i/valuemnninc999i
 }
 
+foreach v in gdpro {
+	gen            q_w`v'999i = q_mnninc999i
+	gen            s_w`v'999i = s_m`v'999i
+	gen double  valuew`v'999i = valuem`v'999i/valuemnninc999i
+}
 
 // dropping original foreign portfolio 
 drop valuemptfon999i valuemptfop999i valuemptfor999i 
@@ -124,15 +133,22 @@ drop s_mptfon999i s_mptfop999i s_mptfor999i
 drop q_mptfon999i q_mptfop999i q_mptfor999i
 
 // extrapolating based on nninc 
-sort iso year 
+
+sort iso year
 foreach v in expgo999i gpsge999i defge999i polge999i ecoge999i envge999i houge999i heage999i recge999i eduge999i edpge999i edsge999i edtge999i sopge999i spige999i sacge999i sakge999i revgo999i pitgr999i citgr999i scogr999i pwtgr999i intgr999i ottgr999i {
-	by iso : carryforward valuew`v' if year == $pastyear , replace
-	replace q_w`v' = 2              if year == $pastyear & !mi(valuew`v') & mi(q_w`v')
-	replace s_w`v' = "carryforward" if year == $pastyear & !mi(valuew`v') & mi(      s_w`v')
+
+    by iso : carryforward valuew`v', replace // &  year == $pastyear
+
+    replace q_w`v' = 2              if !mi(valuew`v') & mi(q_w`v') // &  year == $pastyear
+    replace s_w`v' = "carryforward" if !mi(valuew`v') & mi(s_w`v') // &  year == $pastyear
+
+    replace    q_m`v' = q_mnninc999i              if mi(valuem`v') // & year == $pastyear 
+    replace    s_m`v' = s_w`v'                    if mi(valuem`v') // & year == $pastyear 
+    replace valuem`v' = valuew`v'*valuemnninc999i if mi(valuem`v') // & year == $pastyear 
 	
-	replace    q_m`v' = q_mnninc999i              if year == $pastyear & mi(valuem`v')
-	replace    s_m`v' = s_w`v'                    if year == $pastyear & mi(valuem`v')
-	replace valuem`v' = valuew`v'*valuemnninc999i if year == $pastyear & mi(valuem`v')
+	replace    q_y`v' = q_mgdpro999i              if mi(valuey`v') // & year == $pastyear 
+    replace    s_y`v' = s_w`v'                    if mi(valuey`v') // & year == $pastyear 
+    replace valuey`v' = valuem`v'/valuemgdpro999i if mi(valuey`v') // & year == $pastyear 
 }
 
 // Note: the dataset now is too big for being reshaped at once

@@ -3,11 +3,11 @@
 // -------------------------------------------------------------------------- //
 
 // Import financial, non-fiancial and combined sectors
-use "$input_data_dir/un-sna/old/403.dta", clear
+use "$input_data_dir/un-sna/403.dta", clear
 generate sector = "nf"
-append using "$input_data_dir/un-sna/old/404.dta"
+append using "$input_data_dir/un-sna/404.dta"
 replace sector = "fc" if missing(sector)
-append using "$input_data_dir/un-sna/old/408.dta"
+append using "$input_data_dir/un-sna/408.dta"
 replace sector = "co" if missing(sector)
 
 merge n:1 country_or_area year series currency using "$work_data/un-sna-current-gdp.dta", keep(match) nogenerate
@@ -126,9 +126,9 @@ foreach v in cfc pri sec {
 	replace `v'nf = . if country_or_area == "Italy"             & series == "1000" & inrange(year, 1995, 2022)
 	replace `v'nf = . if country_or_area == "Poland"            & series == "1000" & year == 2022
 	replace `v'nf = . if country_or_area == "Portugal"          & series == "1000" & inrange(year, 2000, 2022)
-	replace `v'nf = . if country_or_area == "Republic of Korea" & series == "1000" & inrange(year, 2011, 2021)
+	replace `v'nf = . if country_or_area == "Republic of Korea" & series == "1100" & inrange(year, 2011, 2021)
 	replace `v'nf = . if country_or_area == "Slovakia"          & series == "1000" & inrange(year, 2009, 2022)
-	
+
 }
 
 

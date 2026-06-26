@@ -83,7 +83,7 @@ replace source=`"[URL][URL_LINK]https://wid.world/document/wid-income-and-wealth
 replace method=  "This variable was estimated as an aggregation of the regions that compose this region"  if strpos(treat1, "reginhouse") & !inlist(sixlet,"xlcusx","xlcusp","xlceux","xlceup","xlcyux","xlcyup","inyixx")
 replace method = "These data are computed by comparing the estimated nninc values of countries in this region; See  [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) `Distributional National Accounts Guidelines'[/URL_TEXT][/URL]" if  missing(method) & inlist(sixlet,"xlcusx","xlcusp","xlceux","xlceup","xlcyux","xlcyup","inyixx") & strpos(treat1, "reginhouse")
 
-replace method = "In-house calculation" if treat1=="inhouse"
+replace method = "In-house calculation (see method)"  if treat1=="inhouse"
 
 //---  3.  Fill metadata of the PPP  -----------------------------------------//
 * Import metadata of xlcUSp
@@ -96,7 +96,7 @@ replace method = "These data are computed by comparing the estimated nninc value
 replace method = "This indicator was triangulated from xlcusp using a <<Euro xlcusp>> weighting of DE, ES, FR, IT, NL" if missing(method) & sixlet=="xlceup" 
 replace method = "This indicator was triangulated from xlcusp by a xlcusp of CN" if missing(method) & sixlet=="xlcyup"
 	
-replace source = "In-house calculation" if missing(source) & substr(sixlet,1,3)=="xlc" &  substr(sixlet,6,1)=="p"
+replace source = "In-house calculation (see method)"  if missing(source) & substr(sixlet,1,3)=="xlc" &  substr(sixlet,6,1)=="p"
 
 
 //---  4.  Fill metadata of the Exchange rate  -------------------------------//
@@ -148,11 +148,12 @@ replace source = source + "(Series inherited from " + substr(treat2,1,2) + ")"  
 * method & source for triangulations
 replace method= "This indicator was triangulated from xlcusx using a <<Euro xlcusx>> weighting of DE, ES, FR, IT, NL" if missing(method) & sixlet=="xlceux" & treat1=="triang"
 replace method= "This indicator was triangulated from xlcusx by a xlcusx of CN"                                               if missing(method) & sixlet=="xlcyux" & treat1=="triang"
-replace method= "Observed data"                                                                                               if missing(method) & sixlet=="xlcusx"
+replace method= "Data obtained from an external source (see source)"                                                                                               if missing(method) & sixlet=="xlcusx"
 	
 * Complete missings 
-replace method = "Observed data"        if  missing(method) & !missing(source) & substr(sixlet,1,3)=="xlc" &  substr(sixlet,6,1)=="x"
-replace source = "In-house calculation" if !missing(method) &  missing(source) & substr(sixlet,1,3)=="xlc" &  substr(sixlet,6,1)=="x"
+replace method = "Data obtained from an external source (see source)"        if  missing(method) & !missing(source) & substr(sixlet,1,3)=="xlc" &  substr(sixlet,6,1)=="x"
+replace source = "In-house calculation (see method)" if !missing(method) &  missing(source) & substr(sixlet,1,3)=="xlc" &  substr(sixlet,6,1)=="x"
+
 
 //---  5. Fill Metadata of the price index -----------------------------------//
 * Source
@@ -305,8 +306,9 @@ replace source = "Price index of " + upper(substr(metadata,-2,2)) + " from Nieva
 
 	
 * Complete missings 
-replace method = "Observed data"        if  missing(method) & !missing(source) & sixlet=="inyixx"
-replace source = "In-house calculation" if !missing(method) &  missing(source) & sixlet=="inyixx"
+replace method = "Data obtained from an external source (see source)" if  missing(method) & !missing(source) & sixlet=="inyixx"
+replace source = "In-house calculation (see method)" if !missing(method) &  missing(source) & sixlet=="inyixx"
+	
 	
 //---  6. Fill Metadata of GDP ---------------------------------//
 * Note: The GDP metadata is composed by a level year, that we take as an intial observation,  
@@ -383,11 +385,10 @@ replace source = `"[URL][URL_LINK]https://wid.world/document/unequal-exchange-an
 replace source = source + " (Growth rate)" if !strpos(metadata,"level") & !missing(source) & strpos(sixlet,"gdpro") 
 replace source = source + " (Level value)" if strpos(metadata,"level") & !missing(source) & strpos(sixlet,"gdpro") 
 
-replace method = "Observed data"        if  missing(method) & !missing(source) & strpos(sixlet,"gdpro") 
-replace source = "In-house calculation" if !missing(method) &  missing(source) & strpos(sixlet,"gdpro") 
-replace method= method + " (Series adjusted to match with the world regions of Nievas G., & Piketty, T.(2025))" if strpos(treat2,"adj&np")  & strpos(sixlet,"gdpro") 
+replace method = "Data obtained from an external source (see source)"        if  missing(method) & !missing(source) & strpos(sixlet,"gdpro") 
+replace source = "In-house calculation (see method)" if !missing(method) &  missing(source) & strpos(sixlet,"gdpro") 
+replace method= method + " (Series adjusted to match with the world regions of Nievas G., & Piketty, T.(2025) Unequal Exchange and North-South Relations: Evidence from Global Trade Flows and the World Balance of Payments 1800-2025)" if strpos(treat2,"adj&np")  & strpos(sixlet,"gdpro") 
 	
-
 //---  7. Fill Metadata of National Accounts ---------------------------------//
 *cleanning
 foreach c in metadata treat1 treat2 treat3 {
@@ -549,7 +550,7 @@ replace adjustment2 = "(data corrected to fit into the aggregates of " + `"[URL]
 replace method = method + adjustment + adjustment2		
 
 * Complete missings 
-replace method = "Data obtained from an external source (see data)" if  missing(method) & !missing(source) 
+replace method = "Data obtained from an external source (see source)" if  missing(method) & !missing(source) 
 replace source = "In-house calculation (see method)"                   if !missing(method) &  missing(source) 
 
 drop adjustment adjustment2
@@ -612,7 +613,7 @@ replace source = ///
 if missing(source) & metadata=="wealthagg"
 
 * Complete missings 
-replace method = "Data obtained from an external source (see data)" if  missing(method) & !missing(source) 
+replace method = "Data obtained from an external source (see source)" if  missing(method) & !missing(source) 
 replace source = "In-house calculation (see method)"                if !missing(method) &  missing(source) 
 
 //---  10.  Add one-let note -------------------------------------------------//
@@ -654,22 +655,23 @@ drop if mi(source) & mi(method)
 
 //---  12.  Add technical Note  ----------------------------------------------//
 gen technote=""
-replace technote = " See [URL][URL_LINK]https://wid.world/document/extending-wid-national-accounts-series-institutional-sectors-and-factor-shares-world-inequality-lab-technical-note-2025-03/[/URL_LINK][URL_TEXT] Dietrich, J., Nievas, G., Odersky, M., Piketty, T., Somanchi, A. (2025) `Extending WID National Accounts Series: Institutional Sectors and Factor Shares'[/URL_TEXT][/URL]" if /// 
+/*
+replace technote = " For more information on the estimation of the hisorical series of this variable see [URL][URL_LINK]https://wid.world/document/extending-wid-national-accounts-series-institutional-sectors-and-factor-shares-world-inequality-lab-technical-note-2025-03/[/URL_LINK][URL_TEXT] Dietrich, J., Nievas, G., Odersky, M., Piketty, T., Somanchi, A. (2025) Extending WID National Accounts Series: Institutional Sectors and Factor Shares [/URL_TEXT][/URL]" if /// 
 																											inlist(substr(sixlet,2,.),"pxtgo","gvato","gvago","ceugo","gsrgo","nsrgo","cfcgo","gvaco") | /// 
 																											inlist(substr(sixlet,2,.),"ceuco","gsrco","nsrco","cfcco","gvahn","ceuhn","gmxhn","nmxhn") | /// 
 																											inlist(substr(sixlet,2,.),"ccmhn","gsrhn","nsrhn","ccshn")                                 | ///
 																											inlist(substr(sixlet,1,.),"ylsgdp","ylsndp","ycsgdp","ycsndp","wlsgni","wlsnni","wcsgni")  | ///
 																											inlist(substr(sixlet,1,.),"wcsnni","ylscgv","ylscnv","ycscgv","ycscnv")
 																											
-replace technote = " See [URL][URL_LINK]https://wid.world/document/wid-national-accounts-series-updated-and-extended-coverage-1800-2023-world-inequality-lab-technical-note-2025-02/[/URL_LINK][URL_TEXT] Nievas, G., Piketty, T.(2025) `WID National Accounts Series: Updated and Extended Coverage 1800-2023'[/URL_TEXT][/URL]" if /// 
+replace technote = " See [URL][URL_LINK]https://wid.world/document/wid-national-accounts-series-updated-and-extended-coverage-1800-2023-world-inequality-lab-technical-note-2025-02/[/URL_LINK][URL_TEXT] Nievas, G., Piketty, T.(2025) WID National Accounts Series: Updated and Extended Coverage 1800-2023[/URL_TEXT][/URL]" if /// 
 																											inlist(substr(sixlet,2,.),"tgnnx","tgxrx","tgmpx","tgncx","tgxcx","tgmcx","tgnmx","tgxmx") | /// 
 																											inlist(substr(sixlet,2,.),"tgmmx","tsnnx","tsxrx","tsmpx","tbnnx","tbxrx","tbmpx","nnfin") | /// 
 																											inlist(substr(sixlet,2,.),"finrx","finpx","scinx","scirx","scipx","ncanx","nwnxa","nwgxa") | /// 
 																											inlist(substr(sixlet,2,.),"nwgxd","nyixx","rerus","reryu","rereu")																										
-																											
-replace technote=  " See [URL][URL_LINK]https://wid.world/document/extending-wid-national-accounts-series-institutional-sectors-and-factor-shares-world-inequality-lab-technical-note-2025-03/[/URL_LINK][URL_TEXT] Gomez-Carrera, R., Moshirf, R., Nievas, G., Piketty, T. (2024) `Global Inequality Update 2024:New Insights from Extended WID Macro Series'[/URL_TEXT][/URL]" if missing(technote) 
+*/																											
+replace technote=  " For more details on the latest data update round, see [URL][URL_LINK]https://wid.world/document/extending-wid-national-accounts-series-institutional-sectors-and-factor-shares-world-inequality-lab-technical-note-2025-03/[/URL_LINK][URL_TEXT] Gomez-Carrera, R., Moshirf, R., Nievas, G., Piketty, T. (2024) Global Inequality Update 2024:New Insights from Extended WID Macro Series[/URL_TEXT][/URL]" if missing(technote) 
 
-replace method= method + technote + "; For more details see  [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) `Distributional National Accounts Guidelines'[/URL_TEXT][/URL]. " 
+replace method= method + technote + "; For more details on the WID.world methods, see [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) Distributional National Accounts Guidelines[/URL_TEXT][/URL]. " 
 
 drop technote
 

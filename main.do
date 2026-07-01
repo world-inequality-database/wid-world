@@ -414,7 +414,7 @@ do "$do_dir/export-core-macro-var.do"
 do "$do_dir/export-distributions.do"
 
 // Export the metadata
-do "$do_dir/export-metadata-source-method.do"
+do "$do_dir/export-metadata-distributions.do"
 
 do "$do_dir/export-metadata-other.do"
 

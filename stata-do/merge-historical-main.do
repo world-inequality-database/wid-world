@@ -399,8 +399,8 @@ bysort iso year widcode: assert data_quality == data_quality[1] // assuring data
 // identify countries with historical wealth series for metadata later
 preserve
 	keep if inlist(widcode, "shweal992j", "ahweal992j", "thweal992j") & year==1820 // keep on historical wealth distributions
-	gen sixlet = substr(widcode, 1, 6)
-	keep iso sixlet
+	gen fivelet = substr(widcode, 2, 5)
+	keep iso fivelet
 	duplicates drop
 	tempfile historicalwealthcountry
 	save `historicalwealthcountry'
@@ -477,7 +477,7 @@ merge n:1 iso using "`longrun'", gen(m1)
 replace method = rtrim(method)
 
 // adding comment in method for fiinc based countries
-replace method = method + " Before 1980, series is constructed based on the trend observed in the fiscal income data available (see sources)." if strpos(sixlet, "ptinc") & ///
+replace method = method + " Before 1980, series is constructed based on the trend observed in the fiscal income data available (see sources)." if strpos(fivelet, "ptinc") & ///
 inlist(iso, "AR", "BG", "CH", "CL", "CM", "DE", "DK", "DZ") | ///
 inlist(iso, "ES", "FI", "FR", "GB", "GH", "GR", "HR", "HU") ///
 | inlist(iso, "ID", "IE", "IN", "IT", "JP", "KE", "KR", "MU", "MW") ///
@@ -485,9 +485,9 @@ inlist(iso, "ES", "FI", "FR", "GB", "GH", "GR", "HR", "HU") ///
 | inlist(iso, "TN", "TW", "TZ", "UG", "US", "VN", "ZA", "ZM", "ZW") ///
 
 
-generate newmethod = method1 if m1==3 & strpos(sixlet, "ptinc") 
-*replace newmethod = method2 if m2==3 & strpos(sixlet, "ptinc") 
-replace method = method + newmethod if !missing(newmethod) & strpos(sixlet, "ptinc")
+generate newmethod = method1 if m1==3 & strpos(fivelet, "ptinc") 
+*replace newmethod = method2 if m2==3 & strpos(fivelet, "ptinc") 
+replace method = method + newmethod if !missing(newmethod) & strpos(fivelet, "ptinc")
 
 // add Arias et al techote to main countries ptinc series 
 preserve 
@@ -498,9 +498,9 @@ preserve
 	tempfile maincountry
 	save `maincountry'
 restore
-gen fivelet = substr(sixlet, 2,5)
+
 merge m:1 iso fivelet using `maincountry', gen(maincountry)
-drop fivelet 
+
 replace source = source + ///
 `"; "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/wid-income-and-wealth-distributional-series-updated-and-extended-coverage-1800-2024-world-inequality-lab-technical-note-2025-10/"' + `"[/URL_LINK]"' + ///
@@ -519,7 +519,7 @@ if inlist(iso, "BG", "CH", "CM", "FI", "GH", "GR", "HR", "HU") ///
 
 
 // add Arias et al techote to counrties with longrun/historical wealth series (1820+)
-merge m:1 iso sixlet using `historicalwealthcountry', gen(historicalwealth)
+merge m:1 iso fivelet using `historicalwealthcountry', gen(historicalwealth)
 replace source = source + ///
 `"; For long run series, "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/wid-income-and-wealth-distributional-series-updated-and-extended-coverage-1800-2024-world-inequality-lab-technical-note-2025-10/"' + `"[/URL_LINK]"' + ///
@@ -533,9 +533,8 @@ if historicalwealth == 3
 *replace source = source + " " + newsource if !missing(newsource) & strpos(sixlet, "ptinc")
 
 drop m1 newmethod method1 // m2 method2 newsource source1 source2
-
-gduplicates tag iso sixlet, gen(duplicate)
-assert duplicate == 0
-drop duplicate
+keep iso fivelet method source
+drop if missing(fivelet)
+isid iso fivelet
 
 save "$work_data/merge-historical-main-metadata.dta", replace

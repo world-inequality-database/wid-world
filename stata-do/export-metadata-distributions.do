@@ -1,118 +1,190 @@
 // =============================================================================
-// 								EXPORT METADATA
+// 						EXPORT METADATA FOR DISTRIBUTIONS 
 // =============================================================================
 
-// Objective: This file does some final clean-ups of the metadata before exporting.
-
-// Latest modifications: A. Van Der Ree, 20 Nov 2025
+// Objective: prepare and export the metadata for distirbutional data
 
 //--------------------- INDEX ------------------------------------------------//
-//       1. Construct country quality_score
-//       2. Load metadata
-//       3. Add data quality scores
-//				3.1 correct data imputation column
-//       4. Add population notes
-//       5. Add price notes 
-//       6. Add PPP notes 
-//       7. Add transparency index notes
-//		 8. clean up country codes
-//       9. syntax checks 
-//		 10. Csv export
+//       1. Load metadata
+//       2. Construct country quality_score
+//       3. Add transparency index notes
+//		 4. Csv export
 //----------------------------------------------------------------------------//
 
 // =============================================================================
-// -------------------- 1. Construct country quality_score ---------------------
+// ----------------- 1. Load metadata for distributions ------------------------
+// =============================================================================
+
+use "$work_data/World-and-regional-aggregates-metadata.dta", clear
+
+// dropping regions that no longer exist
+drop if inlist(iso, "WF", "XI", "QM", "TK", "VA", "VI", "SH")
+drop if inlist(iso, "NU", "MP", "MF", "CK", "PM", "FO")
+drop if inlist(iso, "GU", "FK", "EH", "BL", "AS", "AN")
+drop if iso == ""
+
+/*
+// Dropping macro, fiscal and wealth widcodes that we dont update or dont exist
+local drop_fiscal_codes ///
+	filin fiwag fimil ficap firen fiint fidiv fikgi fimik fimix
+local drop_wealth_codes ///
+    hwnfa hwhou hwbus hwfin hweqi hwpen hwdeb hwequ hwfix
+local drop_other_codes ///
+    coef_ ceufc ceuho ceunf ceunp cwfix ///
+    fkdeb fkequ fkfix fkhou fkinc fkmik fkpen flemp flmil ///
+    gninc gvbco gvbfc gvbgo gvbhn gvbho gvbnf gvbnp ///
+    gwequ gwfix hwoff incta iwfix ///
+	mconf nvatp nwdeb nwfin ///
+    ptemp ptfin ptfon ptfop ptfor pthou ptinp ptint ptlbu ptmik ptsoc ///
+    pwequ pwfix sbpco sbpfc sbpgo sbphn sbpho sbpnf sbpnp ///
+    tapco tapfc tapgo taphn tapho tapnf tapnp ///
+    tspco tspfc tspgo tsphn tspho tspnf tspnp	
+local dropcodes ///
+    `drop_fiscal_codes' ///
+    `drop_wealth_codes' ///
+    `drop_other_codes'
+foreach c of local dropcodes {
+    drop if fivelet == "`c'"
+}
+*/	
+
+// keeping only distributional vars. the metadata for macro vars is generated separately
+keep if inlist(fivelet, "ptinc", "diinc", "hweal", "cainc", "fainc", "fiinc")
+isid iso fivelet
+
+duplicates drop iso fivelet, force
+tempfile metadata
+save `metadata'
+
+// =============================================================================
+// ----------------- 2. Construct country data_quality_score -------------------
 // =============================================================================
 
 use "$work_data/calculate-gini-coef-output.dta", clear
 
-drop if p=="p0p100" | p=="pall" // until macro dq is complete
-keep if strpos(widcode, "ptinc") | strpos(widcode, "cainc") | strpos(widcode, "diinc") | strpos(widcode, "hweal") // these are the only distributions with complete dq for now
+keep if strpos(widcode, "ptinc") | strpos(widcode, "cainc") ///
+| strpos(widcode, "diinc") | strpos(widcode, "hweal") // these are the only distributions with complete dq for now
 
-gen sixlet = substr(widcode, 1, 6)
-keep iso year sixlet data_quality
+drop if strpos(widcode, "hweal992i") & iso=="GB" // this series exceptionally has a different dq that "ahweal992j" based on the paper's methodology. we need dq constant at sixlet level, so dropping it to avoid clashes. 
 
+drop if p=="p0p100" | p=="pall"
+
+gen fivelet = substr(widcode, 2, 5)
+keep iso year fivelet data_quality
 duplicates drop
-isid iso year sixlet
-bysort iso sixlet year: assert data_quality == data_quality[1]
 
-drop if year == $pastyear // latest year is almost always extrapolated so we drop it for quality score
-gen d = ($pastyear - 1) - year // distance "how many years back"
+// ensure consistency in data quality
+isid iso year fivelet
+bysort iso fivelet year: assert data_quality == data_quality[1]
+bysort iso year fivelet: egen dq_min = min(data_quality) 
+bysort iso year fivelet: egen dq_max = max(data_quality)
+assert dq_min == dq_max if !missing(dq_min) | !missing(dq_max)
+
+// construct weighted average data quality score 
+drop if year == $pastyear // latest year is almost always extrapolated 
+gen d = ($pastyear - 2) - year // distance "how many years back" // "2" until pretax update 2026 is complete
 
 // [USER PARAMETERS] established by Central Team based on I. Flores graphs (03.2026)
 local c 20 
 local k  5 
 gen w = 1/(1 + exp((d - `c')/`k')) // weight
 gen wquality = w * data_quality
-bysort iso sixlet: egen double sumw = total(w)
-bysort iso sixlet: egen double sumwquality = total(wquality)
-gen double quality_score = round(sumwquality / sumw, 0.1) // adapt rounding to preference
+bysort iso fivelet: egen double sumw = total(w)
+bysort iso fivelet: egen double sumwquality = total(wquality)
+gen double data_quality_score = round(sumwquality / sumw, 0.1) // adapt rounding to preference
 
-bysort iso sixlet: assert quality_score == quality_score[1]
-keep iso sixlet quality_score
+bysort iso fivelet: assert data_quality_score == data_quality_score[1]
+keep iso fivelet data_quality_score
 duplicates drop
-isid iso sixlet
+isid iso fivelet
 
-tempfile data_quality_scores
-save `data_quality_scores'
-
-// =============================================================================
-// ------------------------- 2. Load metadata ----------------------------------
-// =============================================================================
-
-use "$work_data/World-and-regional-aggregates-metadata.dta", clear
-// use "$work_data/add-carbon-series-metadata.dta", clear
-
-// Dropping macro widcodes that no longer exist 
-gen fivelet = substr(sixlet, 2, 5)
-local dropcodes ///
-    coef_ ceufc ceuho ceunf ceunp cwfix fkdeb fkequ fkfix fkhou fkinc fkmik ///
-    flemp flmil gninc gvbco gvbfc gvbgo gvbhn gvbho gvbnf gvbnp gwequ gwfix ///
-    hwequ hwfix hwoff incta iwfix mconf nvatp nwdeb nwfin otpgo ptemp ptfin ///
-    ptfon ptfop ptfor pthou ptinp ptint ptlbu ptmik ptsoc pwequ pwfix ///
-    sbpco sbpfc sbpgo sbphn sbpho sbpnf sbpnp fkpen ///
-    tapco tapfc tapgo taphn tapho tapnf tapnp ///
-    tspco tspfc tspgo tsphn tspho tspnf tspnp
-foreach c of local dropcodes {
-    drop if fivelet == "`c'"
-}
-drop fivelet 
-
-drop if sixlet=="optinc"
-drop if iso == ""
-
-duplicates drop iso sixlet, force
-
-// drop if inlist(iso, "QD", "QD-MER")
-// replace data_points = "[1988, 1993, 1998, 2002, 2008, 2014]" if iso == "CI" & strpos(sixlet, "ptinc")
-// replace extrapolation = "[[1980, $year]]" if iso == "CI" & strpos(sixlet, "ptinc")
-// replace extrapolation = "" if extrapolation == "[[2019]]"
+// bring data quality scores 
+merge 1:1 iso fivelet using `metadata', nogen 
+assert data_quality_score != . if inlist(fivelet, "ptinc", "cainc", "diinc", "hweal") 
 
 // =============================================================================
-// ---------------------------- 3. Add quality score ---------------------------
+// ------------------ 3. Add transparency index note ---------------------------
 // =============================================================================
 
-// bring quality scores 
-merge 1:1 iso sixlet using `data_quality_scores', nogen 
-drop data_quality // this is the old variable that is now quality_score
+preserve
+	import excel "$quality_file", sheet("Summarized_Scores") cellrange(A2) firstrow clear
+	keep B
+	ren B iso
+	drop if iso==""
+	replace iso = substr(iso, 1, 2) if substr(iso, 3, .) == " "
+	gen fivelet = "quali"
+	gen method = "The inequality transparency index is estimated by the World Inequality Lab based on the availability " + ///
+		"of income and wealth surveys and tax data in the country considered. See " + ///
+		"http://wid.world/transparency/ for more information."
+	gen source = `"[URL][URL_LINK]http://wid.world/transparency/[/URL_LINK][URL_TEXT]Inequality Transparency Index Methodology[/URL_TEXT][/URL]"' + ///
+				 `"[URL][URL_LINK]http://wid.world/document/inequality-transparency-index-update-world-inequality-lab-technical-note-2020-12/[/URL_LINK]"' + ///
+				 `"[URL_TEXT]; Burq, François and Chancel, Lucas. Inequality transaprency index update (2020)[/URL_TEXT][/URL]"'
+	tempfile transparencymeta
+	save `transparencymeta'
+restore
+append using `transparencymeta'
 
-gen fivelet=substr(sixlet, 2,5)
-assert quality_score != . if inlist(fivelet, "ptinc", "cainc", "diinc", "hweal") & sixlet!="mhweal"
+// Fix duplicates for transaprency index
+drop if fivelet == "quali" & missing(source)
 
-// --------------------------------------
-// temporarily: round data quality, rename variable to old name, string variable
-*rename quality_score data_quality
-*replace data_quality = round(data_quality, 1)
-tostring data_quality, replace force
-replace data_quality = "" if data_quality=="."
-// --------------------------------------
+// =============================================================================
+// ----------------------------- 4. Csv export --------------------------------
+// =============================================================================
 
-// Make sure metadata applies to all variable types (a,t,s) within a fivelet
-foreach v of varlist data_imputation data_points extrapolation {
-	egen tmp = mode(`v'), by(iso fivelet)
-	replace `v' = tmp
-	drop tmp
-}
+save "$work_data/metadata-final.dta", replace
+
+replace method = strtrim(method)
+replace source = strtrim(source)
+
+// Split the five-letter code
+generate twolet = substr(fivelet, 1, 2)
+generate threelet = substr(fivelet, 3, 3)
+drop fivelet
+
+// Check for duplicates
+duplicates drop
+isid iso twolet threelet
+
+rename iso alpha2 
+order alpha2 twolet threelet method source data_quality_score
+sort alpha2 twolet threelet
+
+*capture mkdir "$output_dir/$time"
+*capture mkdir "$output_dir/$time/metadata"
+
+export delimited "$output_dir/$time/metadata/var-notes-$time.csv", replace delimiter(";") quote
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// =============================================================================
+// ----------------------- 5. APPENDIX OBSOLETE CODE ---------------------------
+// =============================================================================
+
 
 // ======================== 3.1 Correct data imputation ========================
 
@@ -232,6 +304,7 @@ drop if mi(sixlet)
 
 *replace extrapolation = "[[1980, $pastyear]]" if strpos(sixlet, "ptinc") & data_quality == "0"
 
+/*
 // =============================================================================
 // -------------------- 4. Add population notes --------------------------------
 // =============================================================================
@@ -259,41 +332,9 @@ append using "$work_data/ppp-metadata.dta"
 // Correct China exchange rate source
 replace source = "" if (iso == "CN" & sixlet == "xlcusx" & source == "WID.world computations")
 qui count if (iso == "CN" & sixlet == "xlcusx")
+*/
 
-// =============================================================================
-// ------------------ 7. Add transparency index note ---------------------------
-// =============================================================================
-
-preserve
-	import excel "$quality_file", sheet("Scores_redux") first cellrange(A3) clear 
-	keep B
-	ren B iso
-	replace iso = "HK" if iso=="HK "
-	duplicates drop iso, force // to be removed later
-	gen sixlet = "iquali"
-	gen method = "The inequality transparency index is estimated by the World Inequality Lab based on the availability " + ///
-		"of income and wealth surveys and tax data in the country considered. See " + ///
-		"http://wid.world/transparency/ for more information."
-	gen source = `"[URL][URL_LINK]http://wid.world/transparency/[/URL_LINK][URL_TEXT]Inequality Transparency Index Methodology[/URL_TEXT][/URL]"' + ///
-				 `"[URL][URL_LINK]http://wid.world/document/inequality-transparency-index-update-world-inequality-lab-technical-note-2020-12/[/URL_LINK]"' + ///
-				 `"[URL_TEXT]; Burq, François and Chancel, Lucas. Inequality transaprency index update (2020)[/URL_TEXT][/URL]"'
-	tempfile temp
-	save `temp'
-restore
-append using `temp'
-
-// Fix duplicates for transaprency index
-drop if sixlet == "iquali" & missing(source)
-
-// =============================================================================
-// -------------------- 8. Clean up country codes ------------------------------
-// =============================================================================
-// dropping regions that no longer exist
-drop if inlist(iso, "WF", "XI", "QM", "TK", "VA", "VI", "SH")
-drop if inlist(iso, "NU", "MP", "MF", "CK", "PM")
-drop if inlist(iso, "GU", "FK", "EH", "BL", "AS", "AN")
-
-replace iso= "KS" if iso=="KV"
+////////////////////////////////////////////////////////////////////////////////
 
 // Correct extrapolation, source & method for 40 additional countries
 *replace extrapolation = "[[1980, 2024]]" if flag==1
@@ -338,9 +379,9 @@ if flag==1
 if strpos(iso, "-PPP") | strpos(iso, "-MER")
 *if (inlist(iso, "OA", "OB", "OC", "OD", "OE", "OI") | inlist(iso, "OJ", "QE", "QF", "QL", "QM", "QP") | inlist(iso, "WO", "XF", "XL", "XN", "XR", "XS"))
 
-
+/*
 //==============================================================================
-// ----------------------------- 9. Syntax checks ----------------------------
+// ----------------------------- 9. Syntax checks ------------------------------
 //==============================================================================
 
 * 1) data_points format checks
@@ -374,53 +415,7 @@ assert regexm(extrapolation, ", [0-9]") if extrapolation != "" // must be ", " b
 * Count "[" and "]" and assert they're equal
 assert (strlen(extrapolation) - strlen(subinstr(extrapolation,"[","",.))) == ///
        (strlen(extrapolation) - strlen(subinstr(extrapolation,"]","",.))) if extrapolation != ""
-
-
-save "$work_data/metadata-final.dta", replace
-
-// =============================================================================
-// ----------------------------- 10. Csv export --------------------------------
-// =============================================================================
-
-replace method = strtrim(method)
-replace source = strtrim(source)
-
-// Split the six-letter code
-generate OneLet = substr(sixlet, 1, 1)
-generate TwoLet = substr(sixlet, 2, 2)
-generate ThreeLet = substr(sixlet, 4, 3)
-
-// Check for duplicates
-duplicates tag iso OneLet TwoLet ThreeLet, generate(duplicate)
-assert duplicate == 0
-drop duplicate
-
-sort iso sixlet
-drop sixlet
-rename iso Alpha2
-rename method Method
-rename source Source
-	
-// Remove duplicates
-collapse (firstnm) Method Source data_quality data_imputation data_points extrapolation, by(TwoLet ThreeLet Alpha2)
-
-order Alpha2 TwoLet ThreeLet Method Source data_quality
-
-sort Alpha2 TwoLet ThreeLet
-
-*capture mkdir "$output_dir/$time"
-*capture mkdir "$output_dir/$time/metadata"
-
-*replace Alpha2="KV" if Alpha2=="KS"
-
-rename data_imputation imputation
-drop if Alpha2 == ""
-
-rename *, lower
-keep alpha2 twolet threelet method source data_quality imputation extrapolation data_points
-order alpha2 twolet threelet method source data_quality imputation extrapolation data_points
-
-export delimited "$output_dir/$time/metadata/var-notes-$time.csv", replace delimiter(";") quote
+	   
 
 //==============================================================================
 // ---------------- 11. Correcting countries with historical Metadata ----------
@@ -505,6 +500,13 @@ drop if inlist(fivelet, "fdimp", "fdion", "fdiop", "fdior", "fdixn", "fkfiw", "n
 drop fivelet
 */
 
+//==============================================================================
+// ------------------------------- 13. Appendix --------------------------------
+//==============================================================================
 
+// drop if inlist(iso, "QD", "QD-MER")
+// replace data_points = "[1988, 1993, 1998, 2002, 2008, 2014]" if iso == "CI" & strpos(sixlet, "ptinc")
+// replace extrapolation = "[[1980, $year]]" if iso == "CI" & strpos(sixlet, "ptinc")
+// replace extrapolation = "" if extrapolation == "[[2019]]"
 
 

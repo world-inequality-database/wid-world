@@ -9,6 +9,13 @@ use "$work_data/distribute-national-income-output.dta", clear
 preserve
 	keep iso year widcode data_quality
 	duplicates drop
+	
+// --------------- temp solution until fiinc distributional dq is filled
+	gduplicates tag iso year widcode, gen(dup)	
+	drop if dup==1 & data_quality==.
+	drop dup
+// ----------------
+	
 	isid iso year widcode 
 	tempfile dataquality
 	save `dataquality'

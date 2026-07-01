@@ -414,11 +414,8 @@ save "$work_data/World-and-regional-aggregates-output.dta", replace
 //-------------------------------------//
 use "`final'", clear
 
-drop data_quality // temporary until we correct data quality in metadata
-
-replace widcode = substr(widcode, 1, 6)
-rename widcode sixlet
-ds year p value, not
+gen fivelet = substr(widcode, 2, 5)
+ds year p value data_quality widcode currency, not
 keep `r(varlist)'
 duplicates drop
 generate source = ""
@@ -433,7 +430,7 @@ replace source = ///
 `"Chancel, L., Flores, I., Moshrif, R., Nievas, G., Piketty, T. (2025), "Distributional National Accounts Guidelines: Methods and concepts used in the World Inequality Database" "' + ///
  `"[/URL_TEXT][/URL]"' + ///
 `"[URL][URL_LINK]https://wid.world/document/world-totals-in-wid-core-territories-core-countries-and-core-macro-and-distributional-variables-1820-2023-world-inequality-lab-technical-note-2024-02/[/URL_LINK][URL_TEXT] ; Moshrif, R., Nievas, G., Piketty, T., Sodano, A., Chancel, L., (2024), "World Totals in WID: Core Territories, Core Countries and Core Macro and Distributional Variables, 1820-2023"[/URL_TEXT][/URL]"' ///
-if missing(source) & (strpos(sixlet, "ptinc") | strpos(sixlet, "diinc") | strpos(sixlet, "hweal"))
+if missing(source) & (strpos(fivelet, "ptinc") | strpos(fivelet, "diinc") | strpos(fivelet, "hweal"))
 
 
 // Adding regional technotes to each region 
@@ -442,73 +439,73 @@ replace source =  source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-mena/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"El Hariri, D. (2025), “2025 Regional DINA update for the Middle East”"' + `"[/URL_TEXT][/URL]"' ///
-if inlist(iso, "XN-PPP", "XN-MER", "OE-PPP", "OE-MER") & strpos(sixlet, "ptinc")
+if inlist(iso, "XN-PPP", "XN-MER", "OE-PPP", "OE-MER") & strpos(fivelet, "ptinc")
 // SSA
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-africa/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Robilliard, A.-S. (2025), “2025 DINA Update for countries of the Sub-Saharan Africa Region”"' + `"[/URL_TEXT][/URL]"' ///
-if inlist(iso, "XF-PPP", "XF-MER", "OJ-PPP", "OJ-MER") & strpos(sixlet, "ptinc")
+if inlist(iso, "XF-PPP", "XF-MER", "OJ-PPP", "OJ-MER") & strpos(fivelet, "ptinc")
 // ASIA
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-asia/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Bharti, N., Mo, Z. (2025), “Technical note for update of Asia - 2025”"' + `"[/URL_TEXT][/URL]"' ///
-if inlist(iso, "QL-PPP", "QL-MER", "OB-PPP", "OB-MER", "XS-PPP", "XS-MER", "OI-PPP", "OI-MER") & strpos(sixlet, "ptinc")
+if inlist(iso, "QL-PPP", "QL-MER", "OB-PPP", "OB-MER", "XS-PPP", "XS-MER", "OI-PPP", "OI-MER") & strpos(fivelet, "ptinc")
 // RUSSIA
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2022-dina-regional-update-for-russia-world-inequality-lab-technical-note-2022-03/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Neef, T., (2022) “2022 DINA Regional update for Russia”"' + `"[/URL_TEXT][/URL]"' ///
-if inlist(iso, "XR-PPP", "XR-MER", "OA-PPP", "OA-MER") & strpos(sixlet, "ptinc")
+if inlist(iso, "XR-PPP", "XR-MER", "OA-PPP", "OA-MER") & strpos(fivelet, "ptinc")
 // NAOC 1/2
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2022-dina-regional-update-for-australia-canada-and-new-zealand-world-inequality-lab-technical-note-2022-07/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Fisher-Post, M. (2022) 2022 DINA Regional Update for North America and Oceania”"' + `"[/URL_TEXT][/URL]"' ///
-if inlist(iso, "XB-PPP", "XB-MER", "OH-PPP", "OH-MER", "QF-PPP", "QF-MER", "OL-PPP", "OL-MER") & strpos(sixlet, "ptinc")
+if inlist(iso, "XB-PPP", "XB-MER", "OH-PPP", "OH-MER", "QF-PPP", "QF-MER", "OL-PPP", "OL-MER") & strpos(fivelet, "ptinc")
 // NAOC 2/2
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2022-dina-regional-update-for-australia-canada-and-new-zealand-world-inequality-lab-technical-note-2022-07/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Fisher-Post, M. (2022) 2022 DINA Regional Update for North America and Oceania""' + `"[/URL_TEXT][/URL]"' ///
-if inlist(iso, "QP-PPP", "QP-MER", "OK-PPP", "OK-MER") & strpos(sixlet, "ptinc")
+if inlist(iso, "QP-PPP", "QP-MER", "OK-PPP", "OK-MER") & strpos(fivelet, "ptinc")
 // LATM
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-latin-america/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Flores, I., Zuniga-Cordero, A., (2025) “Income inequality series for Latin America”"' + `"[/URL_TEXT][/URL]"' ///
-if inlist(iso, "XL-PPP", "XL-MER", "OD-PPP", "OD-MER") & strpos(sixlet, "ptinc")
+if inlist(iso, "XL-PPP", "XL-MER", "OD-PPP", "OD-MER") & strpos(fivelet, "ptinc")
 // EUROPE
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-europe/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Andreescu M R., Sodano, A. (2025), "Regional DINA update for Europe""' + `"[/URL_TEXT][/URL]"' ///
-if inlist(iso, "QE-PPP", "QE-MER", "OC-PPP", "OC-MER", "QM-PPP", "QM-MER") & strpos(sixlet, "ptinc")
+if inlist(iso, "QE-PPP", "QE-MER", "OC-PPP", "OC-MER", "QM-PPP", "QM-MER") & strpos(fivelet, "ptinc")
 
 
 replace source = source + ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/update-of-global-income-inequality-estimates-on-wid-world-world-inequality-lab-technical-note-2020-11/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"; Chancel, L., Moshrif, R. (2020) “Update of global income inequality estimates on WID.world”"' + `"[/URL_TEXT][/URL]"' ///
-if /*(iso == "WO" | iso == "WO-MER")*/ missing(source) & strpos(sixlet, "ptinc")
+if /*(iso == "WO" | iso == "WO-MER")*/ missing(source) & strpos(fivelet, "ptinc")
 
 // Adding paper for post-tax series 
 replace source = source + ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/preliminary-estimates-of-global-posttax-income-distributions-world-inequality-lab-technical-note-2023-02/"' + `"[/URL_LINK]"' + `"[URL_TEXT]"' + `"; Fisher-Post, M., Gethin, A. (2023), "Preliminary Estimates of Global Posttax Income Distributions" "' + `"[/URL_TEXT][/URL]"' ///
-if strpos(sixlet, "diinc")
+if strpos(fivelet, "diinc")
 
 // Adding wealth europe paper for Europe regions 
 replace source = source + ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/distributional-financial-accounts-in-europe-world-inequality-lab-technical-note-2021-12/[/URL_LINK]"' + ///
 `"[URL_TEXT]; Blanchet, T., Martinez-Toledano, C. (2021), Distributional Wealth Accounts in Europe[/URL_TEXT][/URL]"' ///
-if inlist(iso, "QE-PPP", "QE-MER", "OC-PPP", "OC-MER", "QM-PPP", "QM-MER") & strpos(sixlet, "hweal")
+if inlist(iso, "QE-PPP", "QE-MER", "OC-PPP", "OC-MER", "QM-PPP", "QM-MER") & strpos(fivelet, "hweal")
 
 // Adding updated technote for wealth series 
 replace source = source + ///
 `"; Technote for wealth series update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/global-wealth-inequality-on-wid-world-estimates-and-imputations-world-inequality-lab-technical-note-2025-01/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Bajard, F., Bauluz, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Piketty, T., Sodano, A. (2025). "Global Wealth Inequality on WID.world: Estimates and Imputations""' + `"[/URL_TEXT][/URL]"' ///
-if strpos(sixlet, "hweal")
+if strpos(fivelet, "hweal")
 
 // Adding 2 key longrun historical papers to all regions pretax series since all of their series begin in 1800s 
 replace source = source + ///
@@ -516,14 +513,14 @@ replace source = source + ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/longrunpaper/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Chancel, L., Piketty, T. "Global Income Inequality 1820-2020: The Persistence and Mutation of Extreme Inequality" (2021)"' + `"[/URL_TEXT][/URL]"' + ///
 `"[URL][URL_LINK]http://wid.world/document/historical-inequality-series-on-wid-world-updates-world-inequality-lab-technical-note-2023-01/[/URL_LINK][URL_TEXT] ; Chancel, L., Moshrif, R., Piketty, T., Xuereb, S., (2023),  "Historical Inequality Series on WID.world - Updates"[/URL_TEXT][/URL]"' ///
-if strpos(sixlet, "ptinc") //| strpos(sixlet, "hweal") wealth series not covered in these papers? 
+if strpos(fivelet, "ptinc") //| strpos(sixlet, "hweal") wealth series not covered in these papers? 
 
 // Adding Arias et al extension technote to relevant regions PRETAX series 
 replace source = source + ///
 `"; "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/wid-income-and-wealth-distributional-series-updated-and-extended-coverage-1800-2024-world-inequality-lab-technical-note-2025-10/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Arias-Osorio, M., Baulus, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Moshrif, R., Piketty, T. (2026) "WID Income and Wealth Distributional Series Updated and Extended Coverage, 1800-2024" "' + `"[/URL_TEXT][/URL]"' ///
-if strpos(sixlet, "ptinc") & ///
+if strpos(fivelet, "ptinc") & ///
 (inlist(iso, "OB-PPP", "OC-PPP", "OE-PPP", "OJ-PPP", "QM-PPP") | inlist(iso, "OA-MER", "OB-MER", "OC-MER", "OD-MER") ///
 | inlist(iso, "OE-MER", "OH-MER", "OI-MER", "OJ-MER", "OK-MER", "OL-MER")) // regions based on Manuel's instruction from Arias et al appendix 
 
@@ -532,7 +529,7 @@ replace source = source + ///
 `"; "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/wid-income-and-wealth-distributional-series-updated-and-extended-coverage-1800-2024-world-inequality-lab-technical-note-2025-10/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Arias-Osorio, M., Baulus, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Moshrif, R., Piketty, T. (2026) "WID Income and Wealth Distributional Series Updated and Extended Coverage, 1800-2024" "' + `"[/URL_TEXT][/URL]"' ///
-if strpos(sixlet, "hweal") & ///
+if strpos(fivelet, "hweal") & ///
 (inlist(iso, "OA-MER", "OB-MER", "OC-MER", "OD-MER", "OE-MER") | ///
  inlist(iso, "OH-MER", "OI-MER", "OJ-MER", "OK-MER", "OL-MER") | ///
  inlist(iso, "OA-PPP", "OB-PPP", "OC-PPP", "OD-PPP", "OE-PPP" ) | ///
@@ -542,33 +539,25 @@ if strpos(sixlet, "hweal") & ///
 generate method = "WID.world regional aggregations of individual country data"
 *generate data_quality = "3" if strpos(sixlet, "ptinc")
 
-order iso sixlet source // method
+order iso fivelet source // method
 duplicates drop
 
-duplicates tag iso sixlet, gen(dup)
-assert dup==0
-drop dup
-
+isid iso fivelet
 
 tempfile meta 
 save `meta'
 
 use "$work_data/merge-historical-main-metadata.dta", clear 
 
-gen fivelet = substr(sixlet, 2, 5)
 drop if (substr(iso, 1, 1) == "X" | substr(iso, 1, 1) == "Q") & iso != "QA" & inlist(fivelet, "ptinc", "diinc", "hweal") 
 drop if (substr(iso, 1, 1) == "O") & iso != "OM" & inlist(fivelet, "ptinc", "diinc", "hweal")
 drop if strpos(iso, "-MER") & inlist(fivelet, "ptinc", "diinc", "hweal")
-drop if iso == "WO" & inlist(fivelet, "ptinc", "diinc", "hweal")
-drop fivelet 
+drop if strpos(iso, "WO-") & inlist(fivelet, "ptinc", "diinc", "hweal")
 
 append using "`meta'", force
 
-duplicates tag iso sixlet, gen(dup)
-assert dup==0
-drop dup
-
-keep iso sixlet source method data_points extrapolation data_quality data_imputation
+isid iso fivelet
+keep iso fivelet source method
 
 save "$work_data/World-and-regional-aggregates-metadata.dta", replace
 //

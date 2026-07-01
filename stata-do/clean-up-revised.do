@@ -125,8 +125,8 @@ tempfile data
 save "`data'"
 
 //-----------Checkpoint---------------//
-save "$work_data/auxc1.dta", replace
-u "$work_data/auxc1.dta", clear
+*save "$work_data/auxc1.dta", replace
+*u "$work_data/auxc1.dta", clear
 //----------------------------------//
 
 //------------------------------------------------------------------------------
@@ -197,8 +197,8 @@ tempfile fiscal_averages
 save "`fiscal_averages'"
 
 //-----------Checkpoint---------------//
-save "$work_data/auxc1.1.dta", replace
-u "$work_data/auxc1.1.dta", clear
+*save "$work_data/auxc1.1.dta", replace
+*u "$work_data/auxc1.1.dta", clear
 //----------------------------------//
 
 //------------------------------------------------------------------------------
@@ -285,7 +285,7 @@ merge m:1 iso year widcode using "`aggregates'", nogenerate keep (master match)
 
 //-----------Checkpoint---------------//
 *save "$work_data/auxc1.2.dta", replace
-u "$work_data/auxc1.2.dta", clear
+*u "$work_data/auxc1.2.dta", clear
 //----------------------------------//
 
 // ---------------- 4.4 Recalculating averages from shares ---------------------
@@ -534,19 +534,16 @@ duplicates drop iso year p widcode, force
 //----------------------------------//
 
 preserve
-	gen vartype = substr(widcode, 2, .)
-	keep iso year vartype data_quality
+	keep iso year widcode data_quality
 	duplicates drop
-	duplicates tag iso year vartype, gen(dup)
+	duplicates tag iso year widcode, gen(dup)
 	drop if dup==1 & data_quality==. 
 	drop dup
-	isid iso year vartype
+	isid iso year widcode
 	tempfile dataquality
 	save `dataquality'
 restore
-gen vartype = substr(widcode, 2, .)
-merge m:1 iso year vartype using `dataquality', nogen update
-drop vartype 
+merge m:1 iso year widcode using `dataquality', nogen update
 
 // ----------- 6. Apply threshold values to all observations -------------------
 // eg. value of t for p10p11 is the same as for p10pX for any X (greater than 10)
@@ -611,20 +608,25 @@ append using "`fiscal_averages'"
 //------------------------- 8. Add quality data --------------------------------
 //------------------------------------------------------------------------------
 preserve
-import excel "$quality_file", sheet("Scores_redux") first clear cellrange(A3)
-renvars B Seethetransparencyindext / iso value
+import excel "$quality_file", sheet("Summarized_Scores") cellrange(A2) firstrow clear
+renvars A WeightedTransparencyIndex / iso value
 keep iso value
-replace iso = "AL" if iso == "Al"
-replace iso = "CL" if iso == "Cl"
+drop if iso==""
+destring value, replace
+replace value=round(value, 0.1)
+*replace iso = "AL" if iso == "Al"
+*replace iso = "CL" if iso == "Cl"
 replace iso = substr(iso, 1, 2) if substr(iso, 3, .) == " "
 gen widcode = "iquali999i"
 gen year = $pastyear
 gen p = "p0p100"
 gen currency = ""
 order iso year p widcode currency value
+
 tempfile quality
 save `quality'
 restore 
+
 
 append using `quality'
 

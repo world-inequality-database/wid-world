@@ -320,7 +320,7 @@ replace gdp = gdp_lcu_constat_corr if !missing(region2) & year>= 1970 & year<=20
 //------------------------------------------------------------------------------
 
 * Gen data quality
-gen     data_quality = 5 if inlist(substr(level_src, 5,.),"cbs","lmf","un2","wb","OECD") | strpos(level_src,"OECD")
+gen     data_quality = 5 if inlist(substr(level_src, 5,.),"cbs","lmf","un2","wb","OECD") | strpos(level_src,"OECD") | strpos(level_src,"weo")
 replace data_quality = 5 if inlist(growth_src,"OECD","cbs","lmf","un2","wb","weo")
 
 replace data_quality = 4 if inlist(substr(level_src,5,.),"np") | strpos(growth_src,"Mad") | strpos(growth_src,"np")  | strpos(growth_src,"wid")  

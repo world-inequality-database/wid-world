@@ -24,13 +24,19 @@ if `n_expand'!=0 {  // Loop for filling missing recent years
 	drop dup n
 	} 
 	
+ds iso year *_type,not
+local varlist `r(varlist)'
+foreach x in `varlist' {
+	gen int data_quality`x' =.
+}	
+
 ds *_type
 local varlist `r(varlist)'
 
 
 foreach x in `varlist' {
 	local v = substr("`x'", 1, 5)
-	gen     data_quality`v'= 5 if `x'==1  // "observed"   
+	replace data_quality`v'= 5 if `x'==1  // "observed"   
 	replace data_quality`v'= 3 if `x'==21 // "observed (and extended with OLS prediction)"     
 	replace data_quality`v'= 3 if `x'==22 // "observed (and extended with regional trend)" 
 	replace data_quality`v'= 2 if `x'==3  // "predicted"                                        
@@ -74,18 +80,18 @@ ds iso year value* data_quality* , not
 local varlist `r(varlist)'
 
 foreach x in `varlist' {
-	generate    valuem`x'999i =    `x'*valuemnninc999i if !missing(valuemnninc999i) & !missing(`x')
+	generate    valuem`x'999i =  `x'*valuemnninc999i if !missing(valuemnninc999i) & !missing(`x')
 	
 	rename  `x' valuew`x'999i
 	capture rename data_quality`x' data_qualityw`x'999i
 		
-	gen  data_qualitym`x'999i = data_qualitymnninc999i if !missing(valuemnninc999i) & !missing(valuew`x'999i)
+	gen  data_qualitym`x'999i = data_qualityw`x'999i if !missing(valuemnninc999i) & !missing(valuew`x'999i)
 }
 
 * Generate the share of Gross Domestic Product
 foreach x in `r(varlist)' {
 	generate    valuey`x'999i = valuem`x'999i/valuemgdpro999i if !missing(valuemgdpro999i) & !missing(valuem`x'999i)
-	gen  data_qualityy`x'999i =        data_qualitymgdpro999i if !missing(valuemnninc999i) & !missing(valuey`x'999i)
+	gen  data_qualityy`x'999i =          data_qualitym`x'999i if !missing(valuemnninc999i) & !missing(valuey`x'999i)
 }
 
 

@@ -98,18 +98,18 @@ greshape wide value data_quality s_, i(iso year p currency) j(widcode) string
 rename (value* data_quality*) (* q_*)
 
 foreach c in m y w {
-	replace q_`c'nwhou999i = min(3, cond(`c'nwdwe999i>=`c'nwlan999i, q_`c'nwdwe999i, q_`c'nwlan999i)) if missing(`c'nwhou999i)
-	replace s_`c'nwhou999i = "nwdwe,nwlan" if missing(`c'nwhou999i) & (!mi(`c'nwdwe999i) & !mi(`c'nwlan999i))
-	replace `c'nwhou999i = `c'nwdwe999i + `c'nwlan999i if missing(`c'nwhou999i)
+	replace q_`c'nwhou999i = min(3, cond(`c'nwdwe999i>=`c'nwlan999i, q_`c'nwdwe999i, q_`c'nwlan999i))   if missing(`c'nwhou999i)
+	replace s_`c'nwhou999i = "nwdwe,nwlan"                                                              if missing(`c'nwhou999i) & (!mi(`c'nwdwe999i) & !mi(`c'nwlan999i))
+	replace `c'nwhou999i = `c'nwdwe999i + `c'nwlan999i                                                  if missing(`c'nwhou999i)
 
 	quality `c'nwagr999i `c'nwodk999i `c'nwnat999i, gen(temp)
-	replace q_`c'nwbus999i =temp                                                                  if missing(`c'nwbus999i)
-	replace s_`c'nwbus999i = "nwagr,nwodk" + cond(missing(`c'nwnat999i), "", ",nwnat")              if missing(`c'nwbus999i) &(!mi(`c'nwagr999i) & !mi(`c'nwodk999i))
+	replace q_`c'nwbus999i =temp                                                                        if missing(`c'nwbus999i)
+	replace s_`c'nwbus999i = "nwagr,nwodk" + cond(missing(`c'nwnat999i), "", ",nwnat")                  if missing(`c'nwbus999i) &(!mi(`c'nwagr999i) & !mi(`c'nwodk999i))
 	replace `c'nwbus999i = `c'nwagr999i + `c'nwodk999i + cond(missing(`c'nwnat999i), 0, `c'nwnat999i)   if missing(`c'nwbus999i)
 
 	replace q_`c'nwnfa999i =min(3, cond(`c'nwhou999i >= `c'nwbus999i,  q_`c'nwhou999i, q_`c'nwbus999i)) if missing(`c'nwnfa999i)
-	replace s_`c'nwnfa999i = "nwhou,nwbus999i" if missing(`c'nwnfa999i) & (!mi(`c'nwhou999i) & !mi(`c'nwbus999i))
-	replace `c'nwnfa999i = `c'nwhou999i + `c'nwbus999i if missing(`c'nwnfa999i)
+	replace s_`c'nwnfa999i = "nwhou,nwbus999i"                                                          if missing(`c'nwnfa999i) & (!mi(`c'nwhou999i) & !mi(`c'nwbus999i))
+	replace `c'nwnfa999i = `c'nwhou999i + `c'nwbus999i                                                  if missing(`c'nwnfa999i)
 	drop temp
 }
 keep iso year p currency *nwhou* *nwbus* *nwnfa*

@@ -275,14 +275,6 @@ merge m:1 region using "$work_data/ratioQPQF.dta", nogenerate
 replace value= value*usx if widcode=="mgdpro999i" & inlist(region,"QP","QF")
 drop eux eup usx usp yux yup
 
-preserve
-	keep if substr(widcode,1,1)=="y"
-	replace region = region + "-PPP"
-	gen org=1
-	
-	tempfile y_agg_reg
-	save `y_agg_reg'
-restore
 
 
 // --------- 2.2.  Rebase the price index to the $pastyear ---------------------
@@ -324,7 +316,7 @@ ds region year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlcusx999i
 foreach v in `r(varlist)' {
 	local v_clean = subinstr("`v'", "value", "", .)
 	gen double       `v'_m = `v' *  valuemgdpro999i
-	gen      q_`v_clean'_m = q_mgdpro999i // q_`v_clean' 
+	gen      q_`v_clean'_m = q_`v_clean' 
 	gen      s_`v_clean'_m = s_`v_clean' 
 }
 
@@ -333,7 +325,7 @@ ds value*_m  valuemgdpro999i
 foreach v of varlist `r(varlist)' {
 	local v_clean = subinstr("`v'", "value", "", .)
 	gen double      `v'_w = `v' /  valueynninc999i_m
-	gen     q_`v_clean'_w = q_ynninc999i_m // q_`v_clean' 
+	gen     q_`v_clean'_w = q_`v_clean' 
 	gen     s_`v_clean'_w = s_`v_clean' 
 }
 
@@ -347,6 +339,15 @@ duplicates tag region year p widcode, gen(dup)
 drop if dup==1 & missing(value)
 drop dup
 drop if missing(value) & year<1900
+
+preserve
+	keep if substr(widcode,1,1)=="y"
+	replace region = region + "-PPP"
+	gen org=1
+	
+	tempfile y_agg_reg
+	save `y_agg_reg'
+restore
 
 
 preserve
@@ -760,7 +761,7 @@ ds iso year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlc* q_* s_* 
 foreach v in `r(varlist)' {
 	local v_clean = subinstr("`v'", "value", "", .)
 	gen double       `v'_m = `v' *  valuemgdpro999i
-	gen      q_`v_clean'_m = q_mgdpro999i // q_`v_clean' 
+	gen      q_`v_clean'_m = q_`v_clean' 
 	gen      s_`v_clean'_m = s_`v_clean' 
 }
 
@@ -769,11 +770,9 @@ ds value*_m  valuemgdpro999i
 foreach v of varlist `r(varlist)' {
 	local v_clean = subinstr("`v'", "value", "", .)
 	gen double      `v'_w = `v' /  valueynninc999i_m
-	gen     q_`v_clean'_w = q_ynninc999i_m // q_`v_clean' 
+	gen     q_`v_clean'_w = q_`v_clean' 
 	gen     s_`v_clean'_w = s_`v_clean' 
 }
-
-
 
 
 reshape long value s_ q_, i(iso year p) j(widcode) string
@@ -782,6 +781,8 @@ replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"_w")
 replace widcode = "m" + substr(widcode,2,9) if strpos(widcode,"_m")
 
 drop if missing(value)
+
+*drop if widcode=="ygvato999i" & iso=="PE" & inrange(year,1950,1980)
 
 // --------- 3.1. Extend PPP to non core countries. before 1970 ----------- //
 
@@ -940,7 +941,7 @@ save `full_pre70'
 append using  "$work_data/aggregate-regions-output.dta"
 
 duplicates tag iso year widcode p, gen(dup0)
-drop if new==1 & dup==1 & (inlist(substr(widcode, 2, 5), "confc", "ndpro","nnfin","nninc")) & iso=="PE"
+drop if new==1 & dup==1 & (inlist(substr(widcode, 2, 5), "confc", "ndpro","nnfin","nninc", "gvato")) & iso=="PE"
 
 duplicates tag iso year widcode p, gen(dup)
 drop if new!=1 & dup==1 & (!inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gweal", "gwass", "gwdeb", "nwnfa") & ///

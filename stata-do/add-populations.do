@@ -75,6 +75,8 @@ reshape wide value data_quality, i(iso year p) j(widcode) string
 // generate valuenpopul996i = valuenpopul996m+valuenpopul996f
 *recompute children with right 999i and 992i
 replace valuenpopul991i = valuenpopul999i - valuenpopul992i
+replace data_qualitynpopul991i = min(3, cond(valuenpopul999i >= valuenpopul992i, data_qualitynpopul999i, data_qualitynpopul992i)) if !missing(data_qualitynpopul999i) & !missing(data_qualitynpopul992i)
+
 
 * compute ratio of the right 999i and 992i to the ones obtained from the subcategories
 gen adults = valuenpopul993i + valuenpopul994i + valuenpopul995i 
@@ -91,6 +93,10 @@ forvalues n = 2/9 {
 	cap gen valuenpopul`n'01i = valuenpopul`n'01f + valuenpopul`n'01m
 	cap gen valuenpopul`n'02i = valuenpopul`n'02f + valuenpopul`n'02m 
 	cap gen valuenpopul`n'51i = valuenpopul`n'51f + valuenpopul`n'51m 
+	
+	cap gen data_qualitynpopul`n'01i = min(3, cond(valuenpopul`n'01f >= valuenpopul`n'01m, data_qualitynpopul`n'01f, data_qualitynpopul`n'01m)) if !missing(valuenpopul`n'01f) & !missing(valuenpopul`n'01m)
+	cap gen data_qualitynpopul`n'02i = min(3, cond(valuenpopul`n'02f >= valuenpopul`n'02m, data_qualitynpopul`n'02f, data_qualitynpopul`n'02m)) if !missing(valuenpopul`n'02f) & !missing(valuenpopul`n'02m)
+	cap gen data_qualitynpopul`n'51i = min(3, cond(valuenpopul`n'51f >= valuenpopul`n'51m, data_qualitynpopul`n'51f, data_qualitynpopul`n'51m)) if !missing(valuenpopul`n'51f) & !missing(valuenpopul`n'51m) 
 }
 
 * apply ratios to subcategories to make them consistent with new 999i and 992i aggregates
@@ -100,6 +106,7 @@ forvalues n = 2/9 {
 		replace valuenpopul`n'01`sex' = valuenpopul`n'01`sex' * ratio 
 		replace valuenpopul`n'51`sex' = valuenpopul`n'51`sex' * ratio 
 		replace valuenpopul`n'02`sex' = valuenpopul`n'02`sex' * ratio 
+		
 	}
 }
 

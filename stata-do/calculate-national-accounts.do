@@ -81,7 +81,7 @@ foreach v of varlist `varlist' {
 	gen double    y`v' =   `v' // Keep values as onlet "Y" for Percentage of GDP
 	
 	*This will be the aggregates m
-	replace  q_`v' = q_gdp   if !missing(`v')
+	*replace  q_`v' = q_gdp   if !missing(`v')
 	*replace s_`v' = s_`v' // s_ stay as it is
 	replace    `v' = `v'*gdp // Generate monetary values
 }
@@ -116,13 +116,13 @@ greshape wide value q_ s_, i(iso year) j(widcode) string
 
 
 foreach v of local varlist {
-	gen            q_w`v'999i = q_mnninc999i
+	gen            q_w`v'999i = q_m`v'999i
 	gen            s_w`v'999i = s_m`v'999i
 	gen double  valuew`v'999i = valuem`v'999i/valuemnninc999i
 }
 
 foreach v in gdpro {
-	gen            q_w`v'999i = q_mnninc999i
+	gen            q_w`v'999i = q_m`v'999i
 	gen            s_w`v'999i = s_m`v'999i
 	gen double  valuew`v'999i = valuem`v'999i/valuemnninc999i
 }
@@ -142,12 +142,12 @@ foreach v in expgo999i gpsge999i defge999i polge999i ecoge999i envge999i houge99
     replace q_w`v' = 2              if !mi(valuew`v') & mi(q_w`v') // &  year == $pastyear
     replace s_w`v' = "carryforward" if !mi(valuew`v') & mi(s_w`v') // &  year == $pastyear
 
-    replace    q_m`v' = q_mnninc999i              if mi(valuem`v') // & year == $pastyear 
+    replace    q_m`v' = q_w`v'                    if mi(valuem`v') // & year == $pastyear 
     replace    s_m`v' = s_w`v'                    if mi(valuem`v') // & year == $pastyear 
     replace valuem`v' = valuew`v'*valuemnninc999i if mi(valuem`v') // & year == $pastyear 
 	
-	replace    q_y`v' = q_mgdpro999i              if mi(valuey`v') // & year == $pastyear 
-    replace    s_y`v' = s_w`v'                    if mi(valuey`v') // & year == $pastyear 
+	replace    q_y`v' = q_m`v'                    if mi(valuey`v') // & year == $pastyear 
+    replace    s_y`v' = s_m`v'                    if mi(valuey`v') // & year == $pastyear 
     replace valuey`v' = valuem`v'/valuemgdpro999i if mi(valuey`v') // & year == $pastyear 
 }
 

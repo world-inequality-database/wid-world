@@ -15,9 +15,9 @@ drop currency
 reshape wide value data_quality s_, i(iso year) j(widcode) string
 
 foreach l in n p h i g {
-	generate valuewweal`l'999i = valuem`l'weal999i/valuemnninc999i
-	generate data_qualitywweal`l'999i = data_qualitymnninc999i
-	generate s_wweal`l'999i = s_m`l'weal999i
+	generate        valuewweal`l'999i = valuem`l'weal999i/valuemnninc999i
+	generate data_qualitywweal`l'999i = data_qualitym`l'weal999i
+	generate           s_wweal`l'999i = s_m`l'weal999i
 }
 
 keep iso year *wweal*

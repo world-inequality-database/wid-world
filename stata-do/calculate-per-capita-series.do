@@ -41,7 +41,7 @@ gen new=1
 
 append using "$work_data/calculate-wealth-income-ratio-output.dta"
 
-// Keep the data_quality ahweal992i and ahweal999i ( this keep the coherence wiht the distrbutional data)
+// Keep the data_quality ahweal992i and ahweal999i ( this keep the coherence with the distrbutional data)
 
 gen q_0=data_quality if inlist(widcode, "ahweal992i", "ahweal999i") & new!=1
 bysort iso year widcode: egen q_1 = mode(q_0)

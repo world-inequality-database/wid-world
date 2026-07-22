@@ -44,7 +44,7 @@
 // -------------------------------------------------------------------------- //
 use "$work_data/aggregate-regions-output.dta", clear
 keep if inlist(substr(widcode, 1, 6), "xlcusx", "xlcusp", "xlceux", "xlceup", "xlcyux", "xlcyup") /// 
-	  | inlist(substr(widcode, 1, 6), "inyixx", "mgdpro", "ynninc", "mnnfin") /// ,"npopul") // , "intlcu","xrerus") ///
+	  | inlist(substr(widcode, 1, 6), "inyixx", "mgdpro", "ynninc", "mnnfin", "yconfc") /// ,"npopul") // , "intlcu","xrerus") ///
 	  | inlist(substr(widcode, 1, 6), "yhweal", "ypweal", "mhweal", "mpweal")
 drop currency
 rename data_quality q_
@@ -207,6 +207,17 @@ preserve
 	save `indx_pasty'
 restore
 
+*Call the Consuption of Fix capital of the extended countries
+preserve
+	keep if inlist(iso,"BG","CH","CM","FI","GH","GR","HR","HU","IE") | ///
+				 inlist(iso,"MU","MW","MY","PL","PT","SC","SG","TN","TZ") | ///
+				 inlist("UG","ZM","ZW")
+	keep iso year p *confc*
+	rename *confc* *confc*_raw
+	
+	tempfile country_confc
+	save `country_confc'		 
+restore
 
 // -------------------------------------------------------------------------- //
 * 	2. Merge Historical Regions 
@@ -284,13 +295,15 @@ drop inyixx_23
 
 reshape wide value q_ s_, i(region year p) j(widcode) string
 
-
 // --------- 2.3.  Calculate mnninc999i and mndpro999i -------------------------
 *Generate national income
 gen double valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) // ygdpro999i==1
 gen           q_ynninc999i = min(3, cond(valueyconfc999i >= valueynnfin999i, q_yconfc999i, q_ynnfin999i)) // ygdpro999i==1
 gen           s_ynninc999i = "confc,nnfin" // ygdpro999i==1
-*gen double valueyndpro999i= 1 - valueyconfc999i // ygdpro999i==1
+
+replace valueyndpro999i= 1 - valueyconfc999i // ygdpro999i==1
+replace    q_yndpro999i= min(3, q_yconfc999i) // ygdpro999i==1
+replace    s_yndpro999i= "gdpro,confc" // ygdpro999i==1
 
 * Generate personal wealth 
 merge m:1 region using "`rat_weal_80'", nogen keep(master match) keepusing(rat_weal)
@@ -702,7 +715,9 @@ assert dup2==0
 drop dup*
 
 append using "$work_data/dietrichetal2025sectors_hist.dta"
+//--- Cleanning  Dietrisch et al. 2025 --------//
 drop if strpos(widcode,"confc") & year>=1970 //Keep the confc estimated in the main.do
+//--------------------------------------------//
 duplicates tag iso year widcode p, gen(dup)
 drop if np==1 & dup==1
 duplicates tag iso year widcode p, gen(dup2)
@@ -711,6 +726,7 @@ drop dup* np
 
 gen npd=1
 append using "$work_data/bauluzetal2025wealth_2025_hist.dta"
+
 duplicates tag iso year widcode p, gen(dup)
 drop if npd==1 & dup==1
 duplicates tag iso year widcode p, gen(dup2)
@@ -723,11 +739,21 @@ keep if !inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"QL", "QM","WO","QE")
 drop if widcode=="inyixx999i"
 reshape wide value s_ q_, i(iso year p) j(widcode) string
 
+merge 1:1 iso year p using "`country_confc'", nogen keep(master match)
+
+replace q_yconfc999i    = q_yconfc999i_raw    if missing(valueyconfc999i) & !missing(valueyconfc999i_raw)
+replace s_yconfc999i    = s_yconfc999i_raw    if missing(valueyconfc999i) & !missing(valueyconfc999i_raw)
+replace valueyconfc999i = valueyconfc999i_raw if missing(valueyconfc999i) & !missing(valueyconfc999i_raw)
+drop *_raw
+
 * calculate nninc and ndpro
-replace valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) if !(missing(valueyconfc999i) & missing(valueynnfin999i))
-replace s_ynninc999i = "yconfc,ynnfin" if !(missing(valueyconfc999i) & missing(valueynnfin999i))
-replace q_ynninc999i = min(3, cond( valueyconfc999i  >= valueynnfin999i, q_yconfc999i, q_ynnfin999i))  if !(missing(valueyconfc999i) & missing(valueynnfin999i))
-*gen double valueyndpro999i= 1 - valueyconfc999i // valueygdpro999i==1
+replace valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) if !missing(valueyconfc999i) & !missing(valueynnfin999i)
+replace s_ynninc999i = "confc,nnfin"                              if !missing(valueyconfc999i) & !missing(valueynnfin999i)
+replace q_ynninc999i = min(3, cond( valueyconfc999i  >= valueynnfin999i, q_yconfc999i, q_ynnfin999i))  if !missing(valueyconfc999i) & !missing(valueynnfin999i)
+
+replace q_yndpro999i    = min(3, q_yconfc999i) if !missing(valueyconfc999i) // valueygdpro999i==1
+replace s_yndpro999i    = "gdpro,confc"        if !missing(valueyconfc999i) // valueygdpro999i==1
+replace valueyndpro999i = 1 - valueyconfc999i  if !missing(valueyconfc999i) // valueygdpro999i==1
 
 * Generate personal wealth 
 merge m:1 iso using "`rat_weal_80'", nogen keep(master match) keepusing(rat_weal)
@@ -773,7 +799,7 @@ foreach v of varlist `r(varlist)' {
 	gen     q_`v_clean'_w = q_`v_clean' 
 	gen     s_`v_clean'_w = s_`v_clean' 
 }
-
+ 
 
 reshape long value s_ q_, i(iso year p) j(widcode) string
 replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"m_w")
@@ -913,13 +939,13 @@ replace flag = 1 if inlist(substr(widcode, 2, 5), "ptxgo", "gvato", "gvago", "ce
 					inlist(substr(widcode, 2, 5), "gmxhn", "nmxhn")
 
 replace flag = 1 if inlist(substr(widcode, 1, 6), "ylsgdp", "ylsndp", "ycsgdp", "ycsndp", "wlsgni", "wlsnni") | ///
-					inlist(substr(widcode, 1, 6), "wcsgni", "wcsnni", "ylscgv", "ylscnv", "ycscgv", "ycscnv") | ///
-					inlist(substr(widcode, 1, 6), "yconfc")
+					inlist(substr(widcode, 1, 6), "wcsgni", "wcsnni", "ylscgv", "ylscnv", "ycscgv", "ycscnv") 
 
 replace flag = 1 if inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gweal", "gwass", "gwdeb", "nwnfa") | ///
-					inlist(substr(widcode, 2, 5), "hweal","pweal")
+					inlist(substr(widcode, 2, 5), "hweal","pweal")| ///
+					inlist(substr(widcode, 2, 5), "confc","ndpro", "gdpro")
 					
-drop if year>=1970 & flag==0 //& regions!=1
+drop if year>=1970 & flag==0  & !strpos(iso,"WO") // & regions!=1
 drop flag regions
 
 
@@ -956,11 +982,13 @@ assert dup2==0
 drop dup* new
 
 * Drop ndpro from countries included in arias et all since there is not confc for them
+/*
 gen flag_a = 1 if inlist(iso,"BG","CH","CM","FI","GH","GR","HR","HU","IE") | ///
 				 inlist(iso,"MU","MW","MY","PL","PT","SC","SG","TN","TZ") | ///
 				 inlist("UG","ZM","ZW")
 drop if strpos(widcode,"ndpro") & flag_a==1 & year<1970
 drop flag_a
+*/
 
 * Complete currencies
 bys iso : egen 		 aux = mode(currency)

@@ -415,7 +415,7 @@ save "$work_data/World-and-regional-aggregates-output.dta", replace
 use "`final'", clear
 
 gen fivelet = substr(widcode, 2, 5)
-ds year p value data_quality widcode currency, not
+ds year p value data_quality widcode /*currency*/, not
 keep `r(varlist)'
 duplicates drop
 generate source = ""

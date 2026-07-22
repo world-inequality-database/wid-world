@@ -562,7 +562,7 @@ merge m:1 iso sixlet using "$work_data/population-metadata.dta", nogen  update r
 
 replace source = ///
 `"[URL][URL_LINK]"' + `"https://wid.world/www-site/uploads/2019/09/WID_WORKING_PAPER_2017_23_Updates_Bauluz.pdf"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Bauluz, Luis (2017). "Revised and extended national wealth series: Australia, Canada, France, Germany, Italy, Japan, the UK and the USA""' + `"[/URL_TEXT][/URL]; "' ///
+`"[URL_TEXT]"' + `"Bauluz, L. (2017). "Revised and extended national wealth series: Australia, Canada, France, Germany, Italy, Japan, the UK and the USA""' + `"[/URL_TEXT][/URL]; "' ///
 if inlist(iso, "AU", "CA", "FR", "DE", "JP", "IT", "GB", "US") & metadata=="wealthagg" ///
 
 * Russia
@@ -598,14 +598,14 @@ if iso == "NL"  & metadata=="wealthagg"
 ** for those which are not imputed (Technical notes on updates)
 replace source = ///
 source + ///
-`"[URL][URL_LINK]"' + `"https://wid.world/document/2020-wealth-aggregate-series-world-inequality-lab-technical-note-2020-14/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Updated by Bauluz, L. and Brassac, P. (2020). "2020 Wealth Aggregates series""' + `"[/URL_TEXT][/URL]; "' + ///
-`"[URL][URL_LINK]"' + `"http://wordpress.wid.world/document/estimation-of-global-wealth-aggregates-in-wid-world-world-inequality-lab-technical-note-2021-13/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Updated by Bauluz, L., Blanchet, T., Martínez, I. Z. and Sodano, A. (2021). "Estimation of Global Wealth Aggregates in WID.world"[/URL_TEXT][/URL]; "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2024-update-for-wealth-inequality/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Updated by Bauluz, L., Brassac, P., Martínez, I. Z. and Sodano, A. (2024). "Estimation of Global Wealth Aggregates in WID.world: Methodology"[/URL_TEXT][/URL]; "' ///
 if !missing(source) & metadata=="wealthagg"
 
+// `"[URL][URL_LINK]"' + `"https://wid.world/document/2020-wealth-aggregate-series-world-inequality-lab-technical-note-2020-14/"' + `"[/URL_LINK]"' + ///
+// `"[URL_TEXT]"' + `"Updated by Bauluz, L. and Brassac, P. (2020). "2020 Wealth Aggregates series""' + `"[/URL_TEXT][/URL]; "' + ///
+// `"[URL][URL_LINK]"' + `"http://wid.world/document/estimation-of-global-wealth-aggregates-in-wid-world-world-inequality-lab-technical-note-2021-13/"' + `"[/URL_LINK]"' + ///
+// `"[URL_TEXT]"' + `"Updated by Bauluz, L., Blanchet, T., Martínez, I. Z. and Sodano, A. (2021). "Estimation of Global Wealth Aggregates in WID.world"[/URL_TEXT][/URL]; "' + ///
 ** for those which are imputed
 replace source = ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/global-wealth-inequality-on-wid-world-estimates-and-imputations-wid-world-technical-note-2023-11/"' + `"[/URL_LINK]"' + ///

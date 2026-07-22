@@ -148,7 +148,9 @@ drop if missing(value)
 duplicates drop iso year p widcode, force
 
 //0 values can be the result of missing info
-replace value=. if inlist(substr(widcode,1,1),"y", "w","m") & value==0 //& year<1970
+replace s_           ="" if inlist(substr(widcode,1,1),"y", "w","m") & value==0 & !strpos(iso,"WO") //& year<1970
+replace data_quality =.  if inlist(substr(widcode,1,1),"y", "w","m") & value==0 & !strpos(iso,"WO") //& year<1970
+replace value        =.  if inlist(substr(widcode,1,1),"y", "w","m") & value==0 & !strpos(iso,"WO") //& year<1970
 drop if missing(value)
 
 compress

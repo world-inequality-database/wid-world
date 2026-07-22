@@ -4,9 +4,8 @@
 
 // -------------- A. Data --------------------------- //
 // 1. Prepare the wealth aggreggates
-use "$wid_dir/Country-Updates/Wealth/2025_March/wealth-aggregates-2024.dta", clear
-replace iso="KS" if iso=="XK"
-
+use "/Users/manuelestebanarias/Dropbox/W2ID/Country-Updates/Wealth/2026_July/wealth-aggregates-2026.dta", clear
+keep if year>=1980
 	
 * Completing data of last year in case it is not available
 summarize year
@@ -24,6 +23,7 @@ if `n_expand'!=0 {  // Loop for filling missing recent years
 	drop dup n
 	} 
 	
+*Formatting the data_quality
 ds iso year *_type,not
 local varlist `r(varlist)'
 foreach x in `varlist' {
@@ -32,16 +32,11 @@ foreach x in `varlist' {
 
 ds *_type
 local varlist `r(varlist)'
-
-
 foreach x in `varlist' {
 	local v = substr("`x'", 1, 5)
-	replace data_quality`v'= 5 if `x'==1  // "observed"   
-	replace data_quality`v'= 3 if `x'==21 // "observed (and extended with OLS prediction)"     
-	replace data_quality`v'= 3 if `x'==22 // "observed (and extended with regional trend)" 
-	replace data_quality`v'= 2 if `x'==3  // "predicted"                                        
-	replace data_quality`v'= 1 if `x'==4  // "predicted (and extended with regional trend)"    
-	replace data_quality`v'= 0 if `x'==5  // "fully missing (regional average was assigened)"  
+	di "`v'"
+	replace data_quality`v' = `x' if `x' < 10
+	replace data_quality`v' = floor(`x'/10) if `x' >= 10
 	
 }
 drop *_type
@@ -54,15 +49,15 @@ use "$work_data/add-populations-output.dta", clear
 drop s_
 
 keep if inlist(widcode, /* "mnweal999i", "mhweal999i", "mpweal999i", "mgweal999i",*/ "mnninc999i", "mgdpro999i")
-drop p currency 
-reshape wide value data_quality , i(iso year) j(widcode) string
+drop p currency data_quality
+reshape wide value, i(iso year) j(widcode) string
 
 
 *merge 1:1 iso year using "$wid_dir/Country-Updates/Wealth/2023_December/wealth-aggregates-2023.dta", nogen
 merge 1:1 iso year using "`wealth_shares'", nogen
 
 
-drop nwoff  gwdec
+*drop nwoff  gwdec
 foreach var in nwnxa nwgxd nwgxa {
 	replace `var' =. if year >= 1970
 }
@@ -94,12 +89,7 @@ foreach x in `r(varlist)' {
 	gen  data_qualityy`x'999i =          data_qualitym`x'999i if !missing(valuemnninc999i) & !missing(valuey`x'999i)
 }
 
-
-
-
-
-drop valuemnninc999i valuemgdpro999i data_qualitymnninc999i data_qualitymgdpro999i
-
+drop valuemnninc999i valuemgdpro999i 
 
 *reshape long
 greshape long value data_quality, i(iso year) j(widcode) string
@@ -260,31 +250,26 @@ drop if inlist(widcode, "mnwnxa999i", "mnwgxd999i", "mnwgxa999i", "mnwoff999i") 
 		|  !inlist(iso, "TW", "US", "VN") ///
 		|  !inlist(iso, "ZA")) ///
 */
+
+//--- Cleanning  the database  ------------//
+drop if iso=="NL" & inlist(substr(widcode,2,5),"`varlist'") & (!inlist(substr(widcode,2,5),"nwgxa", "nwgxd", "nweal", "gweal", "pweal") & !inlist(substr(widcode,2,5), "nwnxa", "nwnfa", "nwdka", "gwass", "gwdeb")) & year==1939
+drop if iso=="NL" & inlist(substr(widcode,2,5),"pwpro","pwnpr", "pwcul", "pwfix", "pwcud","pwbol") & inrange(year, 1881,1994)
+drop if iso=="NL" & strpos(widcode,"pweqi") & inrange(year, 1881,1979)
+drop if iso=="NL" & strpos(widcode,"pwagr") & inrange(year, 1881,1979)
+
+//--------------------------------------------//
+
 gen wid=1
 append using "`macro_weal'"
 
-
+*Drop duplicates
 duplicates tag iso year widcode p, gen(dup)
-
-
-* Retain observation from Nievas Piketty
-drop if dup==1 & missing(wid) & (inlist(substr(widcode,2,5), "confc","finpx","finrx","gdpro","ncanx","nnfin","nninc","nwgxa") | ///
-							     inlist(substr(widcode,2,5), "nwgxd","nwnxa","scinx","scipx","scirx","tbmpx","tbnnx","tbxrx") | ///
-							     inlist(substr(widcode,2,5), "tgmcx","tgmmx","tgmpx","tgncx","tgnmx","tgnnx","tgxcx","tgxmx") | ///
-							     inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) & year<=2022 // Year of final data of NievasPiketty(2025)
-								 
-drop if dup==1 & wid==1 & (!inlist(substr(widcode,2,5), "confc","finpx","finrx","gdpro","ncanx","nnfin","nninc","nwgxa") & ///
-							!inlist(substr(widcode,2,5), "nwgxd","nwnxa","scinx","scipx","scirx","tbmpx","tbnnx","tbxrx") & ///
-							!inlist(substr(widcode,2,5), "tgmcx","tgmmx","tgmpx","tgncx","tgnmx","tgnnx","tgxcx","tgxmx") & ///
-							!inlist(substr(widcode,2,5), "tgxrx","tsmpx","tsnnx","tsxrx","ndpro")) & year<=2022 // Year of final data of NievasPiketty(2025)
-							
-drop if dup==1 & wid==1 & year>2022
+drop if dup==1 & wid==1 
 
 duplicates tag iso year widcode p, gen(dup2)
-
 assert dup2==0
-
 drop wid dup*
+
 
 // Fill in currency
 bys iso : egen currency_2 = mode(currency)

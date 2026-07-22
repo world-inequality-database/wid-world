@@ -23,8 +23,8 @@ rename p   perc
 order Alpha2 year perc widcode
 
 // Create a folder for the timestamp
-capture mkdir "$output_dir/$time"
-capture mkdir "$output_dir/$time/metadata"
+*capture mkdir "$output_dir/$time"
+*capture mkdir "$output_dir/$time/metadata"
 
 
 //------------- 7.1 Generating pretax income data .csv
@@ -139,7 +139,7 @@ preserve
 
 	keep if widcode=="iquali999i"	
 	// Export
-	*export delim "$output_dir/$time/wid-data-$time-iquali2024Update.csv", delimiter(";") replace
+	export delim "$output_dir/$time/wid-data-$time-iquali2025Update.csv", delimiter(";") replace
 restore
 
 //-------- 8.3  Generating the R, B and G data CSV for ptinc and diinc

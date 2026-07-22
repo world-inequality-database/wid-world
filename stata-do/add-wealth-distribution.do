@@ -515,11 +515,11 @@ assert data_quality!=. if strpos(widcode, "ptinc")
 assert data_quality!=. if strpos(widcode, "cainc")
 assert data_quality !=. if strpos(widcode, "hweal") & year>= 1980 & p !="pall"  & p!="p0p100" 
 
-gen sixlet = substr(widcode, 1, 6)
-bysort iso year sixlet: egen dq_min = min(data_quality) if !inlist(p, "p0p100", "pall")
-bysort iso year sixlet: egen dq_max = max(data_quality) if !inlist(p, "p0p100", "pall")
+
+bysort iso year widcode: egen dq_min = min(data_quality) if !inlist(p, "p0p100", "pall")
+bysort iso year widcode: egen dq_max = max(data_quality) if !inlist(p, "p0p100", "pall")
 assert dq_min == dq_max if !missing(dq_min) | !missing(dq_max)
-drop dq_min dq_max sixlet
+drop dq_min dq_max
 
 // -----------------------------------------------------------------------------
 //	                  VI. Export

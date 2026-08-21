@@ -8,7 +8,7 @@ rename currency currency2
 egen currency = mode(currency2), by(iso year)
 drop currency2
 
-reshape wide value, i(iso year p) j(widcode) string
+reshape wide value, i(iso year p data_quality) j(widcode) string
 
 // Rescale composition variables so that they sum to 100%
 foreach c in i t { 
@@ -66,7 +66,7 @@ foreach v of varlist valuecf* {
 	rename `v' `av'
 }
 
-reshape long value, i(iso year p) j(widcode) string
+reshape long value, i(iso year p data_quality) j(widcode) string
 	
 drop if value >= .
 

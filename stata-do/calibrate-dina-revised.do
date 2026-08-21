@@ -7,12 +7,16 @@ use "$work_data/distribute-national-income-output.dta", clear
 
 // saving data quality to add back at the end 
 preserve
+
+// different grades in macro/distributional obs for fiinc 
+	drop if strpos(widcode, "fiinc") & p=="pall"
 	keep iso year widcode data_quality
 	duplicates drop
 	
 // --------------- temp solution until fiinc distributional dq is filled
 	gduplicates tag iso year widcode, gen(dup)	
 	drop if dup==1 & data_quality==.
+
 	drop dup
 // ----------------
 	
@@ -407,6 +411,8 @@ merge n:1 iso year widcode using "`calibrated_widcodes'", nogenerate keep(master
 // Add calibrated data
 append using "`calibrated'"
 
+// for a,s observations, prioritize distributional grade
+replace data_quality=. if p=="pall" & (strpos(widcode, "afiinc") | strpos(widcode, "sfiinc"))
 // add data quality back 
 merge m:1 iso year widcode using `dataquality', update nogenerate
 

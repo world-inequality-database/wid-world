@@ -518,7 +518,8 @@ assert data_quality !=. if strpos(widcode, "hweal") & year>= 1980 & p !="pall"  
 
 bysort iso year widcode: egen dq_min = min(data_quality) if !inlist(p, "p0p100", "pall")
 bysort iso year widcode: egen dq_max = max(data_quality) if !inlist(p, "p0p100", "pall")
-assert dq_min == dq_max if !missing(dq_min) | !missing(dq_max)
+assert dq_min == dq_max if (!missing(dq_min) | !missing(dq_max))
+
 drop dq_min dq_max
 
 // -----------------------------------------------------------------------------

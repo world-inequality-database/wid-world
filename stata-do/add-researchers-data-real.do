@@ -38,11 +38,11 @@
 //======================= 1.1 import individual country cases ==================
 
 // France inequality 2017 (GGP2017)
-use "$wid_dir/Country-Updates/France/2024-ggp/france-ggp2017_Feb2026.dta", clear //Modif: 10 Oct 2024 by Manuel Esteban
+use "$wid_dir/Country-Updates/France/2024-ggp/france-ggp2017.dta", clear //Modif: 10 Oct 2024 by Manuel Esteban
 
 // Germany and subregions
-// Modif Feb 2026 by A. Van Der Ree: Germany data was being imported twice, we 
-// prioritze import from add-researchers.do because it has 2021 modifications.
+// Germany data was being imported twice, we prioritze import from add-researchers.do 
+// because it has 2021 modifications.
 *append using "$wid_dir/Country-Updates/Germany/2018/May/bartels2018.dta"
 // drop if iso == "DE"
 
@@ -139,8 +139,8 @@ merge 1:1 iso year p widcode using `kr', keepusing(source method) update replace
 
 merge 1:1 iso year p widcode using "$wid_dir/Country-Updates/Historical_series/2024_May/forty_additional_countries_ptinc_Feb2026.dta", keepusing(source method) update replace generate(fortyadditional)
 
-gen extrapolation = "[[1980, $pastyear]]" if fortyadditional==4 // add extrapolation segment to imputed countries (to be updated with $pastyear)
-drop fortyadditional
+*gen extrapolation = "[[1980, $pastyear]]" if fortyadditional==4 // add extrapolation segment to imputed countries (to be updated with $pastyear)
+*drop fortyadditional
 
 //====================== 2.2 Set up metadata variables =========================
 
@@ -181,7 +181,7 @@ isid iso sixlet
 
 replace method = " " if method == ""
 
-*Remove methadata that was already generated in the macro part:
+*Remove metadata that was already generated in the macro part:
 drop if inlist(substr(sixlet,2,5),"hwbol","hwbus","hwcud","hwdeb","hwequ","hwfie","hwfin") | ///
         inlist(substr(sixlet,2,5),"hwfix","hwhou","hwnfa","hwpen","gdpro","nninc")
 
@@ -238,6 +238,8 @@ keep iso year p widcode currency value data_quality
 
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")
+assert data_quality!=. if strpos(widcode, "fiinc") & widcode!="mfiinc999i"
+
 bys iso widcode: egen dq_min = min(data_quality)
 bys iso widcode: egen dq_max = max(data_quality)
 assert !(dq_min==0 & dq_max>0) if strpos(widcode, "ptinc") // assuring imputations have all 0s

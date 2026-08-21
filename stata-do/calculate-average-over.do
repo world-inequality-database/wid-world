@@ -129,6 +129,26 @@ replace widcode = "o" + widcode
 rename o value
 drop if value >= .
 
+
+// add data quality to new o variables
+preserve
+	use "$work_data/calculate-income-categories-output.dta", clear
+	keep iso year p widcode data_quality
+	gen type=substr(widcode, 2, .)
+	drop widcode
+	rename p perc
+	gen p = regexs(1) if regexm(perc, "^(p[^p]+)")
+	drop perc
+	duplicates drop
+	tempfile dataquality
+	save `dataquality'
+restore
+
+gen type=substr(widcode, 2, .)
+merge 1:1 iso year p type using `dataquality', update replace nogen
+drop type
+drop if value==.
+
 append using "$work_data/calculate-income-categories-output.dta"
 
 sort iso widcode p year

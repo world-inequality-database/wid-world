@@ -374,16 +374,128 @@ replace widcode = "afiinc992i" if (iso == "CA") & (widcode == "afiinc992t")
 // Same thing in Sweden
 drop if (iso == "SE") & (subcategory == "average income per adult")
 
-// Gen data quality
+// -----------------------------------------------------------------------------
+// Gen data quality ------------------------------------------------------------
+// -----------------------------------------------------------------------------
+
+// Last edits: Aug 2026 
+
+// (A) For macro data ----------------------------------------------------------
 gen data_quality=.
 /// Macro variables
 replace data_quality=5 if inlist(substr(widcode,1,1),"m","w","c,", "n", "a") & p=="pall"
 /// Indexes
 replace data_quality=5 if inlist(substr(widcode,1,1),"i")
-/// Distributions
-replace data_quality=. if inlist(substr(widcode,1,1),"a","t","s,") & p!="pall"
+/// Correcting for Distributions
+replace data_quality=. if inlist(substr(widcode,1,1),"a","t","s") & p!="pall"
 
-//assert !missing(data_quality)
+// (B) For distributional fiinc data -------------------------------------------
+gen data_quality_dist =.
+
+// Argentina (Alvaredo 2010)
+replace data_quality_dist =3 if iso=="AR" & inrange(year, 1932, 2004) 
+replace data_quality_dist =4 if iso=="AR" & inlist(year, 1959, 1961) // CONADE data uses tax tabs and expenditure surveys  
+// Australia (Atkinson Leigh 2007)
+replace data_quality_dist =3 if iso=="AU" & inrange(year, 1912, 2016) 
+// Canada (Saez Veall 2007)
+replace data_quality_dist =3 if iso=="CA" & inrange(year, 1920, 1981) 
+replace data_quality_dist =5 if iso=="CA" & inrange(year, 1982, 2010)  // Tax microdata 
+// Switzerland (Dell Piketty Saez 2007)
+replace data_quality_dist =3 if iso=="CH" & inrange(year, 1933, 2014)  // 
+// Colombia (Alvaredo Velez 2013)
+replace data_quality_dist =4 if iso=="CO" & inrange(year, 1993, 2005)  // unbalanced microdata panel
+replace data_quality_dist =5 if iso=="CO" & inrange(year, 2006, 2010)  // balanced microdata panel 
+// Germany (Dell 2007)
+replace data_quality_dist =3 if iso=="DE" & inrange(year, 1891, 1989) 
+replace data_quality_dist =5 if iso=="DE" & inrange(year, 1992, 2013) // tax microdata 
+// Denmark (Atkinson Sogaard 2013)
+replace data_quality_dist =3 if iso=="DK" & inrange(year, 1870, 1979) 
+replace data_quality_dist =5 if iso=="DK" & inrange(year, 1980, 2010) // tax microdata 
+// Spain (Alvaredo Saez 2010)
+replace data_quality_dist =3 if iso=="ES" & inrange(year, 1933, 2012) 
+replace data_quality_dist =5 if iso=="ES" & (inrange(year, 1982, 1998) | year==2002) // tax microdata 
+// Finland (Jantti et al 2010)
+replace data_quality_dist =3 if iso=="FI" & inrange(year, 1920, 1965) 
+replace data_quality_dist =4 if iso=="FI" & inrange(year, 1966, 2009) // survey microdata + tax tabs
+// France (piketty 2001, piketty 2007)
+replace data_quality_dist =3 if iso=="FR" & inrange(year, 1905, 2012) 
+// UK (Atkinson 2007)
+replace data_quality_dist =3 if iso=="GB" & inrange(year, 1908, 1994) 
+replace data_quality_dist =5 if iso=="GB" & inrange(year, 1995, 2014) // tax microdata 
+// Indonesia (Leigh Van der Eng 2007)
+replace data_quality_dist =3 if iso=="ID" & inrange(year, 1920, 1939)
+replace data_quality_dist =3 if iso=="ID" & inlist(year, 1982, 1987) // not sure 
+replace data_quality_dist =4 if iso=="ID" & inrange(year, 1990, 2004) // survey microdata + tax tabs 
+// Ireland (Nolan 2007)
+replace data_quality_dist =3 if iso=="IE" & inrange(year, 1922, 2015)
+// India (Banerjee Piketty 2010)
+replace data_quality_dist =3 if iso=="IN" & inrange(year, 1922, 1999)
+// Italy (Alvaredo Pisano 2012)
+replace data_quality_dist =3 if iso=="IT" & inrange(year, 1974, 2009)
+// Japan (Moriguchi 2010)
+replace data_quality_dist =4 if iso=="JP" & inrange(year, 1886, 2010) // to align with grade from asia coordinator  
+// Korea (Kim 2014)
+replace data_quality_dist =3 if iso=="KR" & inrange(year, 1933, 2012)
+// Mauritius
+replace data_quality_dist =3 if iso=="MU" & inrange(year, 1933, 2011)
+// Malaysia (Atkinson 2015) 
+replace data_quality_dist =3 if iso=="MY" & inrange(year, 1947, 2012)
+// Netherlands (Salvareda Atkinson 2010, Salvareda 2013)
+replace data_quality_dist =3 if iso=="NL" & inrange(year, 1914, 1976)
+replace data_quality_dist =5 if iso=="NL" & inrange(year, 1977, 2012) // administrative individual tax records (like microdata?), then 2001-2010 they used "custom tabulations"
+// New Zealand (Atkinson Leigh 2007)
+replace data_quality_dist =3 if iso=="NZ" & inrange(year, 1921, 2017)
+// Norway (Aaberge Atkinson 2010)
+replace data_quality_dist =3 if iso=="NO" & inrange(year, 1875, 1966)
+replace data_quality_dist =5 if iso=="NO" & inrange(year, 1967, 2011)
+// Portugal (Alvaredo 2010)
+replace data_quality_dist =3 if iso=="PT" & inrange(year, 1933, 2005)
+// Seychelles (Atkinson 2015)
+replace data_quality_dist =3 if iso=="SC" & inrange(year, 1955, 1971)
+// Singapore (Atkinson 2010)
+replace data_quality_dist =3 if iso=="SG" & inrange(year, 1947, 2014)
+// South Africa (Alvaredo Atkinson 2010)
+replace data_quality_dist =3 if iso=="ZA" & inrange(year, 1913, 2012)
+// Sweden (Roine Waldenstrom 2010)
+replace data_quality_dist =3 if iso=="SE" & inrange(year, 1903, 2013)
+// Taiwan (Chu 2015)
+replace data_quality_dist =3 if iso=="TW" & inrange(year, 1977, 1998)
+replace data_quality_dist =5 if iso=="TW" & inrange(year, 1999, 2013)
+// US (Saez Piketty 2005)
+replace data_quality_dist =3 if iso=="US" & inrange(year, 1913, 1959)
+replace data_quality_dist =5 if iso=="US" & inrange(year, 1960, 2015)
+// Uruguay (Burdin Esponda Vigorito 2014)
+replace data_quality_dist =5 if iso=="UY" & inrange(year, 2009, 2012)
+// West africa (atkinson 2015)
+replace data_quality_dist =3 if inlist(iso, "GM", "GH", "NG", "SL")
+// East africa (atkinson 2015)
+replace data_quality_dist =3 if inlist(iso, "KE", "TZ", "UG", "ZZ")
+// Central african (atkinson 2015)
+replace data_quality_dist =3 if inlist(iso, "MW", "ZW", "ZM" )
+
+replace data_quality = data_quality_dist if inlist(substr(widcode,1,1),"a","t","s") & p!="pall"
+
+// Fix mismatches between aggregate dq grade and dist dq graden (when p==pall)
+// Identify iso-year-widcode combinations containing any distributional percentile
+bysort iso year widcode: egen has_distribution = max(p != "pall" & !missing(p))
+//Prioritize the distributional grade for those combinations
+replace data_quality = data_quality_dist if has_distribution == 1 & p=="pall"
+
+// For obsolete fiscal income codes 
+replace data_quality = data_quality_dist if ///
+    strpos(widcode, "cfica") | ///
+    strpos(widcode, "cfidi") | ///
+    strpos(widcode, "cfiin") | ///
+    strpos(widcode, "cfikg") | ///
+    strpos(widcode, "cfili") | ///
+    strpos(widcode, "cfimi") | ///
+    strpos(widcode, "cfire") | ///
+    strpos(widcode, "cfiwa") | ///
+    strpos(widcode, "winct") ///
+	& data_quality==. & has_distribution==1
+
+drop has_distribution data_quality_dist
+assert !missing(data_quality)
 
 // Divide the database in two: data & metadata
 preserve

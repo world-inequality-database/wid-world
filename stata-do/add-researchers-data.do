@@ -50,6 +50,7 @@ append using "$wid_dir/Country-Updates/Belgium/2019_02/belgium-decoster2019.dta"
 
 // Norway - fiinc series
 append using "$wid_dir/Country-Updates/Norway/2021_August/Norway_fiscal2021.dta"
+replace data_quality=5 if iso=="NO" & inrange(year, 2012, 2019) & strpos(widcode, "fiinc992j") // following original Norway paper 
 
 // Greece 2019 (chrissis2019&Kout2021) - fiinc series
 append using "$wid_dir/Country-Updates/Greece/2021_August/greece-fiinc-2021.dta"
@@ -75,7 +76,6 @@ drop if iso == "CI" & author == "czajka2017+update" & strpos(widcode, "ptinc")
 
 // Netherlands 2019 (Salverda2019) - fiinc series
 append using "$wid_dir/Country-Updates/Netherlands/2019_05/netherlands-salverda2019.dta"
-drop if widcode == "inyixx999i" & iso == "NL"
 
 // UK 2021 (alvaredo2017&AST2021) -  fiinc series 
 append using "$wid_dir/Country-Updates/UK/2021_August/UK-fiinc-Aug2021.dta"
@@ -127,7 +127,7 @@ isid iso year p widcode, missok
 // Wealth Aggregates (Bauluz & Brassac 2020 + update 2021 for all countries) 
 // 					- wealth aggregates 
 // 					- macro series (inyixx & others, only for ES and SE)
-append using "$wid_dir/Country-Updates/Wealth/2021_July/macro-wealth-Jul2021.dta"
+//append using "$wid_dir/Country-Updates/Wealth/2021_July/macro-wealth-Jul2021.dta"
 
 // Russia 2017 (NPZ2017) - macro series +  distributional series 
 append using "$wid_dir/Country-Updates/Russia/2017/August/russia-npz2017.dta"
@@ -146,15 +146,14 @@ drop if iso == "IN" & author == "kumar2019" & inlist(widcode, "npopul999i") & ye
 // Korea 2018 (Kim2018) - macro series + distributional series (gdp & nni cstt LCU imported in add-researchers-real.do) 
 append using "$wid_dir/Country-Updates/Korea/2018_10/korea-kim2018-current.dta"
 // dropping fiinc as there are newer versions of this data for KR added in Section (1.1) 
-drop if iso == "KR" & inlist(widcode, "afiinc992i", "sfiinc992i", "tfiinc992i") ///
-& author == "kim2018"
+drop if iso == "KR" & inlist(widcode, "afiinc992i", "sfiinc992i", "tfiinc992i") & author == "kim2018"
 
 // --------------------- Modified 22 Oct 2025: -----------------------------
 
 // US - macro series +  distributional series 
 append using "$wid_dir/Country-Updates/US/2025/us-other-macro-dist-2025.dta"
 
-// Asia (China, Hong Kong, Indonesia, Myanmar, Singapore, Thailand, Taiwan) 
+// Asia (China, Hong Kong, Indonesia, Malaysia, Singapore, Thailand, Taiwan) 
 // 	-  macro series + distributional series
 append using "$wid_dir/Country-Updates/Asia/2025/asia-other-macro-dist-2025.dta" 
 
@@ -230,6 +229,7 @@ drop if iso == "IN" & author == "kumar2019"   & inlist(widcode, "npopul999i") & 
 
 drop if substr(widcode, 1,1)=="b" // b variables are re-generated at the end of main.do
 assert data_quality!=. if strpos(widcode, "ptinc") 
+assert data_quality!=. if strpos(widcode, "fiinc") & widcode!="mfiinc999i"
 
 compress, nocoalesce 
 
@@ -318,13 +318,10 @@ generate oldobs = 1
 append using "`researchers'"
 replace currency = "EUR" if iso == "NL" & inlist(widcode, "inyixx999i", "mnninc999i")
 
-
 // Correcting data quality from old database 
-replace data_quality = 3 if iso=="ZZ" & strpos(widcode, "fiinc") // later this series gets converted to ptinc. Data comes from tax tabulations Atkinson 2015
-replace data_quality = 3 if iso=="GB" & strpos(widcode, "diinc") & data_quality ==. & year< 1980 // old data from tax tabulations
-replace data_quality = 4 if iso=="GB" & strpos(widcode, "diinc") & data_quality ==. & inrange(year, 1981, 2014) // following regional coordinator values
-replace data_quality = 3 if iso=="DE" & strpos(widcode, "fiinc992t") & data_quality ==. & inrange(year, 1891, 2011) // following germany fiscal income paper 
-
+//replace data_quality = 3 if iso=="GB" & strpos(widcode, "diinc") & data_quality ==. & year< 1980 // old data from tax tabulations
+//replace data_quality = 4 if iso=="GB" & strpos(widcode, "diinc") & data_quality ==. & inrange(year, 1981, 2014) // following regional coordinator values
+//replace data_quality = 3 if iso=="DE" & strpos(widcode, "fiinc992t") & data_quality ==. & inrange(year, 1891, 2011) // following germany fiscal income paper 
 
 replace p = "pall" if p == "p0p100"
 replace oldobs = 0 if missing(oldobs)
@@ -332,7 +329,7 @@ replace oldobs = 0 if missing(oldobs)
 *drop if iso == "ES" & year == 1900 & missing(value) & p == "p0p100"
 
 // Drop old rows available in new data
-sort iso year p widcode oldobs // sort to put the new observations first
+sort iso year p widcode oldobs
 gduplicates tag iso year p widcode, gen(dup)
 drop if dup & oldobs
 
@@ -342,6 +339,17 @@ drop if (inlist(widcode, "ahweal992j", "shweal992j", "afainc992j", "sfainc992j",
 	   | inlist(widcode, "mfainc992j", "mptinc992j", "mdiinc992j", "mnninc999i") /// 	
 	   | inlist(widcode, "mgdpro999i", "mnnfin999i", "mconfc999i")) ///
 	   & (iso=="US") & (oldobs==1)
+	   
+	   
+// Korea 2018: drop all old variables present in updates
+drop if iso == "KR" & oldobs == 1 ///
+	& (inlist(widcode, "aficap992i", "afidiv992i", "afiinc992i", "afiinc999i", "afiint992i") ///
+	 | inlist(widcode, "afilin992i", "ahweal992i", "bfiinc992i", "inyixx999i", "mcwboo999i", "mcwdeb999i", "mcwdeq999i", "mcwfin999i") ///
+	 | inlist(widcode, "mcwnfa999i", "mcwres999i", "mcwtoq999i", "mfiinc999i", "mhweal999i", "mnwboo999i", "mnweal999i", "npopul992i") ///
+	 | inlist(widcode, "npopul999i", "sfiinc992i", "shweal992i", "tfiinc992i", "thweal992i"))
+
+// Drop old Malaysian top shares (fiinc992i)
+drop if iso == "MY" & strpos(widcode, "fiinc992i")> 0
 
 // ------------------------------------------------------------------------------   
 // Update from Oct 2025: the chunk below is commented-out because it is redundant
@@ -368,16 +376,6 @@ drop if (inlist(widcode, "ahweal992j", "shweal992j", "afainc992j", "sfainc992j",
 // India 2017: drop duplicates and old fiscal income data
 // drop if substr(widcode, 2, 5) == "fiinc" & oldobs == 1 & iso == "IN"
 
-// Korea 2018: drop all old variables present in updates
-drop if iso == "KR" & oldobs == 1 ///
-	& (inlist(widcode, "aficap992i", "afidiv992i", "afiinc992i", "afiinc999i", "afiint992i") ///
-	 | inlist(widcode, "afilin992i", "ahweal992i", "bfiinc992i", "inyixx999i", "mcwboo999i", "mcwdeb999i", "mcwdeq999i", "mcwfin999i") ///
-	 | inlist(widcode, "mcwnfa999i", "mcwres999i", "mcwtoq999i", "mfiinc999i", "mhweal999i", "mnwboo999i", "mnweal999i", "npopul992i") ///
-	 | inlist(widcode, "npopul999i", "sfiinc992i", "shweal992i", "tfiinc992i", "thweal992i"))
-
-// Drop old Malaysian top shares (fiinc992i)
-drop if iso == "MY" & strpos(widcode, "fiinc992i")> 0
-
 // Drop widcodes from previous ZA to be replaced with ccg2020
 *drop if (widcode == "npopul992i"| widcode == "npopul999i" | widcode == "mnninc999i" ) & iso == "ZA" & author != "ccg2020"
 *drop if (substr(widcode, 1, 3) == "mpw" ) & iso == "ZA" & oldobs == 1 & author != "ccg2020" & widcode != "mpwodk999i"
@@ -385,39 +383,11 @@ drop if iso == "MY" & strpos(widcode, "fiinc992i")> 0
 gduplicates tag iso year p widcode, gen(duplicate)
 assert duplicate == 0
 
-assert data_quality !=. if strpos(widcode, "ptinc")
+assert data_quality !=. if strpos(widcode, "ptinc") | strpos(widcode, "diinc") 
+assert data_quality !=. if strpos(widcode, "fiinc") & (p!="p0p100" & p!="pall")
 
-// =============================================================================
-// =============================================================================
-// =============================================================================
-// ----- TEMPORARY FIX TO BE REMOVED AFTER DATA QUALITY PROJECT IS COMPLETE!!! ---
-/*
-preserve
-	keep iso year widcode data_quality
-	duplicates drop
-	duplicates tag iso year widcode, gen(dup)
-	drop if data_quality ==. & iso=="DE" & strpos(widcode, "fiinc992t") & dup==1
-	duplicates drop
-	
-	duplicates tag iso year widcode, gen(dup1)
-	drop if missing(data_quality) & dup1==1
-	isid iso year widcode
-	
-	drop dup* 
-	label data "Temporary data quality storage generated by add-researchers-data.do"
-	save "$work_data/data-quality-add-researchers-data-output.dta", replace 
-restore
-*/
-
-// need to uncomment data quality when this project is ready for launch 
-// =============================================================================
-// =============================================================================
-// =============================================================================
 keep iso year p widcode currency value data_quality
-
 sort iso year p widcode
-// There are few missing values for CM, DZ, GB, IN, JP, TN, VN for the widcodes:
-// sfiinc992i, sfiinc992t, thweal992j
 drop if missing(value) 
 
 // // Remove carbon data (macro & distribution) as it will be performed separately

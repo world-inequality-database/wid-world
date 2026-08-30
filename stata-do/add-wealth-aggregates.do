@@ -5,8 +5,11 @@
 // -------------- A. Data --------------------------- //
 // 1. Prepare the wealth aggreggates
 use "/Users/manuelestebanarias/Dropbox/W2ID/Country-Updates/Wealth/2026_July/wealth-aggregates-2026.dta", clear
-keep if year>=1980
-	
+
+* Correction 2025 (gwass was inverted)	
+replace gwass = gwnfa + gwfin
+assert $pastyear == 2025
+
 * Completing data of last year in case it is not available
 summarize year
 local maximo = r(max)
@@ -35,11 +38,19 @@ local varlist `r(varlist)'
 foreach x in `varlist' {
 	local v = substr("`x'", 1, 5)
 	di "`v'"
-	replace data_quality`v' = `x' if `x' < 10
+	replace data_quality`v' = `x'           if `x' < 10
 	replace data_quality`v' = floor(`x'/10) if `x' >= 10
-	
 }
 drop *_type
+
+
+ds iso year data_quality*, not
+local varlist `r(varlist)'
+foreach v in `varlist' {
+	di "`v'"
+	replace data_quality`v' = 5             if missing(data_quality`v') & !missing(`v') & year< 1980
+	replace data_quality`v' = 2             if missing(data_quality`v') & !missing(`v') & year>=1980
+}
 
 tempfile wealth_shares
 save `wealth_shares'
@@ -251,13 +262,6 @@ drop if inlist(widcode, "mnwnxa999i", "mnwgxd999i", "mnwgxa999i", "mnwoff999i") 
 		|  !inlist(iso, "ZA")) ///
 */
 
-//--- Cleanning  the database  ------------//
-drop if iso=="NL" & inlist(substr(widcode,2,5),"`varlist'") & (!inlist(substr(widcode,2,5),"nwgxa", "nwgxd", "nweal", "gweal", "pweal") & !inlist(substr(widcode,2,5), "nwnxa", "nwnfa", "nwdka", "gwass", "gwdeb")) & year==1939
-drop if iso=="NL" & inlist(substr(widcode,2,5),"pwpro","pwnpr", "pwcul", "pwfix", "pwcud","pwbol") & inrange(year, 1881,1994)
-drop if iso=="NL" & strpos(widcode,"pweqi") & inrange(year, 1881,1979)
-drop if iso=="NL" & strpos(widcode,"pwagr") & inrange(year, 1881,1979)
-
-//--------------------------------------------//
 
 gen wid=1
 append using "`macro_weal'"

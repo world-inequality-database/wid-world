@@ -45,7 +45,8 @@
 use "$work_data/aggregate-regions-output.dta", clear
 keep if inlist(substr(widcode, 1, 6), "xlcusx", "xlcusp", "xlceux", "xlceup", "xlcyux", "xlcyup") /// 
 	  | inlist(substr(widcode, 1, 6), "inyixx", "mgdpro", "ynninc", "mnnfin", "yconfc") /// ,"npopul") // , "intlcu","xrerus") ///
-	  | inlist(substr(widcode, 1, 6), "yhweal", "ypweal", "mhweal", "mpweal")
+	  | inlist(substr(widcode, 1, 6), "yhweal", "ypweal", "mhweal", "mpweal") ///
+	  | inlist(substr(widcode, 1, 6), "ygwass", "ygwdeb", "ygweal")
 drop currency
 rename data_quality q_
 
@@ -69,7 +70,7 @@ preserve
 	merge 1:1 iso year widcode p using "`prices1'", nogen
 	sort iso year
 	
-	* Recreate the price index as if pastyear=2024 ( when the non benchmark data was generated)
+	* Recreate the price index as if pastyear=2024 (when the non benchmark data was generated)
 	gen value_aux1=value_wid if year==2024
 	bysort iso : egen base1 = mode(value_aux1)
 	replace value_wid=value_wid/base1
@@ -219,6 +220,171 @@ preserve
 	save `country_confc'		 
 restore
 
+
+* Anchor country wealth aggregates to the updates levels 
+preserve
+	keep if year<=1990
+	keep iso year p *ypweal* *ygwass* *ygwdeb* *ygweal*
+	drop if (inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE","QF","QP")) & !strpos(iso,"-PPP")
+	drop if strpos(iso,"CN-")
+	replace iso=substr(iso,1,2)
+	drop if inlist(iso,"OK","OL","QF","QP")
+	reshape long value q_ s_, i(iso year p) j(widcode) string
+
+	rename value value_wid
+	rename q_ q_wid
+	rename s_ s_wid
+	
+	merge 1:1 iso year widcode p using "$work_data/bauluzetal2025wealth_2025_hist.dta", nogenerate 
+	keep if year<=1990        
+	rename value value_bau
+	rename q_ q_bau
+	rename s_ s_bau
+	keep if inlist(substr(widcode,1,6), "ypweal","ygwass", "ygwdeb", "ygweal")
+	
+	* Keep only countries with data before 1980
+	gen aux = 1 if year<1980 & (!missing(value_wid) | !mi(value_bau))
+	bysort iso: egen flag = mode(aux)
+	keep if flag==1
+	drop flag aux
+	
+	
+	//-------  Little fix to IT
+	* Note: IT has negative personal wealth in the War years
+	replace value_bau = . if inrange(year,1942, 1945) & iso=="IT" & widcode=="ypweal999i"
+	sort iso widcode p year
+	ipolate value_bau year   if iso=="IT" & widcode=="ypweal999i", gen(bau2)
+	
+	replace s_bau = "ipol"   if inrange(year,1942, 1945) & iso=="IT" & widcode=="ypweal999i"
+	replace q_bau = 3        if inrange(year,1942, 1945) & iso=="IT" & widcode=="ypweal999i"
+	replace value_bau = bau2 if inrange(year,1942, 1945) & iso=="IT" & widcode=="ypweal999i"
+	drop bau2
+	//-------------------
+	
+	* -------------  Recompute derived wealth variables	
+	reshape wide value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
+	* 1. If our updated gwass & gwdeb are available, let's recompute gweal = gwass - gwdeb.
+	replace    s_widygweal999i = "gwass,gwdeb"                              if missing(value_widygweal999i) & !missing(value_widygwass999i) & !missing(value_widygwdeb999i)
+	replace    q_widygweal999i = min(3,cond(value_widygwass999i >= value_widygwdeb999i, q_widygwass999i, q_widygwdeb999i)) ///
+																			if missing(value_widygweal999i) & !missing(value_widygwass999i) & !missing(value_widygwdeb999i)
+	replace value_widygweal999i = value_widygwass999i - value_widygwdeb999i if missing(value_widygweal999i) & !missing(value_widygwass999i) & !missing(value_widygwdeb999i)
+
+	
+	* 2. If our gweal is updated but gwass and/or gwdeb are not, anchor GWP gweal whenever our updated gweal is available and rescale gwass and gwdeb so that gweal = gwass - gwdeb.
+	replace    s_widygwass999i = "gweal,gwdeb"                              if missing(value_widygwass999i) & !missing(value_widygwdeb999i) & !missing(value_widygweal999i)
+	replace    q_widygwass999i = min(3,cond(value_widygweal999i >= value_widygwdeb999i, q_widygweal999i, q_widygwdeb999i)) ///
+																			if missing(value_widygwass999i) & !missing(value_widygwdeb999i) & !missing(value_widygweal999i)
+	replace value_widygwass999i = value_widygweal999i + value_widygwdeb999i if missing(value_widygwass999i) & !missing(value_widygwdeb999i) & !missing(value_widygweal999i)
+	
+	replace    s_widygwdeb999i = "gweal,gwass"                              if missing(value_widygwdeb999i) & !missing(value_widygwass999i) &  missing(value_widygwdeb999i) & !missing(value_widygweal999i)
+	replace    q_widygwdeb999i = min(3,cond(value_widygweal999i >= value_widygwass999i, q_widygweal999i, q_widygwass999i)) ///
+																			if missing(value_widygwdeb999i) & !missing(value_widygwass999i) &  missing(value_widygwdeb999i) & !missing(value_widygweal999i)
+	replace value_widygwdeb999i = - value_widygweal999i + value_widygwass999i  if missing(value_widygwdeb999i) &  !missing(value_widygwass999i) &  missing(value_widygwdeb999i) & !missing(value_widygweal999i)
+
+	
+	reshape long  value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
+
+	* 3. Generate anchor values for the wealth aggregate updated (WID)
+	foreach v in bau wid {
+		replace value_`v'=value_`v' + 10
+	}
+	
+	sort iso widcode p year
+	by iso widcode p: gen growth_wid = value_wid[_n+1] / value_wid
+	by iso widcode p: gen growth_bau = value_bau[_n+1] / value_bau
+	gen growth_spl = cond(!missing(growth_wid), growth_wid, growth_bau)
+	
+	* Build the chain backward, resetting at every known wid point
+	gsort iso widcode p -year
+	by iso widcode p: gen value_spl = value_wid if year==1990
+	by iso widcode p: replace value_spl = cond(!missing(value_wid), value_wid, value_spl[_n-1] / growth_spl) if _n>1
+	
+	gen s_spl = cond(!missing(s_wid), s_wid, s_bau)
+	gen q_spl = cond(!missing(q_wid), q_wid, q_bau)
+	
+	foreach v in bau wid spl{
+		replace value_`v'=value_`v' - 10
+	}
+	keep iso year p widcode value_* s_* q_* 
+	reshape wide value_spl s_spl q_spl value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
+		
+	* 4. If our gweal is updated but gwass and/or gwdeb are not, anchor GWP gweal whenever our updated gweal is available and rescale gwass and gwdeb so that gweal = gwass - gwdeb.
+	gen delta_adj = value_splygweal999i - (value_splygwass999i - value_splygwdeb999i) ///
+    if !missing(value_splygwass999i) & !missing(value_splygwdeb999i) & !missing(value_splygweal999i)
+
+	gen gwass_cand = value_splygwass999i + delta_adj/2 if !missing(delta_adj)
+	gen gwdeb_cand = value_splygwdeb999i - delta_adj/2 if !missing(delta_adj)
+
+	* Case 1: equal split already respects both bounds
+	replace value_splygwass999i = gwass_cand if !missing(delta_adj) & gwass_cand>=0 & gwdeb_cand>=0
+	replace value_splygwdeb999i = gwdeb_cand if !missing(delta_adj) & gwass_cand>=0 & gwdeb_cand>=0
+
+	* Case 2: equal split would send gwass negative -> pin gwass=0, gwdeb absorbs everything
+	replace value_splygwass999i = 0                          if !missing(delta_adj) & gwass_cand<0
+	replace value_splygwdeb999i = -value_splygweal999i        if !missing(delta_adj) & gwass_cand<0
+
+	* Case 3: equal split would send gwdeb negative -> pin gwdeb=0, gwass absorbs everything
+	replace value_splygwdeb999i = 0                          if !missing(delta_adj) & gwdeb_cand<0
+	replace value_splygwass999i = value_splygweal999i         if !missing(delta_adj) & gwdeb_cand<0
+
+
+	drop delta_adj gwass_cand gwdeb_cand
+
+	* 5.a Difference between desired and current net wealth
+	gen flag=1 if !missing(value_widygweal999i) /* & (missing(value_widygwass999i)| missing(value_widygwass999i)) */ ///
+					& value_widygweal999i<0
+	
+	gen delta = (value_splygwass999i - value_splygwdeb999i) - value_splygweal999i  if !missing(value_splygwass999i) & !missing(value_splygwdeb999i)
+	
+	gen value_splygwass999i0 = value_splygwass999i 
+	gen value_splygwdeb999i0 = value_splygwdeb999i
+	gen value_splygweal999i0 = value_splygweal999i
+	
+	* 5.1.a If net wealth needs to fall (delta > 0),  First reduce assets
+	replace value_splygwass999i = max(0, value_splygwass999i0 - delta) if delta > 0 & flag==1
+	
+	* 5.1.b If reducing assets was not enough, increase debt
+	replace value_splygwdeb999i = value_splygwdeb999i - (delta - value_splygwass999i) if (delta > 0) & (delta > value_splygwass999i0) & flag==1
+
+	* 5.2.a If net wealth needs to rise (delta < 0), First reduce debt
+	replace value_splygwdeb999i = max(0, value_splygwdeb999i + delta) if delta < 0 & flag==1
+
+	* 5.2.b If reducing debt was not enough, increase assets
+	replace value_splygwass999i = value_splygwass999i + ((-delta) - value_splygwdeb999i0) if (delta < 0) & ((-delta) > value_splygwdeb999i0) & flag==1
+	
+	* 5.3 recalculate gweal
+	replace value_splygweal999i = value_splygwass999i - value_splygwdeb999i if !missing(value_splygwass999i) & !missing(value_splygwdeb999i) & flag==1
+
+	* 6. Compile
+
+	* 7.  Recompute / replace:
+	gen    s_splynweal999i = "pweal,gweal"                              if !missing(value_splypweal999i) & !missing(value_splygweal999i)
+	gen    q_splynweal999i = min(3,cond(value_splypweal999i >= value_splygweal999i, q_splypweal999i, q_splygweal999i)) ///
+																	    if !missing(value_splypweal999i) & !missing(value_splygweal999i) 
+	gen value_splynweal999i = value_splypweal999i + value_splygweal999i if !missing(value_splypweal999i) & !missing(value_splygweal999i)
+	
+	drop *0
+	keep iso year p value_spl* s_spl* q_spl* value_bau* s_bau* q_bau* value_wid* s_wid* q_wid*
+	keep if year<1980   
+	
+	reshape long value_spl s_spl q_spl value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
+	*---------------- 
+	
+	keep iso year p widcode value_spl s_spl q_spl
+	rename *spl *
+	rename value_ value
+	
+	* Check we did not got negative values
+	assert value>=0 if inlist(substr(widcode,1,6), "ypweal") //, "ynweal")
+	
+	replace s_=s_+"_match" if s_=="bauluz25"
+
+	
+	tempfile anchored_w
+	save `anchored_w'
+restore
+
+
 // -------------------------------------------------------------------------- //
 * 	2. Merge Historical Regions 
 // -------------------------------------------------------------------------- //
@@ -243,6 +409,7 @@ drop dup* np
 
 gen npd=1
 append using "$work_data/bauluzetal2025wealth_2025_hist.dta"
+merge 1:1 iso year widcode p using "`anchored_w'", nogenerate update replace
 duplicates tag iso year widcode p, gen(dup)
 drop if npd==1 & dup==1
 duplicates tag iso year widcode p, gen(dup2)
@@ -251,7 +418,6 @@ drop dup* npd
 
 * keep relevant observations
 keep if inlist(substr(iso, 1, 1), "X", "O") | inlist(iso,"QL", "QM","WO","QE","QF","QP")
-
 rename iso region
 *fillin region year widcode p
 *drop _fillin
@@ -304,6 +470,13 @@ gen           s_ynninc999i = "confc,nnfin" // ygdpro999i==1
 replace valueyndpro999i= 1 - valueyconfc999i // ygdpro999i==1
 replace    q_yndpro999i= min(3, q_yconfc999i) // ygdpro999i==1
 replace    s_yndpro999i= "gdpro,confc" // ygdpro999i==1
+
+foreach v in nwdka nwnfa {
+	replace s_y`v'999i    = "nweal,nwnxa"                     if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
+	replace q_y`v'999i    = min(3,cond(valueynweal999i >= valueynwnxa999i, q_ynweal999i, q_ynwnxa999i)) if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
+	replace valuey`v'999i = valueynweal999i - valueynwnxa999i if !missing(valueynweal999i) & !missing(valueynwnxa999i)
+}
+
 
 * Generate personal wealth 
 merge m:1 region using "`rat_weal_80'", nogen keep(master match) keepusing(rat_weal)
@@ -726,7 +899,7 @@ drop dup* np
 
 gen npd=1
 append using "$work_data/bauluzetal2025wealth_2025_hist.dta"
-
+merge 1:1 iso year widcode p using "`anchored_w'", nogenerate update replace
 duplicates tag iso year widcode p, gen(dup)
 drop if npd==1 & dup==1
 duplicates tag iso year widcode p, gen(dup2)
@@ -755,11 +928,18 @@ replace q_yndpro999i    = min(3, q_yconfc999i) if !missing(valueyconfc999i) // v
 replace s_yndpro999i    = "gdpro,confc"        if !missing(valueyconfc999i) // valueygdpro999i==1
 replace valueyndpro999i = 1 - valueyconfc999i  if !missing(valueyconfc999i) // valueygdpro999i==1
 
+foreach v in nwdka nwnfa {
+	replace s_y`v'999i    = "nweal,nwnxa"                     if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
+	replace q_y`v'999i    = min(3,cond(valueynweal999i >= valueynwnxa999i, q_ynweal999i, q_ynwnxa999i)) if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
+	replace valuey`v'999i = valueynweal999i - valueynwnxa999i if !missing(valueynweal999i) & !missing(valueynwnxa999i)
+}
+
 * Generate personal wealth 
 merge m:1 iso using "`rat_weal_80'", nogen keep(master match) keepusing(rat_weal)
 gen double valueyhweal999i = valueypweal999i*rat_weal
 gen           q_yhweal999i = q_ypweal999i if !missing(valueyhweal999i)
 gen           s_yhweal999i = "pweal_ratiohweal/pweal(1980)" if !missing(valueyhweal999i)
+
 gen double valueyiweal999i = valueypweal999i- valueyhweal999i
 gen           q_yiweal999i = min(3, cond(valueypweal999i >= valueyhweal999i, q_ypweal999i, q_yhweal999i)) if !missing(valueyiweal999i)
 gen           s_yiweal999i = "pweal,hweal" if !missing(valueyiweal999i)
@@ -931,7 +1111,6 @@ gen new=1
 // --------- 4.1. Pile regions and countries before 1970 if not Dietrisch et al.(2025) or Bauluz et al.(2025) //
 append using  "`regions_pre70'"
 
-
 gen     flag = 0
 replace flag = 1 if inlist(substr(widcode, 2, 5), "ptxgo", "gvato", "gvago", "ceugo", "gsrgo", "nsrgo") | ///
 				    inlist(substr(widcode, 2, 5), "cfcgo", "gvaco", "ceuco", "gsrco", "nsrco", "cfcco") | ///
@@ -949,12 +1128,11 @@ drop if year>=1970 & flag==0  & !strpos(iso,"WO") // & regions!=1
 drop flag regions
 
 
-keep if year<=1980
+keep if year<1980
 
-
-
+drop if missing(value)
 rename q_ data_quality
-
+	
 tempfile full_pre70
 save `full_pre70'
 
@@ -979,8 +1157,8 @@ drop if new==1 & dup==1 &  (inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gwe
 
 duplicates tag iso year widcode p, gen(dup2)
 assert dup2==0
-drop dup* new
-
+drop dup* new	
+	
 * Drop ndpro from countries included in arias et all since there is not confc for them
 /*
 gen flag_a = 1 if inlist(iso,"BG","CH","CM","FI","GH","GR","HR","HU","IE") | ///

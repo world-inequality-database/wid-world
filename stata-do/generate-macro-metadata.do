@@ -595,12 +595,6 @@ replace source = source + ///
 `"[URL_TEXT]"' + `"Toussaint, S. et al. (2022). Household Wealth and its Distribution in the Netherlands, 1854–2019, Working Paper; "' + `"[/URL_TEXT][/URL]"' ///
 if iso == "NL"  & metadata=="wealthagg"
 
-** for those which are not imputed (Technical notes on updates)
-replace source = ///
-source + ///
-`"[URL][URL_LINK]"' + `"https://wid.world/document/2024-update-for-wealth-inequality/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Updated by Bauluz, L., Brassac, P., Martínez, I. Z. and Sodano, A. (2024). "Estimation of Global Wealth Aggregates in WID.world: Methodology"[/URL_TEXT][/URL]; "' ///
-if !missing(source) & metadata=="wealthagg"
 
 // `"[URL][URL_LINK]"' + `"https://wid.world/document/2020-wealth-aggregate-series-world-inequality-lab-technical-note-2020-14/"' + `"[/URL_LINK]"' + ///
 // `"[URL_TEXT]"' + `"Updated by Bauluz, L. and Brassac, P. (2020). "2020 Wealth Aggregates series""' + `"[/URL_TEXT][/URL]; "' + ///
@@ -609,8 +603,19 @@ if !missing(source) & metadata=="wealthagg"
 ** for those which are imputed
 replace source = ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/global-wealth-inequality-on-wid-world-estimates-and-imputations-wid-world-technical-note-2023-11/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Chancel, L., Piketty, T. (2023). "Global Wealth Inequality on WID.world: Estimates and Imputations""' + `"[/URL_TEXT][/URL]"' ///
+`"[URL_TEXT]"' + `"Chancel, L., Piketty, T. (2023). "Global Wealth Inequality on WID.world: Estimates and Imputations""' + `"[/URL_TEXT][/URL]; "' ///
 if missing(source) & metadata=="wealthagg"
+
+** for those which are not imputed (Technical notes on updates)
+replace source = ///
+source + ///
+`"[URL][URL_LINK]"' + `"https://wid.world/document/estimation-of-global-wealth-aggregates-in-wid-tn-2026-03"' + `"[/URL_LINK]"' + ///
+`"[URL_TEXT]"' + `"Updated by Bauluz, L., Brassac, P., Martínez-Toledano, T. Piketty and Sodano, A. (2026). "Estimation of Global Wealth Aggregates in WID.world: Methodology"[/URL_TEXT][/URL]; "' ///
+if !missing(source) & metadata=="wealthagg"
+
+
+
+replace method= method + ", but anchored to WID updated estimates" if treat1=="bauluz25" & treat2=="match"
 
 * Complete missings 
 replace method = "Data obtained from an external source (see source)" if  missing(method) & !missing(source) 

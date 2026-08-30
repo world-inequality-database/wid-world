@@ -31,6 +31,79 @@ generate p = "pall"
 gen ratios=1
 tempfile ratios
 save "`ratios'"
+
+// -------------------------------------------------------------------------- //
+// Other variables-income/product ratios for countries extended in Arias et al.(2025) & Peru
+// -------------------------------------------------------------------------- //
+use "$work_data/complete-variables-output.dta", clear
+keep if year<1980
+keep if inlist(iso, "BG", "CH", "CM", "FI", "GH", "GR", "HR", "HU", "IE") | ///
+		inlist(iso, "MU", "MW", "MY", "PL", "PT", "SC", "SG", "TN", "TZ") | /// 
+		inlist(iso, "UG",  "ZM", "ZW") | ///
+		inlist(iso, "PE") 
+
+* Separete the nninc for W and the gdpro for Y
+preserve          
+	drop currency p s_ data_quality
+	keep if inlist(widcode,"mnninc999i","mgdpro999i") 
+
+	reshape wide value , i(iso year) j (widcode) string
+	rename value*999i *
+	
+	
+	tempfile denominators
+	save `denominators'
+restore
+
+
+*Keep only relevant aggregates
+keep if inlist(substr(widcode,1,1),"m","y","w")
+drop if strpos(widcode,"nninc") | strpos(widcode,"gdpro")  //hay que excluir los factro shares!!
+
+gen onelet=substr(widcode,1,1)
+gen ninelet=substr(widcode,2,.)
+drop widcode
+greshape wide value data_quality s_, i(iso year p currency ninelet) j(onelet) string
+
+ merge m:1 iso year using "`denominators'", nogen
+ 
+ *complete m
+replace           s_m = s_w             if !missing(valuew) & !missing(mnninc) & missing(valuem)
+replace data_qualitym = data_qualityw   if !missing(valuew) & !missing(mnninc) & missing(valuem)
+replace        valuem = valuew * mnninc if !missing(valuew) & !missing(mnninc) & missing(valuem)
+
+replace           s_m = s_y             if !missing(valuey) & !missing(mgdpro) & missing(valuem)
+replace data_qualitym = data_qualityy   if !missing(valuey) & !missing(mgdpro) & missing(valuem)
+replace        valuem = valuey * mgdpro if !missing(valuey) & !missing(mgdpro) & missing(valuem)
+	
+*complete y
+replace           s_y = s_m             if !missing(valuem) & !missing(mgdpro)	& missing(valuey)
+replace data_qualityy = data_qualitym   if !missing(valuem) & !missing(mgdpro)	& missing(valuey)
+replace        valuey = valuem / mgdpro if !missing(valuem) & !missing(mgdpro)	& missing(valuey)
+	
+*complete w
+replace           s_w = s_m             if !missing(valuem) & !missing(mnninc) & missing(valuew)
+replace data_qualityw = data_qualitym   if !missing(valuem) & !missing(mnninc) & missing(valuew)
+replace        valuew = valuem / mnninc if !missing(valuem) & !missing(mnninc) & missing(valuew)
+	
+
+drop mnninc mgdpro
+greshape long value data_quality s_, i(iso year p currency ninelet) j(onelet) string
+drop if missing(value)
+
+bysort iso(year): egen currency2=mode(currency)
+drop currency
+rename currency2 currency
+
+replace currency="" if onelet!="m"
+gen widcode = onelet + ninelet
+drop onelet ninelet
+
+gen expanded=1
+
+tempfile expanded_noncore
+save `expanded_noncore'
+ 
 // -------------------------------------------------------------------------- //
 // Other variables-income/product ratios (W) for PPP vars
 // -------------------------------------------------------------------------- //
@@ -143,6 +216,11 @@ append using "`full_ppp'"
 duplicates tag iso year p widcode, gen(dup)
 drop if full_ppp==1 & dup==1
 drop full_ppp dup
+
+append using "`expanded_noncore'"
+duplicates tag iso year p widcode, gen(dup)
+drop if expanded==1 & dup==1
+drop expanded dup
 
 drop if missing(value)
 duplicates drop iso year p widcode, force

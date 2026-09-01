@@ -139,11 +139,13 @@ keep if strpos(widcode,"fiinc")>0
 
 preserve
 	keep iso year widcode data_quality
+	gen vartype = substr(widcode, 2,.)
+	drop widcode
 	duplicates drop
-	duplicates tag iso year widcode, gen(dup)
+	duplicates tag iso year vartype, gen(dup)
 	drop if dup==1 & data_quality==. 
 	drop dup
-	isid iso year widcode
+	isid iso year vartype
 	tempfile dataquality
 	save `dataquality'
 restore
@@ -190,7 +192,9 @@ drop if mi(value)
 sort iso year widcode p value
 replace widcode = "a" + widcode
 
-merge m:1 iso year widcode using `dataquality', nogen
+gen vartype = substr(widcode, 2,.)
+merge m:1 iso year vartype using `dataquality', nogen
+drop vartype
 drop if missing(value)
 
 tempfile fiscal_averages

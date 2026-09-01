@@ -383,15 +383,21 @@ do "$do_dir/aggregate-distribution-regions.do"
 do "$do_dir/homogenize-all-distributions.do"
 
 // Compute Top10/Bottom50 ratio 
-do "$do_dir/calculate-top10bot50-ratio.do"
+*do "$do_dir/calculate-top10bot50-ratio.do"
 
 // Compute Pareto coefficients
-do "$do_dir/calculate-pareto-coef.do"
+*do "$do_dir/calculate-pareto-coef.do"
 
 // calculate gini coefficients
-do "$do_dir/calculate-gini-coef.do"
+*do "$do_dir/calculate-gini-coef.do"
+
+// calculate Top10/Bottom50 ratios, Pareto coefficients and gini coefficients
+do "$do_dir/calculate-coefficients.do"
 
 etime
+
+//Sanity checks when pushing large updates to database 
+do "$do_dir/sanity-checks.do"
 
 // Import carbon series (independent) - to be activated when updated!
 // do "$do_dir/add-carbon-series.do"
@@ -407,16 +413,16 @@ etime
 capture mkdir "$output_dir/$time"
 capture mkdir "$output_dir/$time/metadata"
 
-// Export macro variables
+// Export macro variables and macro metadata
 do "$do_dir/export-core-macro-var.do"
 
-// Export distributions
+// Export distributions data 
 do "$do_dir/export-distributions.do"
 
-// Export the metadata
+// Export distributions metadata
 do "$do_dir/export-metadata-distributions.do"
 
-do "$do_dir/export-metadata-other.do"
+*do "$do_dir/export-metadata-other.do"
 
 // Create flag variables to indicate extrapolation/interpolations
 *do "$do_dir/create-flag-variables.do"
@@ -461,8 +467,6 @@ do "$do_dir/make-variable-tree.do"
 // -------------------------------------------------------------------------- //
 
 *do "$do_dir/update-check.do"
-
-do "$do_dir/sanity-checks.do"
 
 // -------------------------------------------------------------------------- //
 // Summary table

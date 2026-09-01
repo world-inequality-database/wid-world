@@ -48,7 +48,7 @@ foreach c of local dropcodes {
 }
 */	
 
-// keeping only distributional vars. the metadata for macro vars is generated separately
+// keeping only distributional variables. The metadata for macro vars is generated separately
 keep if inlist(fivelet, "ptinc", "diinc", "hweal", "cainc", "fainc", "fiinc")
 isid iso fivelet
 
@@ -84,6 +84,7 @@ assert dq_min == dq_max if !missing(dq_min) | !missing(dq_max)
 drop if year == $pastyear // latest year is almost always extrapolated 
 gen d = ($pastyear - 2) - year // distance "how many years back" // "2" until pretax update 2026 is complete
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // [USER PARAMETERS] established by Central Team based on I. Flores graphs (03.2026)
 local c 20 
 local k  5 
@@ -92,6 +93,7 @@ gen wquality = w * data_quality
 bysort iso fivelet: egen double sumw = total(w)
 bysort iso fivelet: egen double sumwquality = total(wquality)
 gen double data_quality_score = round(sumwquality / sumw, 0.1) // adapt rounding to preference
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 bysort iso fivelet: assert data_quality_score == data_quality_score[1]
 keep iso fivelet data_quality_score

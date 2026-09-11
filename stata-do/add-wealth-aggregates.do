@@ -4,7 +4,7 @@
 
 // -------------- A. Data --------------------------- //
 // 1. Prepare the wealth aggreggates
-use "/Users/manuelestebanarias/Dropbox/W2ID/Country-Updates/Wealth/2026_July/wealth-aggregates-2026.dta", clear
+use "$wid_dir/Country-Updates/Wealth/2026_July/wealth-aggregates-2026.dta", clear
 
 * Correction 2025 (gwass was inverted)	
 replace gwass = gwnfa + gwfin

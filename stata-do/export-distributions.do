@@ -7,7 +7,7 @@
 //         1.  Export Distributions                                           //
 //----------------------------------------------------------------------------//
 
-u "$work_data/calculate-gini-coef-output.dta", clear
+u "$work_data/calculate-coefficients-output.dta", clear
 
 
 // ------- 7. Export the distributions to data to CSV --------------------------

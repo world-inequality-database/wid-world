@@ -301,7 +301,7 @@ save "`meta'"
 // -----------------------------------------------------------------------------
 
 use "$work_data/calculate-average-over-output.dta", clear
-drop if inlist(iso, "NZ", "AU", "CA", "ID", "SG", "TW")
+*drop if inlist(iso, "NZ", "AU", "CA", "ID", "SG", "TW")
 drop if iso == "NL" & widcode == "inyixx999i"
 drop if iso == "NL" & widcode == "mnninc999i"
 drop if missing(value)

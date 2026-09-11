@@ -137,20 +137,20 @@ merge 1:1 iso year p widcode using"$wid_dir/Country-Updates/Germany/2018/May/bar
 
 merge 1:1 iso year p widcode using `kr', keepusing(source method) update replace nogen
 
-merge 1:1 iso year p widcode using "$wid_dir/Country-Updates/Historical_series/2024_May/forty_additional_countries_ptinc_Feb2026.dta", keepusing(source method) update replace generate(fortyadditional)
+merge 1:1 iso year p widcode using "$wid_dir/Country-Updates/Historical_series/2024_May/forty_additional_countries_ptinc_Feb2026.dta", keepusing(source method) update replace nogen
 
 *gen extrapolation = "[[1980, $pastyear]]" if fortyadditional==4 // add extrapolation segment to imputed countries (to be updated with $pastyear)
 *drop fortyadditional
 
 //====================== 2.2 Set up metadata variables =========================
 
-generate sixlet = substr(widcode, 1, 6)
+generate fivelet = substr(widcode, 2, 5)
 drop data_quality
 ds year p widcode value currency author old, not
 keep `r(varlist)'
-order iso sixlet source method
-drop if iso == "FR" & missing(source) & strpos(sixlet, "ptinc")
-drop if iso == "FR" & strpos(sixlet, "pllin")
+order iso fivelet source method
+drop if iso == "FR" & missing(source) & fivelet== "ptinc"
+drop if iso == "FR" & fivelet=="pllin"
 duplicates drop
 // drop if missing(source) & missing(method)
 
@@ -160,34 +160,28 @@ duplicates drop
 // Europe 
 // 		- ptinc (updated 2025)
 // 		- cainc & diinc (pulled from 2023 metadata)
-merge 1:1 iso sixlet using "$wid_dir/Country-Updates/Europe/2025_10/europe-2025-metadata", update replace nogen
+merge 1:1 iso fivelet using "$wid_dir/Country-Updates/Europe/2025_10/europe-2025-metadata", update replace nogen
 
-drop if iso == "FR" & method == "" & inlist(sixlet, "scainc", "sdiinc", "tptinc")
-drop if iso == "FR" & method == "" & strpos(sixlet, "ptinc")
-drop if iso == "FR" & method == "" & strpos(sixlet, "pllin")
+drop if iso == "FR" & method == "" & inlist(fivelet, "cainc", "ptinc", "pllin", "hweal")
 
 // Latin America                   
-merge 1:1 iso sixlet using "$wid_dir/Country-Updates/Latin_America/2025/latin-america-2025-metadata.dta", force update replace nogen 
+merge 1:1 iso fivelet using "$wid_dir/Country-Updates/Latin_America/2025/latin-america-2025-metadata.dta", force update replace nogen 
 
 //================= 2.4 Import updated post-tax series =========================
 
 // Post-tax series 
-merge 1:1 iso sixlet using "$wid_dir/Country-Updates/posttax/12_2025/post-tax-2025-metadata.dta", force update replace nogen //Modif: 5 Jan 2026 by A. Van Der Ree
+merge 1:1 iso fivelet using "$wid_dir/Country-Updates/posttax/12_2025/post-tax-2025-metadata.dta", force update replace nogen //Modif: 5 Jan 2026 by A. Van Der Ree
 duplicates drop
 
 //================= 2.5 Saving researchers meta data (tempfile) ================
 
-isid iso sixlet
+isid iso fivelet
 
-replace method = " " if method == ""
 
 *Remove metadata that was already generated in the macro part:
-drop if inlist(substr(sixlet,2,5),"hwbol","hwbus","hwcud","hwdeb","hwequ","hwfie","hwfin") | ///
-        inlist(substr(sixlet,2,5),"hwfix","hwhou","hwnfa","hwpen","gdpro","nninc")
+drop if inlist(fivelet,"hwbol","hwbus","hwcud","hwdeb","hwequ","hwfie","hwfin") | ///
+        inlist(fivelet,"hwfix","hwhou","hwnfa","hwpen","gdpro","nninc")
 
-
-*remove metadata that will be imported in add-wealth-distributions
-drop if sixlet == "ohweal"
 
 tempfile meta
 save "`meta'"
@@ -238,7 +232,8 @@ keep iso year p widcode currency value data_quality
 
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")
-assert data_quality!=. if strpos(widcode, "fiinc") & widcode!="mfiinc999i"
+assert data_quality!=. if strpos(widcode, "fiinc") & p!="pall" // & widcode!="mfiinc999i" 
+// above is a temp. fix while we assign dq in calcualte-wealth-income-ratios.do
 
 bys iso widcode: egen dq_min = min(data_quality)
 bys iso widcode: egen dq_max = max(data_quality)
@@ -256,23 +251,21 @@ save "$work_data/add-researchers-data-real-output.dta", replace
 // use "$work_data/aggregate-regions-metadata-output.dta", clear
 // use "$work_data/metadata-no-duplicates.dta", clear
 use "$work_data/generate-macro-metadata.dta", clear
-drop if iso == "CN" & mi(source) & inlist(sixlet, "xlcusx", "xlcyux")
+*drop if iso == "CN" & mi(source) & inlist(sixlet, "xlcusx", "xlcyux")
 
-merge 1:1 iso sixlet using "`meta'", force nogenerate update replace 
-
-replace method = "" if method == " "
-isid iso sixlet
-
-drop data_points extrapolation data_imputation data_quality
-gen fivelet = substr(sixlet, 2, 5)
-drop sixlet 
-duplicates drop
-
+gen fivelet=substr(sixlet, 2,5)
+drop sixlet
 // -----------------------------------------------------------------------------
-// temporary metadata method fix for cases where a,s,t had different metadata
+// temporary metadata method fix for cases where a,s,t had different metadata, eg. fiinc and hweal observations 
 collapse (firstnm) method source, by(iso fivelet)
 // -----------------------------------------------------------------------------
-isid iso fivelet 
+
+merge 1:1 iso fivelet using "`meta'", force nogenerate update replace 
+replace method = "" if method == " "
+isid iso fivelet
+
+drop data_points extrapolation data_imputation data_quality
+
 
 label data "Generated by add-researchers-data-real.do"
 save "$work_data/add-researchers-data-real-metadata.dta", replace

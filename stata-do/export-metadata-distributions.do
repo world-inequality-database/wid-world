@@ -60,7 +60,7 @@ save `metadata'
 // ----------------- 2. Construct country data_quality_score -------------------
 // =============================================================================
 
-use "$work_data/calculate-gini-coef-output.dta", clear
+u "$work_data/calculate-coefficients-output.dta", clear
 
 keep if strpos(widcode, "ptinc") | strpos(widcode, "cainc") ///
 | strpos(widcode, "diinc") | strpos(widcode, "hweal") // these are the only distributions with complete dq for now
@@ -82,7 +82,7 @@ assert dq_min == dq_max if !missing(dq_min) | !missing(dq_max)
 
 // construct weighted average data quality score 
 drop if year == $pastyear // latest year is almost always extrapolated 
-gen d = ($pastyear - 2) - year // distance "how many years back" // "2" until pretax update 2026 is complete
+gen d = ($pastyear - 1) - year // distance "how many years back" // "2" until pretax update 2026 is complete
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // [USER PARAMETERS] established by Central Team based on I. Flores graphs (03.2026)

@@ -398,8 +398,12 @@ replace data_quality_dist =4 if iso=="AR" & inlist(year, 1959, 1961) // CONADE d
 // Australia (Atkinson Leigh 2007)
 replace data_quality_dist =3 if iso=="AU" & inrange(year, 1912, 2016) 
 // Canada (Saez Veall 2007)
-replace data_quality_dist =3 if iso=="CA" & inrange(year, 1920, 1981) 
-replace data_quality_dist =5 if iso=="CA" & inrange(year, 1982, 2010)  // Tax microdata 
+	// fiscal
+replace data_quality_dist =3 if iso=="CA" & inrange(year, 1920, 1981) & !strpos(widcode, "diinc")
+replace data_quality_dist =5 if iso=="CA" & inrange(year, 1982, 2010) & !strpos(widcode, "diinc") // Tax microdata 
+	// post-tax
+replace data_quality_dist =4 if iso=="CA" & inrange(year, 1982, 1985) & strpos(widcode, "diinc") // posttax concepts not obserevd yet in LAD
+replace data_quality_dist =5 if iso=="CA" & inrange(year, 1986, 2010) & strpos(widcode, "diinc") // LAD Tax microdata 
 // Switzerland (Dell Piketty Saez 2007)
 replace data_quality_dist =3 if iso=="CH" & inrange(year, 1933, 2014)  // 
 // Colombia (Alvaredo Velez 2013)
@@ -419,7 +423,7 @@ replace data_quality_dist =3 if iso=="FI" & inrange(year, 1920, 1965)
 replace data_quality_dist =4 if iso=="FI" & inrange(year, 1966, 2009) // survey microdata + tax tabs
 // France (piketty 2001, piketty 2007)
 replace data_quality_dist =3 if iso=="FR" & inrange(year, 1905, 2012) 
-// UK (Atkinson 2007)
+// UK (Atkinson 2007) (same grades for fiinc and diinc series)
 replace data_quality_dist =3 if iso=="GB" & inrange(year, 1908, 1994) 
 replace data_quality_dist =5 if iso=="GB" & inrange(year, 1995, 2014) // tax microdata 
 // Indonesia (Leigh Van der Eng 2007)
@@ -475,7 +479,7 @@ replace data_quality_dist =3 if inlist(iso, "MW", "ZW", "ZM" )
 
 replace data_quality = data_quality_dist if inlist(substr(widcode,1,1),"a","t","s") & p!="pall"
 
-// Fix mismatches between aggregate dq grade and dist dq graden (when p==pall)
+// -- Fix mismatches between aggregate dq grade and dist dq grade (when p==pall)
 // Identify iso-year-widcode combinations containing any distributional percentile
 bysort iso year widcode: egen has_distribution = max(p != "pall" & !missing(p))
 //Prioritize the distributional grade for those combinations

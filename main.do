@@ -382,17 +382,18 @@ do "$do_dir/aggregate-distribution-regions.do"
 // Homogeneize all pre-tax, post-tax, wealth  and factor series 
 do "$do_dir/homogenize-all-distributions.do"
 
-// Compute Top10/Bottom50 ratio 
-*do "$do_dir/calculate-top10bot50-ratio.do"
-
-// Compute Pareto coefficients
-*do "$do_dir/calculate-pareto-coef.do"
-
-// calculate gini coefficients
-*do "$do_dir/calculate-gini-coef.do"
-
 // calculate Top10/Bottom50 ratios, Pareto coefficients and gini coefficients
 do "$do_dir/calculate-coefficients.do"
+
+// Compute Top10/Bottom50 ratio (obsolete)
+*do "$do_dir/calculate-top10bot50-ratio.do"
+
+// Compute Pareto coefficients (obsolete)
+*do "$do_dir/calculate-pareto-coef.do"
+
+// calculate gini coefficients (obsolete)
+*do "$do_dir/calculate-gini-coef.do"
+
 
 etime
 

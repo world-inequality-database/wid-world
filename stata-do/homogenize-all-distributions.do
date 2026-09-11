@@ -435,9 +435,9 @@ replace  decile = 8  if inrange(p, 70000, 79000)
 replace  decile = 9  if inrange(p, 80000, 89000)
 replace  decile = 10 if inrange(p, 90000, 99999)
 
-collapse (sum) s (min) anninc992i ahweal992i anninc999i ahweal999i  average t p , by(iso year widcode decile)
+collapse (sum) s (min) anninc992i ahweal992i anninc999i ahweal999i  average t p , by(iso year widcode decile) 
 
-generate a  = s * anninc992i / 0.1 if inlist(widcode, "ptinc992j") & !missing(anninc992i)
+generate double a  = s * anninc992i / 0.1 if inlist(widcode, "ptinc992j") & !missing(anninc992i)
 replace  a  = s * anninc992i / 0.1 if inlist(widcode, "diinc992j") & !missing(anninc992i)
 replace  a  = s * anninc992i / 0.1 if inlist(widcode, "fainc992j") & !missing(anninc992i)
 replace  a  = s * ahweal992i / 0.1 if inlist(widcode, "hweal992j") & (!missing(ahweal992i))

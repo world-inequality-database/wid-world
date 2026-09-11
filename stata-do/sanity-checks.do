@@ -4,14 +4,14 @@
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-// Purpose: This Do-File is to ensure the consistency of series in terms of 
-// monotonicity and other conditions.
+// Purpose: This Do-File is to ensure the consistency of distributional series 
+// in terms of monotonicity and other conditions.
 
 //==============================================================================
 // --------------------------- Load Data ---------------------------------------
 //==============================================================================
  
-u "$work_data/calculate-gini-coef-output.dta", clear
+u "$work_data/calculate-coefficients-output.dta", clear
 keep iso year widcode p value
 
 //==============================================================================
@@ -20,7 +20,7 @@ keep iso year widcode p value
 
 keep if strpos(widcode, "ptinc") | strpos(widcode, "hweal") | strpos(widcode, "diinc") | ///
 		strpos(widcode, "cainc") | strpos(widcode, "fiinc") | strpos(widcode, "fainc")
-
+drop if p=="p0p100"
 //==============================================================================
 // -------------------------------- Parse data ---------------------------------
 //==============================================================================
@@ -43,16 +43,18 @@ generate n = round(p_max - p_min, 1)
 sort iso widcode year p_min
 gduplicates drop iso year widcode p, force
 
-*save "$work_data/calculate-gini-coef-output-parsed.dta", replace
-*u "$work_data/calculate-gini-coef-output-parsed.dta", clear 
+save "$work_data/calculate-coefficients-output-parsed.dta", replace
+*u "$work_data/calculate-coefficients-output-parsed.dta", clear 
 
 //==============================================================================
 // ----------- Run tests on (i) 127 g-percentiles and (ii) Deciles -------------
 //==============================================================================
 
+tempfile checks_g127 checks_decile checks_gini_tax checks_gini_range
+
 capture program drop run_checks
 program define run_checks
-    syntax, GRID(string) NB(integer)
+    syntax, GRID(string) NB(integer) SAVING(string)
 
     preserve
 
@@ -103,7 +105,8 @@ program define run_checks
 	bys iso year widcode (order): gen double s_forw = s[_n+1]
 
 	format a* t* %20.5f
-
+	replace s_forw =round(s_forw, 0.00001)
+	
 // check non-decreasing percentile averages
     gen byte decr_avg = a_forw < a - 0.05  if !missing(a_forw)
     replace decr_avg = 0 if missing(decr_avg)
@@ -145,34 +148,45 @@ program define run_checks
     tab decr_thr
 	tab decr_sh
 	tab a_not_between
-    tab a_greater_tforw
-    tab t_greater_a
     tab sum_ok
 	
-	save "$work_data/checks_`grid'.dta", replace
+	save "`saving'", replace
     restore
 end
 
-run_checks, grid(g127) nb(127)
+run_checks, grid(g127) nb(127) saving("`checks_g127'")
 di "Monotonicity checks for 127 g-percentiles finished :)"
 
-run_checks, grid(decile) nb(10)
+run_checks, grid(decile) nb(10) saving("`checks_decile'")
 di "Monotonicity checks for deciles finished :)"
 
-*u "$work_data/checks_g127.dta", clear
-u "$work_data/checks_decile.dta", clear
+//==============================================================================
+// ------------------------ Check gini is between 0 and 1 ----------------------
+//==============================================================================
+// Note: for series where we allow negative values at the bottom of the 
+// distribution (eg. in the wealth series, low percentiles can have negative
+// wealth ie. debt or a mortgage) then the gini coefficient may be larger than 1. 
 
+u "$work_data/calculate-coefficients-output.dta", clear
+keep iso year widcode p value
+
+keep if strpos(widcode, "gptinc") | strpos(widcode, "gdiinc") | strpos(widcode, "gfainc") | ///
+		strpos(widcode, "gcainc") | strpos(widcode, "gfiinc") // all except wealth 
+		
+gen byte over_one = value > 1 if !missing(value)
+gen byte below_zero = value < 0 if !missing(value)
+
+save "`checks_gini_range'", replace
 
 //==============================================================================
 // ------------------------ Check gini pre-tax > Gini post-tax -----------------
 // (higher gini means more inequality)
 //==============================================================================
 
-u "$work_data/calculate-gini-coef-output.dta", clear
 keep iso year widcode p value
 
 keep if inlist(widcode, "gptinc992j", "gdiinc992j")
-replace value = round(value, 0.0001)
+replace value = round(value, 0.01)
 reshape wide value, i(iso year p) j(widcode) string
 rename value* *
 keep if year >= 1980 //post-tax series only available after 1980
@@ -184,32 +198,159 @@ tab flag
 
 gen gdif = gdiinc992j - gptinc992j
 gsort -gdif
+save "`checks_gini_tax'", replace
+
 //==============================================================================
-// ------------------------ Check gini is between 0 and 1 ----------------------
+// ----------- Ensure data quality is constant at iso-year-p-widcode -----------
+// (higher gini means more inequality)
 //==============================================================================
 
+u "$work_data/calculate-coefficients-output.dta", clear
+
+keep if strpos(widcode, "ptinc") | strpos(widcode, "cainc") ///
+| strpos(widcode, "diinc") | strpos(widcode, "hweal") // these are the only distributions with complete dq for now
+
+drop if strpos(widcode, "hweal992i") & iso=="GB" // this series exceptionally has a different dq that "ahweal992j" based on the paper's methodology. we need dq constant at sixlet level, so dropping it to avoid clashes. 
+
+drop if p=="p0p100" | p=="pall"
+
+gen fivelet = substr(widcode, 2, 5)
+keep iso year fivelet data_quality
+duplicates drop
+
+// Check constancy after removing identical country-year-fivelet-quality rows.
+// Capture failures so the final report is written before returning an error.
+local dq_n = _N
+capture bysort iso fivelet year: assert data_quality == data_quality[1]
+local dq_rc = _rc
+capture isid iso year fivelet
+local dq_id_rc = _rc
+if `dq_rc' == 0 & `dq_id_rc' != 0 local dq_rc = `dq_id_rc'
+
+local dq_message "PASS: Data quality is constant within each retained country-year-fivelet group, across percentiles and series codes."
+if `dq_rc' != 0 {
+    local dq_message "FAIL: Data quality is not constant within retained country-year-fivelet groups."
+}
+if `dq_rc' != 0 & `dq_id_rc' == 459 {
+    quietly count if missing(iso) | missing(year) | missing(fivelet)
+    if r(N) > 0 local dq_message "FAIL: Missing country/year/fivelet identifiers prevent verification of data-quality constancy."
+}
+if `dq_n' == 0 {
+    local dq_message "NOT CHECKED: No observations remain for the data-quality constancy check."
+    local dq_rc = 2000
+}
+di as text "`dq_message'"
+
+//==============================================================================
+// -------------------- Final summary of flagged cases -------------------------
+//==============================================================================
+// Temporary files survive use, clear and are removed when this do-file ends.
+// Preserve the current data while producing the report.
+// Write a plain-text report that can be opened in TextEdit.
+// Replace the previous report on each run.
+capture log close sanity_summary
+log using "/Users/anavanderree/Documents/sanity-checks-summary.txt", ///
+    text replace name(sanity_summary)
+quietly {
+preserve
+noisily di as text _newline "SANITY CHECKS: FLAGGED CASES"
+noisily di as text _newline "DATA QUALITY"
+noisily di as text "`dq_message'"
+
+foreach grid in g127 decile {
+    use "`checks_`grid''", clear
+    sort iso year widcode p
+    by iso year widcode: gen double p_next = p[_n+1]/1000
+    gen double percentile = p/1000
+    gen byte sum_not_one = !sum_ok
+    egen long case_id = group(iso year widcode)
+    local failures decr_avg decr_thr decr_sh a_not_between sum_not_one
+    local msg_decr_avg "Decreasing averages"
+    local msg_decr_thr "Decreasing thresholds"
+    local msg_decr_sh "Decreasing shares"
+    local msg_a_not_between "Average outside threshold interval"
+    local msg_sum_not_one "Shares do not sum to 1"
+
+    noisily di as text _newline "GROUP: `grid'"
+    noisily di as text "Percentiles below are lower bounds, on the 0-100 scale."
+
+    foreach check of local failures {
+        bysort case_id (p): egen byte case_failed = max(`check')
+        by case_id: gen byte first_case = _n == 1
+        count if first_case & case_failed == 1
+        noisily di as text _newline "`msg_`check'': " as result r(N) as text " failed country-year-series case(s)."
+        local last_case = -1
+        if _N > 0 {
+            forvalues i = 1/`=_N' {
+                if `check'[`i'] == 1 {
+                    if case_id[`i'] != `last_case' {
+                        noisily di as text _newline iso[`i'] " / " year[`i'] " / " widcode[`i'] " (`grid')"
+                        if "`check'" == "a_not_between" {
+                            noisily di as text %12s "Percentile" %16s "a" %16s "t" %16s "t_forw"
+                        }
+                        if inlist("`check'", "decr_avg", "decr_thr") {
+                            noisily di as text %12s "Percentile" %12s "Next pctile" %16s "Current value" %16s "Next value"
+                        }
+                        if "`check'" == "sum_not_one" {
+                            noisily di as text "Sum of shares = " as result %12.6f sum_s[`i'] as text "; expected 1."
+                        }
+                    }
+                    if "`check'" == "decr_sh" {
+                        // Each two-column table shows one failing adjacent pair.
+                        noisily di as text %12s "Percentile" as result %16.3f percentile[`i'] %16.3f p_next[`i']
+                        noisily di as text %12s "Share" as result %16.8f s[`i'] %16.8f s_forw[`i']
+                        noisily di as text " "
+                    }
+                    if "`check'" == "a_not_between" {
+                        noisily di as result %12.3f percentile[`i'] %16.5f a[`i'] %16.5f t[`i'] %16.5f t_forw[`i']
+                    }
+                    if "`check'" == "decr_avg" {
+                        noisily di as result %12.3f percentile[`i'] %12.3f p_next[`i'] %16.5f a[`i'] %16.5f a_forw[`i']
+                    }
+                    if "`check'" == "decr_thr" {
+                        noisily di as result %12.3f percentile[`i'] %12.3f p_next[`i'] %16.5f t[`i'] %16.5f t_forw[`i']
+                    }
+                    local last_case = case_id[`i']
+                }
+            }
+        }
+        drop case_failed first_case
+    }
+}
+
+use "`checks_gini_tax'", clear
+keep if flag == 1
+quietly count
+noisily di as text _newline "Post-tax Gini exceeds pre-tax Gini: " as result r(N) as text " case(s)."
+if _N > 0 {
+    forvalues i = 1/`=_N' {
+        noisily di as text iso[`i'] " / " year[`i'] ": Post-tax (" as result %7.4f gdiinc992j[`i'] as text ") exceeds pre-tax (" as result %7.4f gptinc992j[`i'] as text ")."
+    }
+}
+
+use "`checks_gini_range'", clear
+keep if over_one == 1 | below_zero == 1
+quietly count
+noisily di as text _newline "Gini outside [0, 1] (selected non-wealth series): " as result r(N) as text " case(s)."
+if _N > 0 {
+    forvalues i = 1/`=_N' {
+        noisily di as text iso[`i'] " / " year[`i'] " / " widcode[`i'] " / " p[`i'] ": Gini is outside [0, 1]: " as result %9.4f value[`i'] as text "."
+    }
+}
+restore
+}
+log close sanity_summary
+di as text "Summary saved to /Users/anavanderree/Documents/sanity-checks-summary.txt"
+if `dq_rc' != 0 {
+    di as error "Data-quality check did not pass. See the summary above."
+    exit `dq_rc'
+}
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// ensure no negative bottom incomes?
+// ensure p0p5 is normalized for every country except latam and US (re Amory)
+// ensure data quality is constant at level
 
 
 

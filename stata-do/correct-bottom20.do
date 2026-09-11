@@ -38,7 +38,9 @@ preserve
 restore
 drop data_quality
 
-keep if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j")
+keep if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j") | ///
+		inlist(widcode, "aptinc992i", "sptinc992i", "tptinc992i")
+
 
 // Parse percentiles
 generate long p_min = round(1000*real(regexs(1))) if regexm(p, "^p([0-9\.]+)p([0-9\.]+)$")
@@ -66,18 +68,21 @@ rename p_min p
 gduplicates drop iso year p widcode, force
 sort iso year widcode p
 
-reshape wide value, i(iso year p) j(widcode) string
+gen pop = substr(widcode, -1,1)
+gen sixlet = substr(widcode, 1,6)
+drop widcode
+reshape wide value, i(iso year p pop) j(sixlet) string
 
-rename valueaptinc992j a
-rename valuesptinc992j s
-rename valuetptinc992j t
+rename valueaptinc a
+rename valuesptinc s
+rename valuetptinc t
 
 // -------------------------------------------------------------------------- //
 // correct the order of the perc to respect the rise of bracketavg
 // -------------------------------------------------------------------------- //
 
 * 1 - bracket averages are not increasing
-gsort iso year p
+gsort pop iso year p
 
 // Fix SG, missing s for p0p1 few years
 // egen average = total(a*n/1e5), by(iso year)
@@ -86,32 +91,34 @@ gsort iso year p
 // replace a = (s*average)/(n/1e5) if missing(a) & iso == "SG"
 // drop totshare average
 
-drop if inrange(year, 1922, 1950) & iso == "IN"
+drop if inrange(year, 1922, 1950) & iso == "IN" & pop=="j"
 
 generate was_miss = 1 if missing(a)
 replace was_miss = 0 if missing(was_miss)
 
-replace a = s/n*1e5 if missing(a) & inlist(iso, "RU", "AU", "CA", "NZ")
+replace a = s/n*1e5 if missing(a) & inlist(iso, "RU", "AU", "CA", "NZ") & pop=="j"
 
 *drop if missing(a) & inlist(iso, "RU", "AU", "CA", "NZ")
 	* -> Solution : re-rank the percentiles
 
 // Fix Order of percentiles
 
-keep year p a t iso was_miss n
-gsort iso year p
-bys iso year : generate order = _n
+keep year p a t iso was_miss n pop
+gsort pop iso year p 
+bys pop iso year : generate order = _n
 
 preserve
-  gsort iso year p 
-  keep iso year p order
+  gsort pop iso year p 
+  keep iso year p order pop
   tempfile p 
   save `p'
 restore 
-sort iso year a
+sort pop iso year a
 drop p order
-bys iso year : generate order = _n
-merge 1:1 iso year order using `p', nogenerate
+bys pop iso year : generate order = _n
+merge 1:1 pop iso year order using `p', nogenerate
+
+drop if missing(a)
 
 // -------------------------------------------------------------------------- //
 // Fix the -ve bracketavg for only the years & iso that has -ve bracketavg
@@ -139,32 +146,32 @@ replace order = (order - 1)/100
 // Create a flag for values less than 0
 gen flag_0 = (a < 0)
     
-bysort iso year (p): egen flag = max(flag_0)  
+bysort pop iso year (p): egen flag = max(flag_0)  
 
 replace a = 0 if a<0 
-bys iso year (p) : replace a = 0 if _n <= $plafond       //& flag==1
-bys iso year (p) : replace t = . if inrange(p, 0, 20000) //& flag==1
+bys pop iso year (p) : replace a = 0 if _n <= $plafond       //& flag==1
+bys pop iso year (p) : replace t = . if inrange(p, 0, 20000) //& flag==1
 
 // Compute Alpha
-bys iso year (p) : generate double  a_n = a if p == 20000
-bys iso year (p) : egen fill = mode(a_n)
+bys pop iso year (p) : generate double  a_n = a if p == 20000
+bys pop iso year (p) : egen fill = mode(a_n)
 replace a_n = fill 
 drop fill
 
-gsort year iso p
-bys year iso (p) : egen m = mean(a) if inrange(p, 5000, 20000)
-bys iso year (p) : egen fill = mode(m)
+gsort pop year iso p
+bys pop year iso (p) : egen m = mean(a) if inrange(p, 5000, 20000)
+bys pop iso year (p) : egen fill = mode(m)
 replace m = fill 
 drop fill
 
-gsort year iso p
+gsort pop year iso p
 generate double alpha = (a_n/m)-1
 replace alpha = 1 if alpha<1
 
-bys iso year (p) : generate p_i  = order if inrange(p, 5000, 20000)
-bys iso year (p) : generate p_i1 = order[_n+1] if inrange(p, 5000, 20000)
-bys iso year (p) : generate p_k1 = .05  
-bys iso year (p) : generate p_n  = .2
+bys pop iso year (p) : generate p_i  = order if inrange(p, 5000, 20000)
+bys pop iso year (p) : generate p_i1 = order[_n+1] if inrange(p, 5000, 20000)
+bys pop iso year (p) : generate p_k1 = .05  
+bys pop iso year (p) : generate p_n  = .2
 
 
 generate double  m3 = a_n*(((p_i1-p_k1)^(1+alpha))-((p_i-p_k1)^(1+alpha)))/((1+alpha)*(p_n-p_k1)^alpha*(p_i1-p_i)) if inrange(p, 5000, 19000)
@@ -175,7 +182,7 @@ replace a = m3 if !missing(m3) //& flag==1
 
 merge n:1 iso year using "`anninc'", keep(master match) nogenerate
 
-egen average = total(a*n/1e5), by(iso year)
+egen average = total(a*n/1e5), by(pop iso year)
 
 replace anninc = average if missing(anninc) // only for years & countries where there are no anninc, but we still want to keep the topshares
 
@@ -187,19 +194,19 @@ replace t = t/average*anninc
 
 // 1. Generating limit to t
 gen double t_20 = t if p==21000
-bysort iso year (p): egen t_max = max(t_20)  
+bysort pop iso year (p): egen t_max = max(t_20)  
 
 // 2. Inputing missing t
-bys iso year (p) : replace t = ((a - a[_n - 1] )/2) + a[_n - 1] if missing(t)
-bys iso year (p) : replace t = min(0, 2*a) if missing(t) 
+bys pop iso year (p) : replace t = ((a - a[_n - 1] )/2) + a[_n - 1] if missing(t)
+bys pop iso year (p) : replace t = min(0, 2*a) if missing(t) 
 
 // 3. Ensuring series Match
 //-----  3.1. Dropping values if the calculated t is >= to the first non-modified t
-bys iso year (p) : gen flag_t = 1 if round(t,0.00001)>=round(t_max,0.00001) & inrange(p, 5000, 20000) //& flag==1
-bys iso year (p) : replace t = . if flag_t==1
+bys pop iso year (p) : gen flag_t = 1 if round(t,0.00001)>=round(t_max,0.00001) & inrange(p, 5000, 20000) //& flag==1
+bys pop iso year (p) : replace t = . if flag_t==1
 
 //-----  3.2. Interpolate dropped values
-by iso year: ipolate t p, gen(new)
+by pop iso year: ipolate t p, gen(new)
 
 //-----  3.3. Input interpolated values and clean-up
 replace t = new if missing(t) & flag_t == 1
@@ -207,25 +214,25 @@ drop new flag_t t_20 t_max
 
 
 //-------- End of Intervention--------------------------------------------------
-generate double s = a*(n/1e5)/anninc 
+generate double s = a*(n/1e5)/anninc // recalculate shares from averages 
 
-gsort iso year -p
-by iso year : generate double ts = sum(s)
-by iso year : generate double ta = sum(a*n)/(1e5 - p)
-by iso year : generate double bs = 1-ts
+gsort pop iso year -p
+by pop iso year : generate double ts = sum(s)
+by pop iso year : generate double ta = sum(a*n)/(1e5 - p)
+by pop iso year : generate double bs = 1-ts
 
-gsort iso year p
-by iso year : generate double ba = bs*average/(0.5) if p == 50000
+gsort pop iso year p
+by pop iso year : generate double ba = bs*average/(0.5) if p == 50000
 
-keep year iso p a s t ts ta bs ba was_miss
+keep year iso p a s t ts ta bs ba was_miss pop
 
 // Verification code
-gsort iso year p
-bysort iso year (p): assert !missing(a) 
-bysort iso year (p): assert !missing(t) 
+gsort pop iso year p
+bysort pop iso year (p): assert !missing(a) 
+bysort pop iso year (p): assert !missing(t) 
 
-bysort iso year (p): assert a[_n + 1] >= a if round(a,1) != 0 
-bys iso year : assert _N == 127 if !inlist(iso, "IN")  // there are no full distribution for India (1922-50)
+bysort pop iso year (p): assert a[_n + 1] >= a if round(a,1) != 0 
+bys pop iso year : assert _N == 127 if !inlist(iso, "IN")  // there are no full distribution for India (1922-50)
 
 replace a  = . if was_miss == 1
 replace ta = . if was_miss == 1
@@ -241,33 +248,37 @@ save `final'
 // Reshape long
 // -------------------------------------------------------------------------- //
 
-keep year iso p a s t
+keep year iso p a s t pop
 replace p = p/1000
-bys year iso (p) : gen p2 = p[_n+1]
+bys pop year iso (p) : gen p2 = p[_n+1]
 replace p2 = 100 if p2 == .
 gen perc = "p"+string(p)+"p"+string(p2)
 drop p p2
 
 rename perc p
-rename a    aptinc992j
-rename s 	sptinc992j
-rename t    tptinc992j
-renvars aptinc992j sptinc992j tptinc992j, prefix(value)
+rename a    aptinc992
+rename s 	sptinc992
+rename t    tptinc992
+renvars aptinc992 sptinc992 tptinc992, prefix(value)
 
-greshape long value, i(iso year p) j(widcode) string
+greshape long value, i(pop iso year p) j(widcode) string
+replace widcode = widcode + pop
+drop pop 
 drop if missing(value)
 
 preserve
 	use `final', clear
-	keep year iso p ts ta 
+	keep year iso p ts ta pop
 	replace p = p/1000
 	gen perc = "p"+string(p)+"p100"
 	drop p
 	rename perc p
-	rename ts   sptinc992j
-	rename ta   aptinc992j
-	renvars aptinc992j sptinc992j, prefix(value)
-	greshape long value, i(iso year p) j(widcode) string
+	rename ts   sptinc992
+	rename ta   aptinc992
+	renvars aptinc992 sptinc992, prefix(value)
+	greshape long value, i(pop iso year p) j(widcode) string
+	replace widcode = widcode + pop
+	drop pop
 	drop if missing(value)
 	
 	tempfile top
@@ -275,45 +286,48 @@ preserve
 restore
 preserve
 	use `final', clear
-	keep year iso p bs
+	keep year iso p bs pop
 	replace p = p/1000
-	bys year iso (p) : gen p2 = p[_n+1]
+	bys pop year iso (p) : gen p2 = p[_n+1]
 	replace p2 = 100 if p2 == .
 	gen perc = "p"+string(p)+"p"+string(p2)
 	drop p p2
 
 	rename perc    p
 	keep if (p == "p50p51" | p == "p90p91")
-	reshape wide bs, i(iso year) j(p) string
+	reshape wide bs, i(pop iso year) j(p) string
 	rename bsp50p51 valuep0p50
 	rename bsp90p91 valuep0p90
-	bys iso year : gen double valuep50p90 = valuep0p90 - valuep0p50
-	reshape long value, i(iso year) j(p) string
-	gen widcode = "sptinc992j"
-
+	bys pop iso year : gen double valuep50p90 = valuep0p90 - valuep0p50
+	reshape long value, i(pop iso year) j(p) string
+	gen widcode = "sptinc992" + pop 
+	drop pop
 	tempfile bottom
 	save `bottom'	
 restore
 preserve
 	use `final', clear
-	keep year iso p bs
+	keep year iso p bs pop
 	replace p = p/1000
-	bys year iso (p) : gen p2 = p[_n+1]
+	bys pop year iso (p) : gen p2 = p[_n+1]
 	replace p2 = 100 if p2 == .
 	gen perc = "p0p"+string(p2)
 	drop p p2
 
 	rename perc    p
-	rename bs sptinc992j
-	renvars  sptinc992j, prefix(value)
-	greshape long value, i(iso year p) j(widcode) string
+	rename bs sptinc992
+	renvars  sptinc992, prefix(value)
+	greshape long value, i(pop iso year p) j(widcode) string
+	replace widcode = widcode + pop
+	drop pop
 	drop if p == "p0p100"
 	tempfile bs
 	save `bs'	
 restore
+
 preserve
 	use `final', clear
-	keep year iso p ba
+	keep year iso p ba pop
 	drop if missing(ba)
 	replace p = p/1000
 // 	bys year iso (p) : gen p2 = 100
@@ -322,9 +336,11 @@ preserve
 	drop p
 
 	rename perc    p
-	rename ba aptinc992j
-	renvars aptinc992j, prefix(value)
-	greshape long value, i(iso year p) j(widcode) string
+	rename ba aptinc992
+	renvars aptinc992, prefix(value)
+	greshape long value, i(pop iso year p) j(widcode) string
+	replace widcode = widcode + pop
+	drop pop
 // 	drop if p == "p0p100"
 
 	tempfile ba

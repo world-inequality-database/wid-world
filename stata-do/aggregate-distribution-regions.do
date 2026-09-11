@@ -16,6 +16,19 @@ save `combined', emptyok
 // 1. Bring National income, wealth, population and prices by year
 // -------------------------------------------------------------------------- //
 use "$work_data/extend-distributions-999-output.dta", clear
+// Retain one grade per country, year, concept and population group.
+preserve
+    keep if inlist(widcode, "aptinc992j", "aptinc999j", ///
+                           "ahweal992j", "ahweal999j")
+    keep if !inlist(p, "p0p100", "pall")
+    gen concept = substr(widcode, 2, 5)
+    gen population_group = substr(widcode, 7, 3)
+    keep iso year concept population_group data_quality
+    duplicates drop
+    isid iso year concept population_group
+    tempfile country_quality
+    save `country_quality'
+restore
 drop data_quality // data quality is reassigned after regions are generated
 
 gen     tokeep = 1 if inlist(widcode, "npopul992i", "npopul999i", "inyixx999i", "xlcusp999i", "xlcusx999i")
@@ -43,7 +56,7 @@ replace xlcusx999i = xlcusp999i if iso == "CU"
 
 drop p currency
 
-
+*save "$work_data/regions-aggregates.dta", replace 
 tempfile aggregates
 save "`aggregates'"
 
@@ -138,7 +151,7 @@ rename xlcusp999i PPP
 rename xlcusx999i MER
 
 //--- Checkpoint 1 -----------------//
-*save "$work_data/aux.dta", replace
+save "$work_data/aux.dta", replace
 *clear all
 *tempfile combined
 *save `combined', emptyok
@@ -155,6 +168,73 @@ drop region1_core
 *Define WO
 gen     region7="WO" if (corecountry==1 | !missing(region1)) & year <  1980
 replace region7="WO" if  corecountry==1 					 & year >= 1980
+
+// ---------- 3.2.1 Aggregation of data quality grades for regions 
+// Use total population (999) for both adult (992) and all-age (999) series.
+// Income grades are shared by pretax and posttax; wealth uses wealth grades.
+tempfile regional_quality
+preserve
+    clear
+    save `regional_quality', emptyok
+restore
+
+foreach u in 2 9 {
+    foreach c in ptinc hweal {
+        local z = cond("`c'" == "ptinc", "i", "w")
+        foreach y in MER PPP {
+            foreach x of varlist region* {
+                quietly levelsof `x', local(regions)
+                foreach r of local regions {
+                    preserve
+                        keep if `x' == "`r'"
+                        drop if substr(iso, 3, 1) == "-" ///
+                            & substr(iso, 4, 3) != "`y'"
+                        // Match the available income/wealth distributions.
+                        drop if missing(a`z'`u')
+                        keep iso year npopul999i
+                        duplicates drop
+
+                        if _N > 0 {
+                            isid iso year
+                            gen concept = "`c'"
+                            gen population_group = "99`u'"
+                            merge 1:1 iso year concept population_group ///
+                                using `country_quality', keep(master match) ///
+                                assert(match using) nogenerate
+                            assert !missing(data_quality)
+                            assert !missing(npopul999i) & npopul999i > 0
+
+                            gen double weighted_quality = ///
+                                data_quality * npopul999i
+                            collapse (sum) weighted_quality npopul999i, by(year)
+                            gen double data_quality = ///
+                                weighted_quality / npopul999i
+                            gen iso = "`r'-`y'"
+                            gen concept = "`c'"
+                            gen population_group = "99`u'"
+                            keep iso year concept population_group data_quality
+                            append using `regional_quality'
+                            save `regional_quality', replace
+                        }
+                    restore
+                }
+            }
+        }
+    }
+}
+
+preserve
+    use `regional_quality', clear
+    expand 2 if concept == "ptinc", gen(posttax)
+    replace concept = "diinc" if posttax
+    drop posttax
+    duplicates drop
+    isid iso year concept population_group
+    save `regional_quality', replace
+	save "/Users/anavanderree/Documents/region_quality.dta", replace
+restore
+
+// ------------ 3.2.2 Main Aggregation of values/series for regions 
 
 foreach u in 2 9 {
 	
@@ -215,8 +295,8 @@ foreach u in 2 9 {
 
 use "`combined'", clear
 //--- Checkpoint 2 -----------------//
-*save "$work_data/aux2.dta", replace
-*use "$work_data/aux2.dta", clear
+save "$work_data/aux2.dta", replace
+use "$work_data/aux2.dta", clear
 //---------------------------------//
 foreach u in 2 9 {
 	bys iso year p (aw`u'):  replace aw`u' = aw`u'[1]
@@ -274,11 +354,11 @@ egen average = total(a*n/1e5), by(iso year concept)
 bys concept iso year (p) : generate t = ((a - a[_n - 1] )/2) + a[_n - 1] 
 bys concept iso year (p) : replace t = min(0, 2*a) if missing(t)
 
-
+*merge n:1 iso year using "$work_data/regions-aggregates.dta", nogenerate keep(master match)
 merge n:1 iso year using "`aggregates'", nogenerate keep(master match)
 
 //--- Checkpoint 2.1 -----------------//
-*save "$work_data/aux2a.dta", replace
+save "$work_data/aux2a.dta", replace
 *use "$work_data/aux2a.dta", clear
 //---------------------------------//
 
@@ -326,8 +406,9 @@ replace s = ts if new == 1
 replace a = ba if new2 == 1
 replace s = bs if new2 == 1
 	
-bys iso  year (bot50): gen bot50s = s[_N]
-bys iso  year (bot50): gen bot50a = a[_N]
+// Select the bottom 50 within each concept and age group, independent of row order.
+bys iso year concept: egen double bot50s = max(cond(bot50 == 1, s, .))
+bys iso year concept: egen double bot50a = max(cond(bot50 == 1, a, .))
 	
 * middle 40
 replace s = bs-bot50s if new3 == 1
@@ -365,7 +446,7 @@ drop if strpos(widcode, "diinc") & year<1980
 *drop x
 
 //--- Checkpoint 3 -----------------//
-*save"$work_data/aux3.dta", replace
+save"$work_data/aux3.dta", replace
 *u "$work_data/aux3.dta", clear
 //----------------------------------//
 
@@ -377,13 +458,13 @@ drop if avg_tag==0
 drop *tag
 
 // -------- Add data quality back  ---------------------------------------------
-//[NOTE] at the time of writing (02.2026) all regions are assigned data_quality = 0
-// according to DINA Guidelines 2025 quality table. This means there is no yearly
-// variation in data quality for the regions. If in future revisions this changes,
-// then we may have to consider filling in the data_quality directly in the loop 
-// that generates regions
+// Attach yearly population-weighted grades to all regional percentiles.
 assert (strpos(iso, "-PPP") | strpos(iso, "-MER"))
-gen data_quality = 0 // for all regions, MER and PPP
+gen concept = substr(widcode, 2, 5)
+gen population_group = substr(widcode, 7, 3)
+merge m:1 iso year concept population_group using `regional_quality', keep(master match) assert(match using) nogenerate
+assert !missing(data_quality) 
+drop concept population_group
 
 tempfile final
 save `final'
@@ -438,31 +519,31 @@ if missing(source) & (strpos(fivelet, "ptinc") | strpos(fivelet, "diinc") | strp
 replace source =  source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-mena/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"El Hariri, D. (2025), “2025 Regional DINA update for the Middle East”"' + `"[/URL_TEXT][/URL]"' ///
+`"[URL_TEXT]"' + `"El Hariri, D. (2025), "2025 Regional DINA update for the Middle East""' + `"[/URL_TEXT][/URL]"' ///
 if inlist(iso, "XN-PPP", "XN-MER", "OE-PPP", "OE-MER") & strpos(fivelet, "ptinc")
 // SSA
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-africa/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Robilliard, A.-S. (2025), “2025 DINA Update for countries of the Sub-Saharan Africa Region”"' + `"[/URL_TEXT][/URL]"' ///
+`"[URL_TEXT]"' + `"Robilliard, A.-S. (2025), "2025 DINA Update for countries of the Sub-Saharan Africa Region""' + `"[/URL_TEXT][/URL]"' ///
 if inlist(iso, "XF-PPP", "XF-MER", "OJ-PPP", "OJ-MER") & strpos(fivelet, "ptinc")
 // ASIA
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-asia/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Bharti, N., Mo, Z. (2025), “Technical note for update of Asia - 2025”"' + `"[/URL_TEXT][/URL]"' ///
+`"[URL_TEXT]"' + `"Bharti, N., Mo, Z. (2025), "Technical note for update of Asia - 2025""' + `"[/URL_TEXT][/URL]"' ///
 if inlist(iso, "QL-PPP", "QL-MER", "OB-PPP", "OB-MER", "XS-PPP", "XS-MER", "OI-PPP", "OI-MER") & strpos(fivelet, "ptinc")
 // RUSSIA
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2022-dina-regional-update-for-russia-world-inequality-lab-technical-note-2022-03/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Neef, T., (2022) “2022 DINA Regional update for Russia”"' + `"[/URL_TEXT][/URL]"' ///
+`"[URL_TEXT]"' + `"Neef, T., (2022) "2022 DINA Regional update for Russia""' + `"[/URL_TEXT][/URL]"' ///
 if inlist(iso, "XR-PPP", "XR-MER", "OA-PPP", "OA-MER") & strpos(fivelet, "ptinc")
 // NAOC 1/2
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2022-dina-regional-update-for-australia-canada-and-new-zealand-world-inequality-lab-technical-note-2022-07/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Fisher-Post, M. (2022) 2022 DINA Regional Update for North America and Oceania”"' + `"[/URL_TEXT][/URL]"' ///
+`"[URL_TEXT]"' + `"Fisher-Post, M. (2022) 2022 DINA Regional Update for North America and Oceania""' + `"[/URL_TEXT][/URL]"' ///
 if inlist(iso, "XB-PPP", "XB-MER", "OH-PPP", "OH-MER", "QF-PPP", "QF-MER", "OL-PPP", "OL-MER") & strpos(fivelet, "ptinc")
 // NAOC 2/2
 replace source = source + ///
@@ -474,7 +555,7 @@ if inlist(iso, "QP-PPP", "QP-MER", "OK-PPP", "OK-MER") & strpos(fivelet, "ptinc"
 replace source = source + ///
 `"; Technote for the regional update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/2025-dina-update-for-latin-america/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"Flores, I., Zuniga-Cordero, A., (2025) “Income inequality series for Latin America”"' + `"[/URL_TEXT][/URL]"' ///
+`"[URL_TEXT]"' + `"Flores, I., Zuniga-Cordero, A., (2025) "Income inequality series for Latin America""' + `"[/URL_TEXT][/URL]"' ///
 if inlist(iso, "XL-PPP", "XL-MER", "OD-PPP", "OD-MER") & strpos(fivelet, "ptinc")
 // EUROPE
 replace source = source + ///
@@ -486,7 +567,7 @@ if inlist(iso, "QE-PPP", "QE-MER", "OC-PPP", "OC-MER", "QM-PPP", "QM-MER") & str
 
 replace source = source + ///
 `"[URL][URL_LINK]"' + `"http://wid.world/document/update-of-global-income-inequality-estimates-on-wid-world-world-inequality-lab-technical-note-2020-11/"' + `"[/URL_LINK]"' + ///
-`"[URL_TEXT]"' + `"; Chancel, L., Moshrif, R. (2020) “Update of global income inequality estimates on WID.world”"' + `"[/URL_TEXT][/URL]"' ///
+`"[URL_TEXT]"' + `"; Chancel, L., Moshrif, R. (2020) "Update of global income inequality estimates on WID.world""' + `"[/URL_TEXT][/URL]"' ///
 if /*(iso == "WO" | iso == "WO-MER")*/ missing(source) & strpos(fivelet, "ptinc")
 
 // Adding paper for post-tax series 

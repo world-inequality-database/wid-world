@@ -674,7 +674,7 @@ replace technote = " See [URL][URL_LINK]https://wid.world/document/wid-national-
 																											inlist(substr(sixlet,2,.),"finrx","finpx","scinx","scirx","scipx","ncanx","nwnxa","nwgxa") | /// 
 																											inlist(substr(sixlet,2,.),"nwgxd","nyixx","rerus","reryu","rereu")																										
 */																											
-replace technote=  " For more details on the latest data update round, see [URL][URL_LINK]https://wid.world/document/extending-wid-national-accounts-series-institutional-sectors-and-factor-shares-world-inequality-lab-technical-note-2025-03/[/URL_LINK][URL_TEXT] Gomez-Carrera, R., Moshirf, R., Nievas, G., Piketty, T. (2024) Global Inequality Update 2024:New Insights from Extended WID Macro Series[/URL_TEXT][/URL]" if missing(technote) 
+replace technote=  " For more details on the latest data update round, see [URL][URL_LINK]https://wid.world/document/world-inequality-lab-technical-note-2026-04/[/URL_LINK][URL_TEXT] Arias-Osorio, M., Moshrif R., Nievas, G., Piketty, T., Van Der Ree A.(2024) Global Inequality Update 2026: Insights from WID Macro Series 1800-2025 [/URL_TEXT][/URL]" if missing(technote) 
 
 replace method= method + technote + "; For more details on the WID.world methods, see [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) Distributional National Accounts Guidelines[/URL_TEXT][/URL]. " 
 

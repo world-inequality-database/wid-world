@@ -198,17 +198,15 @@ foreach u in 2 9 {
                             isid iso year
                             gen concept = "`c'"
                             gen population_group = "99`u'"
-                            merge 1:1 iso year concept population_group ///
-                                using `country_quality', keep(master match) ///
-                                assert(match using) nogenerate
+                            merge 1:1 iso year concept population_group using `country_quality', ///
+							keep(master match) assert(match using) nogenerate
                             assert !missing(data_quality)
                             assert !missing(npopul999i) & npopul999i > 0
 
                             gen double weighted_quality = ///
                                 data_quality * npopul999i
                             collapse (sum) weighted_quality npopul999i, by(year)
-                            gen double data_quality = ///
-                                weighted_quality / npopul999i
+                            gen double data_quality = round(weighted_quality / npopul999i, 1) // rounded to nearest integer 
                             gen iso = "`r'-`y'"
                             gen concept = "`c'"
                             gen population_group = "99`u'"
@@ -368,6 +366,7 @@ replace a2 = (a/average)*anninc999i if inlist(concept, "i9", "d9")
 replace a2 = (a/average)*ahweal992i if inlist(concept, "w2")
 replace a2 = (a/average)*ahweal999i if inlist(concept, "w9")
 replace a = a2 if !missing(a2)
+drop a2
 
 // constructing shares based on averages (a) and macro totals 
 *generate s = a*n/1e5/average
@@ -375,6 +374,11 @@ gen 	s = a*(n/1e5)/anninc992i if inlist(concept, "i2", "d2")
 replace s = a*(n/1e5)/anninc999i if inlist(concept, "i9", "d9")
 replace s = a*(n/1e5)/ahweal992i if inlist(concept, "w2")
 replace s = a*(n/1e5)/ahweal999i if inlist(concept, "w9")
+
+// Update the overall average using the rescaled percentile averages
+egen double average2 = total(a*n/1e5), by(iso year concept)
+replace average = average2 if !missing(average2)
+drop average2
 
 gsort concept iso year -p
 bys concept iso year  : generate ts = sum(s)

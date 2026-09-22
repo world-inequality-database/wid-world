@@ -3,11 +3,26 @@ name: Export grade definitions
 on:
   workflow_dispatch:
     inputs:
-      sheets:
-        description: 'Sheets: numbers or exact names, separated by commas (e.g. 1,2), or all'
-        required: true
-        default: 'all'
-        type: string
+      distributed_short:
+        description: 'Distributed variables — short definitions'
+        required: false
+        default: false
+        type: boolean
+      distributed_long:
+        description: 'Distributed variables — long definitions'
+        required: false
+        default: false
+        type: boolean
+      aggregated_short:
+        description: 'Aggregated variables — short definitions'
+        required: false
+        default: false
+        type: boolean
+      aggregated_long:
+        description: 'Aggregated variables — long definitions'
+        required: false
+        default: false
+        type: boolean
       mode:
         description: 'merge = columns side by side on Grade; separate = one CSV per sheet'
         required: true
@@ -43,10 +58,31 @@ jobs:
 
       - name: Export selected sheets
         env:
-          EXPORT_SHEETS: ${{ inputs.sheets }}
+          INCLUDE_DISTRIBUTED_SHORT: ${{ inputs.distributed_short }}
+          INCLUDE_DISTRIBUTED_LONG: ${{ inputs.distributed_long }}
+          INCLUDE_AGGREGATED_SHORT: ${{ inputs.aggregated_short }}
+          INCLUDE_AGGREGATED_LONG: ${{ inputs.aggregated_long }}
           EXPORT_MODE: ${{ inputs.mode }}
         shell: bash
         run: |
+          selected_sheets=()
+          if [[ "$INCLUDE_DISTRIBUTED_SHORT" == "true" ]]; then
+            selected_sheets+=("Distributed variables (short de")
+          fi
+          if [[ "$INCLUDE_DISTRIBUTED_LONG" == "true" ]]; then
+            selected_sheets+=("Distributed variables (long des")
+          fi
+          if [[ "$INCLUDE_AGGREGATED_SHORT" == "true" ]]; then
+            selected_sheets+=("Aggregated variables (short des")
+          fi
+          if [[ "$INCLUDE_AGGREGATED_LONG" == "true" ]]; then
+            selected_sheets+=("Aggregated variables (long desr")
+          fi
+          if (( ${#selected_sheets[@]} == 0 )); then
+            echo "::error::Select at least one sheet using the checkboxes."
+            exit 1
+          fi
+          EXPORT_SHEETS=$(IFS=,; echo "${selected_sheets[*]}")
           case "$EXPORT_MODE" in
             merge) export_output="grade_exports/grade_definitions.csv" ;;
             separate) export_output="grade_exports" ;;

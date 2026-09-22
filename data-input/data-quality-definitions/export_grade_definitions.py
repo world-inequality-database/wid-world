@@ -10,7 +10,8 @@ Examples (default workbook: grade_definitions.xlsx beside this script):
 
 Selections accept comma-separated sheet numbers (1-based) or exact names.
 Merge keeps every observed Grade, sorted, leaving missing matches blank.
-Definition columns use Short desc.: or Long desc.: prefixes in both export modes.
+Merged columns use Short desc.: or Long desc.: prefixes.
+Separate exports keep source headers and use full descriptive filenames.
 Header whitespace is stripped; definition text and literal N/A are preserved.
 CSVs use UTF-8 with BOM for Excel. Existing output CSVs are replaced.
 The workbook is never modified. Formulas must be converted to values first.
@@ -79,6 +80,15 @@ def export_headers(sheet_name, columns):
     return [f"{prefix}: {column}" for column in columns]
 
 
+def separate_filename(sheet_name):
+    """Expand the known definition sheet names without numeric prefixes."""
+    match = re.match(r"^(Distributed|Aggregated?) variables\s*\((short|long)\b", sheet_name, re.IGNORECASE)
+    if match:
+        group = 'Distributed' if match.group(1).lower() == 'distributed' else 'Aggregate'
+        return f'{group}_variables_{match.group(2).lower()}_descriptions.csv'
+    return (re.sub(r'[^\w.-]+', '_', sheet_name).strip('._') or 'sheet') + '.csv'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--workbook', type=Path, default=Path(__file__).resolve().with_name('grade_definitions.xlsx'))
@@ -114,10 +124,11 @@ def main():
         else:
             directory = args.output or Path('grade_exports')
             for name, (columns, data) in tables.items():
-                index = sheetnames.index(name) + 1
-                filename = f'{index:02d}_' + re.sub(r'[^\w.-]+', '_', name).strip('._') + '.csv'
-                outputs.append((directory / filename, ['Grade'] + export_headers(name, columns),
+                filename = separate_filename(name)
+                outputs.append((directory / filename, ['Grade'] + columns,
                                 [[grade] + data[grade] for grade in sorted(data)]))
+        if len({str(path.resolve()).casefold() for path, _, _ in outputs}) != len(outputs):
+            raise ValueError('Selected sheets produce duplicate CSV filenames; rename the conflicting sheets')
         for path, _, _ in outputs:
             if path.resolve() == args.workbook.resolve():
                 raise ValueError('Output must not overwrite the input workbook')

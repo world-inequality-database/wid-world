@@ -10,7 +10,7 @@ Examples (default workbook: grade_definitions.xlsx beside this script):
 
 Selections accept comma-separated sheet numbers (1-based) or exact names.
 Merge keeps every observed Grade, sorted, leaving missing matches blank.
-Overlapping column names receive sheet-name prefixes in merged exports.
+Definition columns use Short desc.: or Long desc.: prefixes in both export modes.
 Header whitespace is stripped; definition text and literal N/A are preserved.
 CSVs use UTF-8 with BOM for Excel. Existing output CSVs are replaced.
 The workbook is never modified. Formulas must be converted to values first.
@@ -18,7 +18,6 @@ The workbook is never modified. Formulas must be converted to values first.
 import argparse
 import csv
 import re
-from collections import Counter
 from pathlib import Path
 from openpyxl import load_workbook
 
@@ -73,6 +72,13 @@ def select_sheets(selection, names):
     return chosen
 
 
+def export_headers(sheet_name, columns):
+    """Use consistent labels even when Excel truncates a sheet name."""
+    match = re.search(r"\b(short|long)\b", sheet_name, flags=re.IGNORECASE)
+    prefix = f"{match.group(1).capitalize()} desc." if match else sheet_name
+    return [f"{prefix}: {column}" for column in columns]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--workbook', type=Path, default=Path(__file__).resolve().with_name('grade_definitions.xlsx'))
@@ -97,9 +103,8 @@ def main():
             workbook.close()
         outputs = []
         if args.mode == 'merge':
-            counts = Counter(h for columns, _ in tables.values() for h in columns)
-            headers = ['Grade'] + [f'{name}: {h}' if counts[h] > 1 else h
-                                    for name, (columns, _) in tables.items() for h in columns]
+            headers = ['Grade'] + [header for name, (columns, _) in tables.items()
+                                    for header in export_headers(name, columns)]
             if len(set(headers)) != len(headers):
                 raise ValueError('Merged headers collide; rename conflicting source headers')
             grades = sorted(set().union(*(data for _, data in tables.values())))
@@ -111,7 +116,7 @@ def main():
             for name, (columns, data) in tables.items():
                 index = sheetnames.index(name) + 1
                 filename = f'{index:02d}_' + re.sub(r'[^\w.-]+', '_', name).strip('._') + '.csv'
-                outputs.append((directory / filename, ['Grade'] + columns,
+                outputs.append((directory / filename, ['Grade'] + export_headers(name, columns),
                                 [[grade] + data[grade] for grade in sorted(data)]))
         for path, _, _ in outputs:
             if path.resolve() == args.workbook.resolve():

@@ -1,0 +1,7 @@
+﻿Grade,Distributed income,Distributed wealth,Female labour income share
+0,Imputed regional average,Income inequality-based weighting,Imputed regional average
+1,Carry forward or backward ,Survey data,Predicted values (OLS) fully imputed
+2,Interpolation,"Wealth/estate tabulated tax data, probate microdata, simplified multiplier method",Predicted values (OLS) level-adjusted
+3,"Surveys, but no tax data (for historical data: only tax data, no surveys). ",Survey data scaled to national accounts wealth aggregates,Interpolation
+4,Tax and survey data,Mixed model of income capitalization or tabulated wealth/estate tax data and survey data,Observed microdata – supplementary source
+5,Tax and survey microdata,Wealth tax microdata or administrative wealth registers,Observed microdata – benchmark source

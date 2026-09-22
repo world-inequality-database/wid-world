@@ -3,6 +3,7 @@
 
 Requires Python 3.9+ and openpyxl: python3 -m pip install openpyxl
 Examples (default workbook: grade_definitions.xlsx beside this script):
+  python3 export_grade_definitions.py --mode batch
   python3 export_grade_definitions.py --list-sheets
   python3 export_grade_definitions.py --sheets 1,2 --output merged.csv
   python3 export_grade_definitions.py --sheets 3 --output aggregate.csv
@@ -84,9 +85,20 @@ def separate_filename(sheet_name):
     """Expand the known definition sheet names without numeric prefixes."""
     match = re.match(r"^(Distributed|Aggregated?) variables\s*\((short|long)\b", sheet_name, re.IGNORECASE)
     if match:
-        group = 'Distributed' if match.group(1).lower() == 'distributed' else 'Aggregate'
+        group = 'distributed' if match.group(1).lower() == 'distributed' else 'aggregate'
         return f'{group}_variables_{match.group(2).lower()}_descriptions.csv'
-    return (re.sub(r'[^\w.-]+', '_', sheet_name).strip('._') or 'sheet') + '.csv'
+    return (re.sub(r'[^\w.-]+', '_', sheet_name).strip('._') or 'sheet').lower() + '.csv'
+
+
+def merge_tables(tables):
+    headers = ['Grade'] + [header for name, (columns, _) in tables.items()
+                          for header in export_headers(name, columns)]
+    if len(set(headers)) != len(headers):
+        raise ValueError('Merged headers collide; rename conflicting source headers')
+    grades = sorted(set().union(*(data for _, data in tables.values())))
+    rows = [[grade] + [v for columns, data in tables.values()
+                      for v in data.get(grade, [None] * len(columns))] for grade in grades]
+    return headers, rows
 
 
 def main():
@@ -94,8 +106,8 @@ def main():
     parser.add_argument('--workbook', type=Path, default=Path(__file__).resolve().with_name('grade_definitions.xlsx'))
     parser.add_argument('--list-sheets', action='store_true')
     parser.add_argument('--sheets', help='Comma-separated sheet numbers or names, or all')
-    parser.add_argument('--mode', choices=('merge', 'separate'), default='merge')
-    parser.add_argument('--output', type=Path, help='CSV filename for merge; directory for separate')
+    parser.add_argument('--mode', choices=('merge', 'separate', 'batch'), default='merge')
+    parser.add_argument('--output', type=Path, help='CSV filename for merge; directory for separate/batch')
     args = parser.parse_args()
     try:
         workbook = load_workbook(args.workbook, read_only=True, data_only=False)
@@ -105,28 +117,41 @@ def main():
                 for number, name in enumerate(sheetnames, 1):
                     print(f'{number}: {name}')
                 return
-            if not args.sheets:
+            if args.mode == 'batch' and args.sheets:
+                parser.error('--mode batch exports the nine standard tables; omit --sheets')
+            if not args.sheets and args.mode != 'batch':
                 parser.error('--sheets is required unless using --list-sheets')
-            names = select_sheets(args.sheets, sheetnames)
+            names = select_sheets('all' if args.mode == 'batch' else args.sheets, sheetnames)
             tables = {name: read_sheet(workbook[name]) for name in names}
         finally:
             workbook.close()
         outputs = []
         if args.mode == 'merge':
-            headers = ['Grade'] + [header for name, (columns, _) in tables.items()
-                                    for header in export_headers(name, columns)]
-            if len(set(headers)) != len(headers):
-                raise ValueError('Merged headers collide; rename conflicting source headers')
-            grades = sorted(set().union(*(data for _, data in tables.values())))
-            rows = [[grade] + [v for columns, data in tables.values()
-                              for v in data.get(grade, [None] * len(columns))] for grade in grades]
+            headers, rows = merge_tables(tables)
             outputs.append((args.output or Path('grade_definitions.csv'), headers, rows))
         else:
-            directory = args.output or Path('grade_exports')
+            directory = args.output or (args.workbook.parent / 'csv_outputs' if args.mode == 'batch' else Path('grade_exports'))
+            if args.mode == 'batch':
+                by_filename = {separate_filename(name): name for name in tables}
+                required = [f'{group}_variables_{length}_descriptions.csv'
+                            for group in ('aggregate', 'distributed') for length in ('long', 'short')]
+                if len(tables) != 4 or set(by_filename) != set(required):
+                    raise ValueError('Batch export requires exactly the four aggregate/distributed short/long definition sheets')
             for name, (columns, data) in tables.items():
-                filename = separate_filename(name)
-                outputs.append((directory / filename, ['Grade'] + columns,
+                outputs.append((directory / separate_filename(name), ['Grade'] + columns,
                                 [[grade] + data[grade] for grade in sorted(data)]))
+            if args.mode == 'batch':
+                combinations = {
+                    'aggregate_variables_long_short.csv': required[:2],
+                    'distributed_variables_long_short.csv': required[2:],
+                    'short_descriptions_all.csv': [required[1], required[3]],
+                    'long_descriptions_all.csv': [required[0], required[2]],
+                    'all_descriptions_merged.csv': required,
+                }
+                for filename, sources in combinations.items():
+                    selected = {by_filename[source]: tables[by_filename[source]] for source in sources}
+                    headers, rows = merge_tables(selected)
+                    outputs.append((directory / filename, headers, rows))
         if len({str(path.resolve()).casefold() for path, _, _ in outputs}) != len(outputs):
             raise ValueError('Selected sheets produce duplicate CSV filenames; rename the conflicting sheets')
         for path, _, _ in outputs:

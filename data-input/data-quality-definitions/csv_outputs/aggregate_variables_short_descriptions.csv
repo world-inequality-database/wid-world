@@ -1,0 +1,7 @@
+﻿Grade,Aggregate income,Aggregate wealth,Indices & Exchange Rates,Population
+0,Imputed regional average,Imputed regional average,Assumed static value,N/A
+1,Carry forward/backward or simple extrapolation,Predicted and extended with regional trend ,Imputed from related countries,Carry forward or backward
+2,Predicted values (mainly OLS),Predicted,Imputed from domestic indicators,Imputed using domestic growth rates
+3,Interpolation - Enforce,Observed and extended with regional trend,Interpolation,Interpolation
+4,Observed (historical SNA or academic sources),Observed and extended with OLS prediction,"Observed (historical SNA, academic sources, or forecasts)",Observed historical compilations
+5,Observed (latest SNA),Observed ,Observed (latest SNA),Observed (UN WPP or latest SNA)

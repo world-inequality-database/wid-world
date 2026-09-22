@@ -1,0 +1,66 @@
+name: Export grade definitions
+
+on:
+  workflow_dispatch:
+    inputs:
+      sheets:
+        description: 'Sheets: numbers or exact names, separated by commas (e.g. 1,2), or all'
+        required: true
+        default: 'all'
+        type: string
+      mode:
+        description: 'merge = columns side by side on Grade; separate = one CSV per sheet'
+        required: true
+        default: merge
+        type: choice
+        options:
+          - merge
+          - separate
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install Excel reader
+        run: python -m pip install 'openpyxl==3.1.5'
+
+      - name: Show available sheets
+        run: python data-input/data-quality-definitions/export_grade_definitions.py --list-sheets
+
+      - name: Export selected sheets
+        env:
+          EXPORT_SHEETS: ${{ inputs.sheets }}
+          EXPORT_MODE: ${{ inputs.mode }}
+        shell: bash
+        run: |
+          case "$EXPORT_MODE" in
+            merge) export_output="grade_exports/grade_definitions.csv" ;;
+            separate) export_output="grade_exports" ;;
+            *) echo "Unknown export mode" >&2; exit 1 ;;
+          esac
+          python data-input/data-quality-definitions/export_grade_definitions.py \
+            --sheets "$EXPORT_SHEETS" \
+            --mode "$EXPORT_MODE" \
+            --output "$export_output"
+
+      - name: Upload CSV files
+        uses: actions/upload-artifact@v7
+        with:
+          name: grade-definitions-${{ inputs.mode }}
+          path: grade_exports/*.csv
+          if-no-files-found: error
+          retention-days: 30

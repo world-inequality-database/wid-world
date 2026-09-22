@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       distributed_short:
-        description: 'Select which set of definitions you wish to include: Distributed variables — short definitions'
+        description: 'Distributed variables — short definitions'
         required: false
         default: false
         type: boolean

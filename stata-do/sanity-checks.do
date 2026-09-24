@@ -43,7 +43,7 @@ generate n = round(p_max - p_min, 1)
 sort iso widcode year p_min
 gduplicates drop iso year widcode p, force
 
-save "$work_data/calculate-coefficients-output-parsed.dta", replace
+*save "$work_data/calculate-coefficients-output-parsed.dta", replace
 *u "$work_data/calculate-coefficients-output-parsed.dta", clear 
 
 //==============================================================================
@@ -249,7 +249,7 @@ di as text "`dq_message'"
 // Write a plain-text report that can be opened in TextEdit.
 // Replace the previous report on each run.
 capture log close sanity_summary
-log using "/Users/anavanderree/Documents/sanity-checks-summary.txt", ///
+log using "~/Documents/sanity-checks-summary.txt", ///
     text replace name(sanity_summary)
 quietly {
 preserve

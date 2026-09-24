@@ -151,7 +151,7 @@ rename xlcusp999i PPP
 rename xlcusx999i MER
 
 //--- Checkpoint 1 -----------------//
-save "$work_data/aux.dta", replace
+*save "$work_data/aux.dta", replace
 *clear all
 *tempfile combined
 *save `combined', emptyok
@@ -293,8 +293,8 @@ foreach u in 2 9 {
 
 use "`combined'", clear
 //--- Checkpoint 2 -----------------//
-save "$work_data/aux2.dta", replace
-use "$work_data/aux2.dta", clear
+*save "$work_data/aux2.dta", replace
+*use "$work_data/aux2.dta", clear
 //---------------------------------//
 foreach u in 2 9 {
 	bys iso year p (aw`u'):  replace aw`u' = aw`u'[1]
@@ -450,7 +450,7 @@ drop if strpos(widcode, "diinc") & year<1980
 *drop x
 
 //--- Checkpoint 3 -----------------//
-save"$work_data/aux3.dta", replace
+*save"$work_data/aux3.dta", replace
 *u "$work_data/aux3.dta", clear
 //----------------------------------//
 

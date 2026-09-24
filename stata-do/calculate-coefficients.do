@@ -193,7 +193,7 @@ assert data_quality!=. if strpos(widcode, "diinc")
 assert data_quality!=. if strpos(widcode, "hweal") & p!="p0p100" & p!="pall"
 assert data_quality!=. if strpos(widcode, "fiinc") & p!="p0p100" & p!="pall"
 
-bysort iso year widcode: assert data_quality == data_quality[1]
+bysort iso year widcode: assert data_quality == data_quality[1] 
 
 //------------------------------------------------------------------------------
 // ----------------------------- 5. Export -------------------------------------

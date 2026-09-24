@@ -6,7 +6,7 @@
 
 //--------------------- INDEX ------------------------------------------------//
 //       1. Load metadata
-//       2. Construct country quality_score
+//       2. Construct average quality scores
 //       3. Add transparency index notes
 //		 4. Csv export
 //----------------------------------------------------------------------------//
@@ -57,15 +57,18 @@ tempfile metadata
 save `metadata'
 
 // =============================================================================
-// ----------------- 2. Construct country data_quality_score -------------------
+// ------------------- 2. Construct average quality score ----------------------
 // =============================================================================
 
 u "$work_data/calculate-coefficients-output.dta", clear
 
 keep if strpos(widcode, "ptinc") | strpos(widcode, "cainc") ///
-| strpos(widcode, "diinc") | strpos(widcode, "hweal") // these are the only distributions with complete dq for now
+| strpos(widcode, "diinc") | strpos(widcode, "hweal") | strpos(widcode, "fiinc") // these are the only distributions with complete dq for now
 
-drop if strpos(widcode, "hweal992i") & iso=="GB" // this series exceptionally has a different dq that "ahweal992j" based on the paper's methodology. we need dq constant at sixlet level, so dropping it to avoid clashes. 
+// Drop series where exceptionally dq varies for the fivelet due to different population/age groups and authors. Keep main 992j data quality for metadata score
+drop if iso=="GB" & (strpos(widcode, "hweal992i") ///
+					| strpos(widcode, "sdiinc992t") | strpos(widcode, "sdiinc992i"))
+drop if iso=="CA" & widcode=="sdiinc992i"
 
 drop if p=="p0p100" | p=="pall"
 
@@ -75,14 +78,11 @@ duplicates drop
 
 // ensure consistency in data quality
 isid iso year fivelet
-bysort iso fivelet year: assert data_quality == data_quality[1]
-bysort iso year fivelet: egen dq_min = min(data_quality) 
-bysort iso year fivelet: egen dq_max = max(data_quality)
-assert dq_min == dq_max if !missing(dq_min) | !missing(dq_max)
 
-// construct weighted average data quality score 
-drop if year == $pastyear // latest year is almost always extrapolated 
-gen d = ($pastyear - 1) - year // distance "how many years back" // "2" until pretax update 2026 is complete
+// construct weighted average data quality  
+display $pastyear //currently its 2025 
+drop if year == $pastyear-1 // latest year is almost always extrapolated 
+gen d = ($pastyear - 2) - year // distance "how many years back" // "2" until pretax update 2026 is complete
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // [USER PARAMETERS] established by Central Team based on I. Flores graphs (03.2026)
@@ -92,17 +92,17 @@ gen w = 1/(1 + exp((d - `c')/`k')) // weight
 gen wquality = w * data_quality
 bysort iso fivelet: egen double sumw = total(w)
 bysort iso fivelet: egen double sumwquality = total(wquality)
-gen double data_quality_score = round(sumwquality / sumw, 0.1) // adapt rounding to preference
+gen double avg_quality = round(sumwquality / sumw, 0.1) // adapt rounding to preference
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-bysort iso fivelet: assert data_quality_score == data_quality_score[1]
-keep iso fivelet data_quality_score
+bysort iso fivelet: assert avg_quality == avg_quality[1]
+keep iso fivelet avg_quality
 duplicates drop
 isid iso fivelet
 
 // bring data quality scores 
 merge 1:1 iso fivelet using `metadata', nogen 
-assert data_quality_score != . if inlist(fivelet, "ptinc", "cainc", "diinc", "hweal") 
+assert avg_quality != . if fivelet!="fainc" & !(iso=="TH" & fivelet=="fiinc")
 
 // =============================================================================
 // ------------------ 3. Add transparency index note ---------------------------
@@ -116,11 +116,13 @@ preserve
 	replace iso = substr(iso, 1, 2) if substr(iso, 3, .) == " "
 	gen fivelet = "quali"
 	gen method = "The inequality transparency index is estimated by the World Inequality Lab based on the availability " + ///
-		"of income and wealth surveys and tax data in the country considered. See " + ///
-		"http://wid.world/transparency/ for more information."
+				  "of income and wealth surveys and tax data in the country considered. See " + ///
+				  "http://wid.world/transparency/ for more information."
+				  
 	gen source = `"[URL][URL_LINK]http://wid.world/transparency/[/URL_LINK][URL_TEXT]Inequality Transparency Index Methodology[/URL_TEXT][/URL]"' + ///
 				 `"[URL][URL_LINK]http://wid.world/document/inequality-transparency-index-update-world-inequality-lab-technical-note-2020-12/[/URL_LINK]"' + ///
-				 `"[URL_TEXT]; Burq, François and Chancel, Lucas. Inequality transaprency index update (2020)[/URL_TEXT][/URL]"'
+`"[URL_TEXT]; Burq, François and Chancel, Lucas. Inequality transaprency index update (2020)[/URL_TEXT][/URL]"'
+
 	tempfile transparencymeta
 	save `transparencymeta'
 restore
@@ -148,7 +150,7 @@ duplicates drop
 isid iso twolet threelet
 
 rename iso alpha2 
-order alpha2 twolet threelet method source data_quality_score
+order alpha2 twolet threelet method source avg_quality // NB! score has to be last variable for wid.admin
 sort alpha2 twolet threelet
 
 *capture mkdir "$output_dir/$time"

@@ -210,7 +210,10 @@ u "$work_data/calculate-coefficients-output.dta", clear
 keep if strpos(widcode, "ptinc") | strpos(widcode, "cainc") ///
 | strpos(widcode, "diinc") | strpos(widcode, "hweal") // these are the only distributions with complete dq for now
 
-drop if strpos(widcode, "hweal992i") & iso=="GB" // this series exceptionally has a different dq that "ahweal992j" based on the paper's methodology. we need dq constant at sixlet level, so dropping it to avoid clashes. 
+// Drop series where exceptionally dq varies for the fivelet due to different population/age groups and authors. Keep main 992j data quality for metadata score
+drop if iso=="GB" & (strpos(widcode, "hweal992i") ///
+					| strpos(widcode, "sdiinc992t") | strpos(widcode, "sdiinc992i"))
+drop if iso=="CA" & widcode=="sdiinc992i"
 
 drop if p=="p0p100" | p=="pall"
 

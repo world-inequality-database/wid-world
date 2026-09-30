@@ -156,7 +156,7 @@ sort alpha2 twolet threelet
 *capture mkdir "$output_dir/$time"
 *capture mkdir "$output_dir/$time/metadata"
 
-export delimited "$output_dir/$time/metadata/var-notes-$time.csv", replace delimiter(";") quote
+*export delimited "$output_dir/$time/metadata/var-notes-$time.csv", replace delimiter(";") quote
 
 
 

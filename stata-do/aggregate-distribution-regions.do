@@ -453,7 +453,7 @@ drop if strpos(widcode, "diinc") & year<1980
 *drop x
 
 //--- Checkpoint 3 -----------------//
-*save"$work_data/aux3.dta", replace
+save"$work_data/aux3.dta", replace
 *u "$work_data/aux3.dta", clear
 //----------------------------------//
 
@@ -467,11 +467,11 @@ drop *tag
 // -------- Add data quality back  ---------------------------------------------
 // Attach yearly population-weighted grades to all regional percentiles.
 assert (strpos(iso, "-PPP") | strpos(iso, "-MER"))
-gen concept = substr(widcode, 2, 5)
-gen population_group = substr(widcode, 7, 3)
-merge m:1 iso year concept population_group using `regional_quality', keep(master match) assert(match using) nogenerate
+gen fivelet = substr(widcode, 2, 5)
+gen pop = substr(widcode, 7, 3)
+merge m:1 iso year fivelet pop using `regional_quality', keep(master match) assert(match using) nogenerate
 assert !missing(data_quality) 
-drop concept population_group
+drop fivelet pop
 
 tempfile final
 save `final'
@@ -488,6 +488,17 @@ drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j", "aptinc999j", 
         | substr(iso,1,2)== "WO")
 		
 append using "`final'"
+
+// ------- give mhweal999i regional observations the distributional dq -------//
+//	so that dq is consistent at fivelet hweal 
+
+bysort iso year: egen double q_hweal = ///
+    max(cond(widcode == "ahweal999j", data_quality, .))
+
+replace data_quality = q_hweal if widcode == "mhweal999i" ///
+		& (strpos(iso, "-PPP") | strpos(iso, "-MER")) & !missing(q_hweal)
+
+drop q_hweal
 
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")

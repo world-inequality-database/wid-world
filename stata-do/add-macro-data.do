@@ -29,7 +29,9 @@ replace currency = "USD" if (iso == "US")
 
 generate p = "pall"
 
-gen data_quality=5
+gen data_quality=4
+gen s_="PikettyZucman2013"
+
 tempfile widna
 save "`widna'"
 

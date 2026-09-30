@@ -143,11 +143,11 @@ restore
 merge 1:1 iso year using `AU_for_NZ', update nogen
 
 *deduct from operating surplus
-replace q_nsrco = min(3, cond(nsrco >= nmxhn, q_nsrco, q_nmxhn)) if iso == "NZ" & !missing(nsrco) & !missing(nmxhn)
+replace q_nsrco = cond(nsrco >= nmxhn, q_nsrco, q_nmxhn) if iso == "NZ" & !missing(nsrco) & !missing(nmxhn)
 replace s_nsrco = "nsrco,nmxhn" if iso == "NZ" & !missing(nsrco) & !missing(nmxhn)
 replace   nsrco = nsrco - nmxhn if iso == "NZ"
 
-replace q_gsrco = min(3, cond(gsrco >= gmxhn, q_gsrco, q_gmxhn)) if iso == "NZ" & missing(gsrco) & !missing(gmxhn)
+replace q_gsrco = cond(gsrco >= gmxhn, q_gsrco, q_gmxhn) if iso == "NZ" & missing(gsrco) & !missing(gmxhn)
 replace s_gsrco = "gsrco,gmxhn" if iso == "NZ" & missing(gsrco) & !missing(gmxhn)
 replace   gsrco = gsrco - gmxhn if iso == "NZ"
 
@@ -158,7 +158,7 @@ replace   gsrco = gsrco - gmxhn if iso == "NZ"
 replace q_gmxhn = 1           if iso == "CN" & !missing(ceuhn)
 replace s_gmxhn = "0.9ceuhn"  if iso == "CN" & !missing(ceuhn)
 replace   gmxhn = ceuhn * 0.9 if iso == "CN"
-replace q_comhn = min(3, cond(comhn >= ceuhn, q_comhn, q_ceuhn)) if iso == "CN" & !missing(comhn) & !missing(ceuhn)
+replace q_comhn = cond(comhn >= ceuhn, q_comhn, q_ceuhn) if iso == "CN" & !missing(comhn) & !missing(ceuhn)
 replace s_comhn = "comhn,0.9ceuhn"                               if iso == "CN" & !missing(comhn) & !missing(ceuhn)
 replace   comhn = comhn - ceuhn * 0.9                            if iso == "CN"
 replace q_ceuhn = 1           if iso == "CN" & year >= 1992 & !missing(ceuhn)
@@ -219,7 +219,7 @@ preserve
 
 	* calculate as share of GDP
 	foreach var in ptxgo comhn nmxhn nsrhn nsrco {
-		gen      q_`var' = min(4, imputed_q_confc)
+		gen      q_`var' = 4
 		gen      s_`var' = "Jenmana"
 		gen        `var' = `var'_nni * (1-imputed_confc)
 		gen series_`var' = 200000
@@ -252,13 +252,13 @@ replace gvahn = .    if iso == "SA" & year >= 2002 & year <= 2009
 // we use the average of the years with data avaibility (2013 to 2015) to split corporate profits
 // Net mixed income share of total operating surplus (incl. mixed income): 14 %
 // Net OS of housholds of total operating surplus (incl. mixed income): 7 %
-replace q_nmxhn = min(3,q_nsrco)    if iso == "SA" & !missing(nsrco)
+replace q_nmxhn = q_nsrco    if iso == "SA" & !missing(nsrco)
 replace s_nmxhn = "0.14nsrco"       if iso == "SA" & !missing(nsrco)
 replace   nmxhn = 0.14 * nsrco      if iso == "SA" 
 replace q_gmxhn = .  if iso == "SA" 
 replace s_gmxhn = "" if iso == "SA" 
 replace   gmxhn = .  if iso == "SA" 
-replace q_nsrhn = min(3, q_nsrco) if iso == "SA" & !missing(nsrco)
+replace q_nsrhn = q_nsrco if iso == "SA" & !missing(nsrco)
 replace s_nsrhn = "0.07nsrco".    if iso == "SA" & !missing(nsrco)
 replace   nsrhn = 0.07 * nsrco    if iso == "SA" 
 
@@ -323,16 +323,16 @@ drop temp*
 
 * Logical splits (gross-net)
 // Complete gross / net values
-replace q_nsrhn = min(3, cond(gsrhn >= ccshn, q_gsrhn, q_ccshn)) if missing(nsrhn) & (gsrhn > ccshn)
-replace q_nmxhn = min(3, cond(gmxhn >= ccmhn, q_gmxhn, q_ccmhn)) if missing(nmxhn) & (gmxhn > ccmhn)
-replace q_nsmhn = min(3, cond(gsmhn >= cfchn, q_gsmhn, q_cfchn)) if missing(nsmhn) & (gsmhn > cfchn)
-replace q_nsrgo = min(3, cond(gsrgo >= cfcgo, q_gsrgo, q_cfcgo)) if missing(nsrgo) & (gsrgo > cfcgo)
-replace q_nsrco = min(3, cond(gsrco >= cfcco, q_gsrco, q_cfcco)) if missing(nsrco) & (gsrco > cfcco)
-replace q_gsrhn = min(3, cond(nsrhn >= ccshn, q_nsrhn, q_ccshn)) if missing(gsrhn) & !mi(nsrhn) & !mi(ccshn)
-replace q_gmxhn = min(3, cond(nmxhn >= ccmhn, q_nmxhn, q_ccmhn)) if missing(gmxhn) & !mi(nsrhn) & !mi(ccshn)
-replace q_gsmhn = min(3, cond(nsmhn >= cfchn, q_nsmhn, q_cfchn)) if missing(gsmhn) & !mi(nsmhn) & !mi(cfchn)
-replace q_gsrgo = min(3, cond(nsrgo >= cfcgo, q_nsrgo, q_cfcgo)) if missing(gsrgo) & !mi(nsrgo) & !mi(cfcgo)
-replace q_gsrco = min(3, cond(nsrco >= cfcco, q_nsrco, q_cfcco)) if missing(gsrco) & !mi(nsrco) & !mi(cfcco)
+replace q_nsrhn = cond(gsrhn >= ccshn, q_gsrhn, q_ccshn) if missing(nsrhn) & (gsrhn > ccshn)
+replace q_nmxhn = cond(gmxhn >= ccmhn, q_gmxhn, q_ccmhn) if missing(nmxhn) & (gmxhn > ccmhn)
+replace q_nsmhn = cond(gsmhn >= cfchn, q_gsmhn, q_cfchn) if missing(nsmhn) & (gsmhn > cfchn)
+replace q_nsrgo = cond(gsrgo >= cfcgo, q_gsrgo, q_cfcgo) if missing(nsrgo) & (gsrgo > cfcgo)
+replace q_nsrco = cond(gsrco >= cfcco, q_gsrco, q_cfcco) if missing(nsrco) & (gsrco > cfcco)
+replace q_gsrhn = cond(nsrhn >= ccshn, q_nsrhn, q_ccshn) if missing(gsrhn) & !mi(nsrhn) & !mi(ccshn)
+replace q_gmxhn = cond(nmxhn >= ccmhn, q_nmxhn, q_ccmhn) if missing(gmxhn) & !mi(nsrhn) & !mi(ccshn)
+replace q_gsmhn = cond(nsmhn >= cfchn, q_nsmhn, q_cfchn) if missing(gsmhn) & !mi(nsmhn) & !mi(cfchn)
+replace q_gsrgo = cond(nsrgo >= cfcgo, q_nsrgo, q_cfcgo) if missing(gsrgo) & !mi(nsrgo) & !mi(cfcgo)
+replace q_gsrco = cond(nsrco >= cfcco, q_nsrco, q_cfcco) if missing(gsrco) & !mi(nsrco) & !mi(cfcco)
 replace s_nsrhn = "gsrhn,ccshn"   if missing(nsrhn) & (gsrhn > ccshn)
 replace s_nmxhn = "gmxhn,ccmhn"   if missing(nmxhn) & (gmxhn > ccmhn)
 replace s_nsmhn = "gsmhn,cfchn"   if missing(nsmhn) & (gsmhn > cfchn)
@@ -358,15 +358,15 @@ replace gsrco = nsrco + cfcco if missing(gsrco) & !mi(nsrco) & !mi(cfcco)
 replace q_nsrgo = 0          if missing(nsrgo)
 replace s_nsrgo = "assumed0" if missing(nsrgo)
 replace nsrgo = 0            if missing(nsrgo)
-replace q_gsrgo = min(3, q_cfcgo) if missing(gsrgo) & !missing(cfcgo)
+replace q_gsrgo = q_cfcgo if missing(gsrgo) & !missing(cfcgo)
 replace s_gsrgo = "cfcgo"         if missing(gsrgo) & !missing(cfcgo)
 replace   gsrgo = cfcgo           if missing(gsrgo)
-replace q_gsmhn = min(3, cond(gmxhn >= gsrhn, q_gmxhn, q_gsrhn)) if missing(gsmhn) & !missing(gmxhn) & !missing(gsrhn)
+replace q_gsmhn = cond(gmxhn >= gsrhn, q_gmxhn, q_gsrhn) if missing(gsmhn) & !missing(gmxhn) & !missing(gsrhn)
 replace s_gsmhn = "gmxhn,gsrhn" if missing(gsmhn) & !missing(gmxhn) & !missing(gsrhn)
 replace   gsmhn = gmxhn + gsrhn if missing(gsmhn)
 
 // Logical splits Compensation of employees
-replace q_comnx = min(3, cond(comrx >= compx, q_comrx, q_compx)) if missing(comnx) & !missing(comrx) & !missing(compx)
+replace q_comnx = cond(comrx >= compx, q_comrx, q_compx) if missing(comnx) & !missing(comrx) & !missing(compx)
 replace s_comnx = s_comrx   if missing(comnx) & !missing(comrx) & !missing(compx)
 replace   comnx = comrx - compx if missing(comnx)
 quality comhn comnx ceugo ceuhn, gen(temp2) 
@@ -404,7 +404,7 @@ gen   ceu_priv = comhn - comnx - ceugo
 drop temp
 
 // Assume zero net foreighn labour income if missing (comnx = 0)
-replace q_ceu_priv = min(3, cond(comhn >= ceugo, q_comhn, q_ceugo)) if missing(ceu_priv) & !missing(comhn) & !missing(ceugo)
+replace q_ceu_priv = cond(comhn >= ceugo, q_comhn, q_ceugo) if missing(ceu_priv) & !missing(comhn) & !missing(ceugo)
 replace s_ceu_priv = "comhn,ceugo"                                 if missing(ceu_priv) & !missing(comhn) & !missing(ceugo)
 replace   ceu_priv = comhn - ceugo                                 if missing(ceu_priv)
 replace q_ceu_priv = .  if ceu_priv < 0
@@ -423,7 +423,7 @@ by iso: replace ceuhn_share = ceuhn_share[_n-1]     if missing(ceuhn_share)
 replace q_ceuhn = q_ceu_priv                             if missing(ceuhn) & !missing(ceu_priv) & !missing(ceuhn_share)
 replace s_ceuhn = "ceu-priv_ratiolagceuhn/(ceuhn+ceuco)" if missing(ceuhn) & !missing(ceu_priv) & !missing(ceuhn_share)
 replace   ceuhn = ceuhn_share * ceu_priv                 if missing(ceuhn)
-replace q_ceuco = min(3, cond(ceu_priv >= ceuhn,q_ceu_priv, q_ceuhn)) if missing(ceuco) & !missing(ceu_priv) & !missing(ceuhn)
+replace q_ceuco = q_ceu_priv if missing(ceuco) & !missing(ceu_priv) & !missing(ceuhn)
 replace s_ceuco = "ceu-priv,ceuhn"                                    if missing(ceuco) & !missing(ceu_priv) & !missing(ceuhn)
 replace   ceuco = ceu_priv - ceuhn                                    if missing(ceuco)
 drop valid_year ceuhn_share oldest_valid_year valid_year
@@ -434,7 +434,7 @@ quality ceu_priv gmxhn gsrco, gen(temp2)
 replace q_ceuhn = temp2                                  if missing(ceuhn) & !missing(ceu_priv) & !missing(gmx_share)
 replace s_ceuhn = "ceu-priv_ratio0.3gmxhn/(gmxhn+gsrco)" if missing(ceuhn) & !missing(ceu_priv) & !missing(gmx_share)
 replace ceuhn = ceu_priv * (0.3 * gmx_share)             if missing(ceuhn)
-replace q_ceuco = min(3, cond(ceu_priv >= ceuhn, q_ceu_priv, q_ceuhn)) if missing(ceuco) & !missing(ceu_priv) & !missing(ceuhn) 
+replace q_ceuco = q_ceu_priv if missing(ceuco) & !missing(ceu_priv) & !missing(ceuhn) 
 replace s_ceuco = "ceu-priv,ceuhn"                                     if missing(ceuco) & !missing(ceu_priv) & !missing(ceuhn) 
 replace   ceuco = ceu_priv - ceuhn                                     if missing(ceuco)
 drop *ceu_priv gmx_share temp*
@@ -480,16 +480,16 @@ foreach var in `vars' {
 drop q_mgdpro_pppeur s_mgdpro_pppeur
 
 * do logical splits again
-replace q_nsrhn = min(3, cond(gsrhn >= ccshn, q_gsrhn, q_ccshn)) if missing(nsrhn) & (gsrhn > ccshn)
-replace q_nmxhn = min(3, cond(gmxhn >= ccmhn, q_gmxhn, q_ccmhn)) if missing(nmxhn) & (gmxhn > ccmhn)
-replace q_nsmhn = min(3, cond(gsmhn >= cfchn, q_gsmhn, q_cfchn)) if missing(nsmhn) & (gsmhn > cfchn)
-replace q_nsrgo = min(3, cond(gsrgo >= cfcgo, q_gsrgo, q_cfcgo)) if missing(nsrgo) & (gsrgo > cfcgo)
-replace q_nsrco = min(3, cond(gsrco >= cfcco, q_gsrco, q_cfcco)) if missing(nsrco) & (gsrco > cfcco)
-replace q_gsrhn = min(3, cond(nsrhn >= ccshn, q_nsrhn, q_ccshn)) if missing(gsrhn) & !missing(q_nsrhn) & !missing(q_ccshn)
-replace q_gmxhn = min(3, cond(nmxhn >= ccmhn, q_nmxhn, q_ccmhn)) if missing(gmxhn) & !missing(q_nmxhn) & !missing(q_ccmhn)
-replace q_gsmhn = min(3, cond(nsmhn >= cfchn, q_nsmhn, q_cfchn)) if missing(gsmhn) & !missing(q_nsrgo) & !missing(q_cfcgo)
-replace q_gsrgo = min(3, cond(nsrgo >= cfcgo, q_nsrgo, q_cfcgo)) if missing(gsrgo) & !missing(q_nsrgo) & !missing(q_cfcgo)
-replace q_gsrco = min(3, cond(nsrco >= cfcco, q_nsrco, q_cfcco)) if missing(gsrco) & !missing(q_nsrco) & !missing(q_cfcco)
+replace q_nsrhn = cond(gsrhn >= ccshn, q_gsrhn, q_ccshn) if missing(nsrhn) & (gsrhn > ccshn)
+replace q_nmxhn = cond(gmxhn >= ccmhn, q_gmxhn, q_ccmhn) if missing(nmxhn) & (gmxhn > ccmhn)
+replace q_nsmhn = cond(gsmhn >= cfchn, q_gsmhn, q_cfchn) if missing(nsmhn) & (gsmhn > cfchn)
+replace q_nsrgo = cond(gsrgo >= cfcgo, q_gsrgo, q_cfcgo) if missing(nsrgo) & (gsrgo > cfcgo)
+replace q_nsrco = cond(gsrco >= cfcco, q_gsrco, q_cfcco) if missing(nsrco) & (gsrco > cfcco)
+replace q_gsrhn = cond(nsrhn >= ccshn, q_nsrhn, q_ccshn) if missing(gsrhn) & !missing(q_nsrhn) & !missing(q_ccshn)
+replace q_gmxhn = cond(nmxhn >= ccmhn, q_nmxhn, q_ccmhn) if missing(gmxhn) & !missing(q_nmxhn) & !missing(q_ccmhn)
+replace q_gsmhn = cond(nsmhn >= cfchn, q_nsmhn, q_cfchn) if missing(gsmhn) & !missing(q_nsrgo) & !missing(q_cfcgo)
+replace q_gsrgo = cond(nsrgo >= cfcgo, q_nsrgo, q_cfcgo) if missing(gsrgo) & !missing(q_nsrgo) & !missing(q_cfcgo)
+replace q_gsrco = cond(nsrco >= cfcco, q_nsrco, q_cfcco) if missing(gsrco) & !missing(q_nsrco) & !missing(q_cfcco)
 replace s_nsrhn = "gsrhn,ccshn" if missing(nsrhn) & (gsrhn > ccshn)
 replace s_nmxhn = "gmxhn,ccmhn" if missing(nmxhn) & (gmxhn > ccmhn)
 replace s_nsmhn = "gsmhn,cfchn" if missing(nsmhn) & (gsmhn > cfchn)
@@ -517,13 +517,13 @@ replace gsrco = nsrco + cfcco if missing(gsrco)
 //------------------------------------------------------------------------------
 
 * Compute Institutional sector totals
-replace q_gvago = min(2, cond(ceugo >= cfcgo, q_ceugo, q_cfcgo)) if !missing(ceugo) | !missing(cfcgo)
+replace q_gvago = cond(ceugo >= cfcgo, q_ceugo, q_cfcgo) if !missing(ceugo) | !missing(cfcgo)
 quality ceuco nsrco cfcco, gen(temp1)
 replace q_gvaco = temp1                                          if !missing(ceuco) | !missing(nsrco) | !missing(cfcco)  
-replace q_gsrhn = min(2, cond(nsrhn >= ccshn, q_nsrhn, q_ccshn)) if !missing(nsrhn) | !missing(ccshn)  
+replace q_gsrhn = cond(nsrhn >= ccshn, q_nsrhn, q_ccshn) if !missing(nsrhn) | !missing(ccshn)  
 quality nmxhn ccmhn ceuhn, gen(temp2)
 replace q_gvmhn = temp2                                          if !missing(nmxhn) | !missing(ccmhn) | !missing(ceuhn) 		
-replace q_gvahn = min(2, cond(gsrhn >= gvmhn, q_gsrhn, q_gvmhn)) if !missing(gsrhn) | !missing(gvmhn)
+replace q_gvahn = cond(gsrhn >= gvmhn, q_gsrhn, q_gvmhn) if !missing(gsrhn) | !missing(gvmhn)
 replace s_gvago = "ceugo,cfcgo"       if (!missing(ceugo) | !missing(cfcgo)) & !mi(q_gvago)
 replace s_gvaco = "ceuco,nsrco,cfcco" if (!missing(ceuco) | !missing(nsrco) | !missing(cfcco)) & !mi(q_gvaco)
 replace s_gsrhn = "nsrhn,ccshn"       if (!missing(nsrhn) | !missing(ccshn)) & !mi(q_gsrhn)  
@@ -538,24 +538,24 @@ drop temp*
 
 * Use gva by sector from national accounts at basic prices. 
 * To have value added at factor-price we have to deduct "other net taxes on production"
-replace q_gvago = min(3, cond(gvbgo >= tspgo, q_gvbgo, q_tspgo)) if missing(gvago) & !missing(gvbgo) & missing(tspgo)
+replace q_gvago = cond(gvbgo >= tspgo, q_gvbgo, q_tspgo) if missing(gvago) & !missing(gvbgo) & missing(tspgo)
 replace s_gvago = "gvbgo,tspgo"                                  if missing(gvago) & !missing(gvbgo) & missing(tspgo)
 replace   gvago = gvbgo - tspgo                                  if missing(gvago)
-replace q_gvaco = min(3, cond(gvbco >= tspco, q_gvbco, q_tspco)) if missing(gvaco) & !missing(gvbco) & !missing(tspco)
+replace q_gvaco = cond(gvbco >= tspco, q_gvbco, q_tspco) if missing(gvaco) & !missing(gvbco) & !missing(tspco)
 replace s_gvaco = "gvbco,tspco"                                  if missing(gvaco) & !missing(gvbco) & !missing(tspco)
 replace   gvaco = gvbco - tspco                                  if missing(gvaco)
-replace q_gvahn = min(3, cond(gvbhn >= tsphn, q_gvbhn, q_tsphn)) if missing(gvahn) & !missing(gvbhn) & !missing(tsphn)
+replace q_gvahn = cond(gvbhn >= tsphn, q_gvbhn, q_tsphn) if missing(gvahn) & !missing(gvbhn) & !missing(tsphn)
 replace s_gvahn = "gvbhn,tsphn"                                  if missing(gvahn) & !missing(gvbhn) & !missing(tsphn)
 replace   gvahn = gvbhn - tsphn                                  if missing(gvahn)
 
 * This ignores the inconsistency that "other taxes and production" are included in the gvb variable and again in ptxgo, however very small
-replace q_gvago = min(3,q_gvbgo) if missing(gvago) & !missing(gvbgo)
+replace q_gvago = q_gvbgo if missing(gvago) & !missing(gvbgo)
 replace s_gvago = "gvbgo"        if missing(gvago) & !missing(gvbgo)
 replace   gvago = gvbgo          if missing(gvago)
-replace q_gvaco = min(3,q_gvbco) if missing(gvaco) & !missing(gvbco)
+replace q_gvaco = q_gvbco if missing(gvaco) & !missing(gvbco)
 replace s_gvaco = "gvbco"        if missing(gvaco) & !missing(gvbco)
 replace   gvaco = gvbco          if missing(gvaco)
-replace q_gvahn = min(3,q_gvbhn) if missing(gvahn) & !missing(gvbhn)
+replace q_gvahn = q_gvbhn if missing(gvahn) & !missing(gvbhn)
 replace s_gvahn = "gvbhn"        if missing(gvahn) & !missing(gvbhn)
 replace   gvahn = gvbhn          if missing(gvahn)
 
@@ -652,7 +652,7 @@ foreach v in ceugo nsrgo ceuco ceuhn nsrco nmxhn nsrhn cfcgo cfcco ccmhn ccshn g
 }
 
 //---------- 9.1  Governement
-replace q_ceugo5 = min(3, cond(gvago5 >= cfcgo, q_gvago5, q_cfcgo)) if !missing(gvago5) & !missing(cfcgo)
+replace q_ceugo5 = cond(gvago5 >= cfcgo, q_gvago5, q_cfcgo) if !missing(gvago5) & !missing(cfcgo)
 replace s_ceugo5 = "gvago(medianreg"+region1+"),cfcgo"              if !missing(gvago5) & !missing(cfcgo)
 replace   ceugo5 = gvago5 - cfcgo
 
@@ -697,15 +697,15 @@ gen     s_cfcco_share = "median[cfcco/(ceuco+nsrco+cfcco)]reg" + cond(!mi(region
 gen     s_nsrco_share = "median[nsrco/(ceuco+nsrco+cfcco)]reg" + cond(!mi(region1),region1,"others") if !missing(nsrco_share) 
 
 * Step 5: Recompute imputed values
-replace q_ceuco5 = min(3,q_gvaco5)                  if missing(ceuco) & missing(ceuco5) & !missing(ceuco_share) & !missing(gvaco5)
+replace q_ceuco5 = q_gvaco5                  if missing(ceuco) & missing(ceuco5) & !missing(ceuco_share) & !missing(gvaco5)
 replace s_ceuco5 = s_gvaco5 +"_ratio"+s_ceuco_share if missing(ceuco) & missing(ceuco5) & !missing(ceuco_share) & !missing(gvaco5)
 replace   ceuco5 = ceuco_share * gvaco5             if missing(ceuco) & missing(ceuco5) 
 
-replace q_cfcco5 = min(3,q_gvaco5)                  if missing(cfcco) & missing(cfcco5) & !missing(cfcco_share) & !missing(gvaco5)
+replace q_cfcco5 = q_gvaco5                  if missing(cfcco) & missing(cfcco5) & !missing(cfcco_share) & !missing(gvaco5)
 replace s_cfcco5 = s_gvaco5 +"_ratio"+s_cfcco_share if missing(cfcco) & missing(cfcco5) & !missing(cfcco_share) & !missing(gvaco5)
 replace   cfcco5 = cfcco_share * gvaco5             if missing(cfcco) & missing(cfcco5) 
 
-replace q_nsrco5 = min(3,q_gvaco5)                  if missing(nsrco) & missing(nsrco5) & !missing(nsrco_share) & !missing(gvaco5)
+replace q_nsrco5 = q_gvaco5                  if missing(nsrco) & missing(nsrco5) & !missing(nsrco_share) & !missing(gvaco5)
 replace s_nsrco5 = s_gvaco5 +"_ratio"+s_nsrco_share if missing(nsrco) & missing(nsrco5) & !missing(nsrco_share) & !missing(gvaco5)
 replace   nsrco5 = nsrco_share * gvaco5             if missing(nsrco) & missing(nsrco5) 
 
@@ -751,13 +751,13 @@ gen     s_nmxhn_share = "median[ccmhn/(ceuhn+nmxhn+ccmhn)]reg" + cond(!mi(region
 gen     s_ccmhn_share = "median[nmxhn/(ceuhn+nmxhn+ccmhn)]reg" + cond(!mi(region1),region1,"others") if !missing(ccmhn_share) 
 
 * Recompute imputed values
-replace q_ceuhn5 = min(3, q_gvmhn5)                  if missing(ceuhn) & missing(ceuhn5) & !missing(ceuhn_share) & !missing(gvmhn5)
+replace q_ceuhn5 = q_gvmhn5                  if missing(ceuhn) & missing(ceuhn5) & !missing(ceuhn_share) & !missing(gvmhn5)
 replace s_ceuhn5 = s_gvmhn5 +"_ratio"+s_ceuhn_share  if missing(ceuhn) & missing(ceuhn5) & !missing(ceuhn_share) & !missing(gvmhn5)
 replace ceuhn5 = ceuhn_share * gvmhn5                if missing(ceuhn) & missing(ceuhn5)
-replace q_ccmhn5 = min(3, q_gvmhn5)                  if missing(ccmhn) & missing(ccmhn5) & !missing(ccmhn_share) & !missing(gvmhn5)
+replace q_ccmhn5 = q_gvmhn5                  if missing(ccmhn) & missing(ccmhn5) & !missing(ccmhn_share) & !missing(gvmhn5)
 replace s_ccmhn5 = s_gvmhn5 +"_ratio"+s_ccmhn_share  if missing(ccmhn) & missing(ccmhn5) & !missing(ccmhn_share) & !missing(gvmhn5)
 replace ccmhn5 = ccmhn_share * gvmhn5                if missing(ccmhn) & missing(ccmhn5)
-replace q_nmxhn5 = min(3, q_gvmhn5)                  if missing(nmxhn) & missing(nmxhn5) & !missing(nmxhn_share) & !missing(gvmhn5)
+replace q_nmxhn5 = q_gvmhn5                  if missing(nmxhn) & missing(nmxhn5) & !missing(nmxhn_share) & !missing(gvmhn5)
 replace s_nmxhn5 = s_gvmhn5 +"_ratio"+s_nmxhn_share  if missing(nmxhn) & missing(nmxhn5) & !missing(nmxhn_share) & !missing(gvmhn5)
 replace nmxhn5 = nmxhn_share * gvmhn5                if missing(nmxhn) & missing(nmxhn5)
 
@@ -797,10 +797,10 @@ replace   ccshn_share = ccshn_share_region if missing(ccshn_share)
 gen       s_nsrhn_share = "median[nsrhn/(nsrhn+ccshn)]reg" + cond(!mi(region1),region1,"others") if !missing(nsrhn_share)
 gen       s_ccshn_share = "median[ccshn/(nsrhn+ccshn)]reg" + cond(!mi(region1),region1,"others") if !missing(ccshn_share)
 * Recompute imputed values
-replace q_nsrhn5 = min(3, q_gsrhn5 )               if missing(nsrhn) & missing(nsrhn5) & !missing(nsrhn_share) & !missing(gsrhn5)
+replace q_nsrhn5 = q_gsrhn5                if missing(nsrhn) & missing(nsrhn5) & !missing(nsrhn_share) & !missing(gsrhn5)
 replace s_nsrhn5 = s_gsrhn5+"_ratio"+s_nsrhn_share if missing(nsrhn) & missing(nsrhn5) & !missing(nsrhn_share) & !missing(gsrhn5)
 replace nsrhn5 = nsrhn_share * gsrhn5              if missing(nsrhn) & missing(nsrhn5)
-replace q_ccshn5 = min(3, q_gsrhn5 )               if missing(ccshn) & missing(ccshn5) & !missing(ccshn_share) & !missing(gsrhn5)
+replace q_ccshn5 = q_gsrhn5                if missing(ccshn) & missing(ccshn5) & !missing(ccshn_share) & !missing(gsrhn5)
 replace s_ccshn5 = s_gsrhn5+"_ratio"+s_ccshn_share if missing(ccshn) & missing(ccshn5) & !missing(ccshn_share) & !missing(gsrhn5)
 replace ccshn5 = ccshn_share * gsrhn5              if missing(ccshn) & missing(ccshn5)
 
@@ -848,10 +848,10 @@ replace series_gsrco = 7777 if missing(series_gsrco) & series_nsrco == 7777
 // 11. Calculate Gross-Net values
 //------------------------------------------------------------------------------
 // calculate gross shares
-replace q_gsrco = min(3, cond(nsrco >= cfcco, q_nsrco, q_cfcco)) if missing(gsrco) & (!missing(nsrco) | !missing(cfcco))
-replace q_gsrgo = min(3, cond(nsrgo >= cfcgo, q_nsrgo, q_cfcgo)) if missing(gsrgo) & (!missing(nsrgo) | !missing(cfcgo))
-replace q_gmxhn = min(3, cond(nmxhn >= ccmhn, q_nmxhn, q_ccmhn)) if missing(gmxhn) & (!missing(nmxhn) | !missing(ccmhn))
-replace q_gsrhn = min(3, cond(nsrhn >= ccshn, q_nsrhn, q_ccshn)) if missing(gsrhn) & (!missing(nsrhn) | !missing(ccshn))
+replace q_gsrco = cond(nsrco >= cfcco, q_nsrco, q_cfcco) if missing(gsrco) & (!missing(nsrco) | !missing(cfcco))
+replace q_gsrgo = cond(nsrgo >= cfcgo, q_nsrgo, q_cfcgo) if missing(gsrgo) & (!missing(nsrgo) | !missing(cfcgo))
+replace q_gmxhn = cond(nmxhn >= ccmhn, q_nmxhn, q_ccmhn) if missing(gmxhn) & (!missing(nmxhn) | !missing(ccmhn))
+replace q_gsrhn = cond(nsrhn >= ccshn, q_nsrhn, q_ccshn) if missing(gsrhn) & (!missing(nsrhn) | !missing(ccshn))
 replace s_gsrco = "nsrco,cfcco" if missing(gsrco) & (!missing(nsrco) | !missing(cfcco))
 replace s_gsrgo = "nsrgo,cfcgo" if missing(gsrgo) & (!missing(nsrgo) | !missing(cfcgo))
 replace s_gmxhn = "nmxhn,ccmhn" if missing(gmxhn) & (!missing(nmxhn) | !missing(ccmhn))
@@ -862,13 +862,13 @@ replace gmxhn = nmxhn + ccmhn if missing(gmxhn)
 replace gsrhn = nsrhn + ccshn if missing(gsrhn)
 
 // Compute Institutional sector totals
-replace q_gvago = min(3, cond(ceugo >= cfcgo,q_ceugo, q_cfcgo))   if missing(gvago) & (!missing(ceugo) | !missing(cfcgo))
+replace q_gvago = cond(ceugo >= cfcgo,q_ceugo, q_cfcgo)   if missing(gvago) & (!missing(ceugo) | !missing(cfcgo))
 quality ceuco nsrco cfcco, gen(temp1)
 replace q_gvaco = temp1                                           if missing(gvaco) & (!missing(ceuco) | !missing(nsrco) | !missing(cfcco)) 
-replace q_gsrhn = min(3, cond(nsrhn >= ccshn, q_nsrhn, q_ ccshn)) if missing(gsrhn) & (!missing(nsrhn) | !missing(ccshn))
+replace q_gsrhn = cond(nsrhn >= ccshn, q_nsrhn, q_ ccshn) if missing(gsrhn) & (!missing(nsrhn) | !missing(ccshn))
 quality nmxhn ccmhn ceuhn, gen(temp2)
 replace q_gvmhn = temp2                                           if missing(gvmhn) & (!missing(ceuco) | !missing(ccmhn) | !missing(ceuhn))
-replace q_gvahn = min(3, gsrhn >= gvmhn, q_gsrhn, q_gvmhn)        if missing(gvahn) & (!missing(gsrhn) | !missing(gvmhn))
+replace q_gvahn = cond(gsrhn >= gvmhn, q_gsrhn, q_gvmhn)       if missing(gvahn) & (!missing(gsrhn) | !missing(gvmhn))
 replace s_gvago = "ceugo,cfcgo"       if missing(gvago) & (!missing(ceugo) | !missing(cfcgo))
 replace s_gvaco = "ceuco,nsrco,cfcco" if missing(gvaco) & (!missing(ceuco) | !missing(cfcco) | !missing(cfcco)) 
 replace s_gsrhn = "nsrhn,ccshn"       if missing(gsrhn) & (!missing(nsrhn) | !missing(ccshn)) 

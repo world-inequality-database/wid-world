@@ -2,24 +2,6 @@
 // Comand to generate metadata for calcuated 
 //---------------------------------------------------------------------------//
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 program define quality
     version 18.0
     syntax varlist(min=1 numeric) , Generate(name) ///
@@ -69,26 +51,27 @@ program define quality
     *--------------------------------------------*
     * Largest weighted contribution
     *--------------------------------------------*
-    egen `vmax' = rowmax(`wvars')
+    * double + compare against the stored copies, otherwise float/double
+    * precision differences make the equality fail and return missing
+    egen double `vmax' = rowmax(`wvars')
     *--------------------------------------------*
     * Output
     *--------------------------------------------*
     gen `generate' = .
     local i = 1
     foreach v of local varlist {
-        local wt : word `i' of `weights'
         replace `generate' = q_`v' ///
             if `missflag' > 0 ///
-            & (`wt' * `v') == `vmax' ///
+            & `w`i'' == `vmax' ///
             & missing(`generate') ///
             & !missing(`v')
         local ++i
     }
     *--------------------------------------------*
-    * Cap at 3
+    * Cap at 3 ( no more cap)
     *--------------------------------------------*
-    replace `generate' = min(3, `generate') ///
-        if `missflag' > 0
+    *replace `generate' = min(3, `generate') ///
+        *if `missflag' > 0
 end
 
 /*

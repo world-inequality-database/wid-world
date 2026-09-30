@@ -22,9 +22,9 @@ merge 1:1 iso year using "$work_data/reinvested-earnings-portfolio.dta", nogener
 // merge 1:1 iso year using "$work_data/wealth-tax-havens.dta", nogenerate update replace keepusing(nwgxa nwgxd ptfxa ptfxd fdixa fdixd)
 
 // Foreign portfolio income officially recorded
-generate double q_ptfor = min(3, q_ptfrx)
-generate double q_ptfop = min(3, q_ptfpx)
-generate double q_ptfon = min(3, q_ptfnx)
+generate double q_ptfor = q_ptfrx
+generate double q_ptfop = q_ptfpx
+generate double q_ptfon = q_ptfnx
 
 generate s_ptfor = "ptfrx"
 generate s_ptfop = "ptfpx"
@@ -44,7 +44,7 @@ generate double series_ptfrp = -3
 generate double series_ptfrn = -3
 
 // External wealth officially recorded and hidden in Tax Havens
-generate         q_nwnxa = min(3, cond(nwgxa >= nwgxd, q_nwgxa, q_nwgxd))
+generate         q_nwnxa = cond(nwgxa >= nwgxd, q_nwgxa, q_nwgxd)
 generate         s_nwnxa = "nwgxa,nwgxd"
 generate double    nwnxa = nwgxa - nwgxd
 
@@ -52,20 +52,20 @@ generate double    nwnxa = nwgxa - nwgxd
 // non-financial corporations
 foreach v of varlist ptfrx ptfnx pinrx pinnx flcir flcin finrx nnfin prpco prpnf prgco prgnf ///
 	prico prinf segco segnf secco secnf fkpin {
-	replace q_`v' = min(3, cond(`v' >= ptfrp, q_`v', q_ptfrr)) if !missing(ptfrr) & !missing(`v')
+	replace q_`v' = cond(`v' >= ptfrr, q_`v', q_ptfrr) if !missing(ptfrr) & !missing(`v')
 	replace s_`v' = "`v',ptfrr" if !missing(ptfrr) & !missing(`v')
 	replace   `v' = `v' + ptfrr if !missing(ptfrr)
 }
 
 foreach v of varlist ptfpx pinpx flcip finpx {
-	replace q_`v' = min(3, cond(`v' >= ptfrp, q_`v', q_ptfrp)) if !missing(ptfrp) & !missing(`v')
+	replace q_`v' = cond(`v' >= ptfrp, q_`v', q_ptfrp) if !missing(ptfrp) & !missing(`v')
 	replace s_`v' = "`v',ptfrp" if !missing(ptfrp) & !missing(`v')
 	replace `v' = `v' + ptfrp if !missing(ptfrp)
 }
 
 foreach v of varlist ptfnx pinnx flcin nnfin prpco prpnf prgco prgnf ///
 	prico prinf segco segnf secco secnf fkpin {
-	replace q_`v' = min(3, cond(`v' >= ptfrp, q_`v', q_ptfrp)) if !missing(ptfrp) & !missing(`v')
+	replace q_`v' = cond(`v' >= ptfrp, q_`v', q_ptfrp) if !missing(ptfrp) & !missing(`v')
 	replace s_`v' = "`v',ptfrp" if !missing(ptfrp) & !missing(`v')
 	replace   `v' = `v' - ptfrp if !missing(ptfrp)
 }
@@ -120,11 +120,11 @@ replace     s_fdipx = "fdipx_ratiofdipx/pinpx" if flagnninc == 1
 drop flagnninc difnninc sh_*
 drop q_nninc s_nninc nninc
 
-replace q_ptfnx = min(3, cond(ptfrx >= ptfpx, q_ptfrx, q_ptfpx)) 
-replace q_fdinx = min(3, cond(fdirx >= fdipx, q_fdirx, q_fdipx)) 
-replace q_pinnx = min(3, cond(fdinx >= ptfnx, q_fdinx, q_ptfnx))
-replace q_pinrx = min(3, cond(fdirx >= ptfrx, q_fdirx, q_ptfrx)) 
-replace q_pinpx = min(3, cond(fdipx >= ptfpx, q_fdipx, q_ptfpx))
+replace q_ptfnx = cond(ptfrx >= ptfpx, q_ptfrx, q_ptfpx) 
+replace q_fdinx = cond(fdirx >= fdipx, q_fdirx, q_fdipx) 
+replace q_pinnx = cond(fdinx >= ptfnx, q_fdinx, q_ptfnx)
+replace q_pinrx = cond(fdirx >= ptfrx, q_fdirx, q_ptfrx) 
+replace q_pinpx = cond(fdipx >= ptfpx, q_fdipx, q_ptfpx)
 
 replace s_ptfnx = "ptfrx,ptfpx" if !mi(ptfrx) & !mi(ptfpx)
 replace s_fdinx = "fdirx,fdipx" if !mi(fdirx) & !mi(fdipx) 
@@ -144,11 +144,11 @@ replace pinpx = fdipx + ptfpx
 // -------------------------------------------------------------------------- //
 ren (*ptfrx_deb *ptfrx_eq *ptfrx_res *ptfxa_deb *ptfxa_eq *ptfxa_res) (*ptdrx *pterx *ptrrx *ptdxa *ptexa *ptrxa)
 ren (*ptfpx_deb *ptfpx_eq *ptfxd_deb *ptfxd_eq) (*ptdpx *ptepx *ptdxd *ptexd)
-replace q_ptdxa = min(3, cond(ptdxa >= ptfxa_fin, q_ptdxa, q_ptfxa_fin))
+replace q_ptdxa = cond(ptdxa >= ptfxa_fin, q_ptdxa, q_ptfxa_fin)
 replace s_ptdxa = "ptdxa,ptfxa-fin" 
 replace   ptdxa = ptdxa + ptfxa_fin
 
-replace q_ptdxd = min(3, cond(ptdxd >= ptfxd_fin, q_ptdxd, q_ptfxd_fin))
+replace q_ptdxd = cond(ptdxd >= ptfxd_fin, q_ptdxd, q_ptfxd_fin)
 replace s_ptdxd = "ptdxd,ptfxd-fin"
 replace   ptdxd = ptdxd + ptfxd_fin
 drop ptfxa_fin ptfxd_fin miss*
@@ -270,13 +270,13 @@ foreach v in fdirx fdipx ptfrx ptfpx fdixa fdixd ptfxa ptfxd comrx compx ftaxx f
 	replace `v' = `v'/gdpusd 
 }
 
-replace q_ptfnx = min(3, cond(ptfrx >= ptfpx, q_ptfrx, q_ptfpx)) 
-replace q_fdinx = min(3, cond(fdirx >= fdipx, q_fdirx, q_fdipx)) 
-replace q_pinnx = min(3, cond(fdinx >= ptfnx, q_fdinx, q_ptfnx))
-replace q_pinrx = min(3, cond(fdirx >= ptfrx, q_fdirx, q_ptfrx)) 
-replace q_pinpx = min(3, cond(fdipx >= ptfpx, q_fdipx, q_ptfpx)) 
-replace q_comnx = min(3, cond(comrx >= compx, q_comrx, q_compx)) 
-replace q_taxnx = min(3, cond(fsubx >= ftaxx, q_fsubx, q_ftaxx))
+replace q_ptfnx = cond(ptfrx >= ptfpx, q_ptfrx, q_ptfpx) 
+replace q_fdinx = cond(fdirx >= fdipx, q_fdirx, q_fdipx) 
+replace q_pinnx = cond(fdinx >= ptfnx, q_fdinx, q_ptfnx)
+replace q_pinrx = cond(fdirx >= ptfrx, q_fdirx, q_ptfrx) 
+replace q_pinpx = cond(fdipx >= ptfpx, q_fdipx, q_ptfpx) 
+replace q_comnx = cond(comrx >= compx, q_comrx, q_compx) 
+replace q_taxnx = cond(fsubx >= ftaxx, q_fsubx, q_ftaxx)
 replace s_ptfnx = "ptfrx,ptfpx" if !mi(ptfrx) & !mi(ptfpx)
 replace s_fdinx = "fdirx,fdipx" if !mi(fdirx) & !mi(fdipx)
 replace s_pinnx = "fdinx,ptfnx" if !mi(fdinx) & !mi(ptfnx)
@@ -292,11 +292,11 @@ replace   pinpx = fdipx + ptfpx
 replace   comnx = comrx - compx 
 replace   taxnx = fsubx - ftaxx
 
-gen double q_ptfxn = min(3, cond(ptfxa >= ptfxd, q_ptfxa, q_ptfxd)) 
-gen double q_fdixn = min(3, cond(fdixa >= fdixd, q_fdixa, q_fdixd)) 
-replace    q_nwgxa = min(3, cond(ptfxa >= fdixa, q_ptfxa, q_fdixa)) 
-replace    q_nwgxd = min(3, cond(ptfxd >= fdixd, q_ptfxd, q_fdixd)) 
-replace    q_nwnxa = min(3, cond(nwgxa >= nwgxd, q_nwgxa, q_nwgxd)) 
+gen double q_ptfxn = cond(ptfxa >= ptfxd, q_ptfxa, q_ptfxd) 
+gen double q_fdixn = cond(fdixa >= fdixd, q_fdixa, q_fdixd) 
+replace    q_nwgxa = cond(ptfxa >= fdixa, q_ptfxa, q_fdixa) 
+replace    q_nwgxd = cond(ptfxd >= fdixd, q_ptfxd, q_fdixd) 
+replace    q_nwnxa = cond(nwgxa >= nwgxd, q_nwgxa, q_nwgxd) 
 gen        s_ptfxn = "ptfxa,ptfxd" if  !mi(ptfxa) & !mi(ptfxd)
 gen        s_fdixn = "fdixa,fdixd" if  !mi(fdixa) & !mi(fdixd)
 replace    s_nwgxa = "ptfxa,fdixa" if  !mi(ptfxa) & !mi(fdixa)
@@ -335,25 +335,25 @@ drop ratiocheck
 
 so iso year 	
 	
-replace q_comnx = min(3, cond(comrx >= compx, q_comrx, q_compx)) if corecountry == 1 & !mi(comrx) & !mi(compx)
+replace q_comnx = cond(comrx >= compx, q_comrx, q_compx)         if corecountry == 1 & !mi(comrx) & !mi(compx)
 replace s_comnx = "comrx,compx"                                  if corecountry == 1 & !mi(comrx) & !mi(compx)
 replace   comnx = comrx - compx                                  if corecountry == 1 
 	replace  series_comnx = -1 if mi(series_comnx) & !mi(comnx) & (series_comrx == -1 | series_compx == -1)
 	replace  series_comnx = -2 if mi(series_comnx) & !mi(comnx) & (series_comrx == -2 | series_compx == -2)
 	
-replace q_flcir = min(3, cond(comrx >= pinrx, q_comrx, q_pinrx)) if corecountry == 1 & !mi(comrx) &  !mi(pinrx)
+replace q_flcir = cond(comrx >= pinrx, q_comrx, q_pinrx)         if corecountry == 1 & !mi(comrx) &  !mi(pinrx)
 replace s_flcir = "comrx,pinrx"                                  if corecountry == 1 & !mi(comrx) &  !mi(pinrx)
 replace   flcir = comrx + pinrx                                  if corecountry == 1
 	replace  series_flcir = -1 if mi(series_flcir) & !mi(flcir) & (series_comrx == -1 | series_pinrx == -1)
 	replace  series_flcir = -2 if mi(series_flcir) & !mi(flcir) & (series_comrx == -2 | series_pinrx == -2)
 	
-replace q_flcip = min(3, cond(compx >= pinpx, q_compx, q_pinpx)) if corecountry == 1 & !mi(compx) & !mi(pinpx)
+replace q_flcip = cond(compx >= pinpx, q_compx, q_pinpx)         if corecountry == 1 & !mi(compx) & !mi(pinpx)
 replace  s_flcip = "compx,pinpx"                                 if corecountry == 1 & !mi(compx) & !mi(pinpx)
 replace    flcip = compx + pinpx                                 if corecountry == 1
 	replace  series_flcip = -1 if mi(series_flcip) & !mi(flcip) & (series_compx == -1 | series_pinpx == -1)
 	replace  series_flcip = -2 if mi(series_flcip) & !mi(flcip) & (series_compx == -2 | series_pinpx == -2)
 	
-replace q_flcin = min(3, cond(flcir >= flcip, q_flcir, q_flcip)) if corecountry == 1 & !mi(flcir) & !mi(flcip)
+replace q_flcin = cond(flcir >= flcip, q_flcir, q_flcip)         if corecountry == 1 & !mi(flcir) & !mi(flcip)
 replace  s_flcin = "flcir,flcip"                                 if corecountry == 1 & !mi(flcir) & !mi(flcip)
 replace    flcin = flcir - flcip if corecountry == 1
 	replace  series_flcin = -1 if mi(series_flcin) & !mi(flcin) & (series_flcir == -1 | series_flcip == -1)
@@ -381,7 +381,7 @@ replace   finpx = compx + pinpx + cond(missing(ftaxx), 0, ftaxx)    if corecount
 	replace  series_finpx = -1 if mi(series_finpx) & !mi(finpx) & (series_compx == -1 | series_pinpx == -1 | series_ftaxx == -1)
 	replace  series_finpx = -2 if mi(series_finpx) & !mi(finpx) & (series_compx == -2 | series_pinpx == -2 | series_ftaxx == -2)
 
-replace q_taxnx = min(3, cond(fsubx >= ftaxx, q_fsubx, q_ftaxx)) if corecountry == 1 & !mi(fsubx) & !mi(ftaxx)
+replace q_taxnx = cond(fsubx >= ftaxx, q_fsubx, q_ftaxx)         if corecountry == 1 & !mi(fsubx) & !mi(ftaxx)
 replace s_taxnx = "fsubx,ftaxx"                                  if corecountry == 1 & !mi(fsubx) & !mi(ftaxx)
 replace   taxnx = fsubx - ftaxx                                  if corecountry == 1
 	replace  series_taxnx = -1 if mi(series_taxnx) & !mi(taxnx) & (series_ftaxx == -1 | series_flcip == -1)
@@ -463,21 +463,21 @@ gen double fdirx_new = rfa*fdixa
 gen double fdipx_new = fdirx_new - fdinx
 gen double fdinx_new = (fdirx_new - fdipx_new)
 
-replace q_ptfrx = min(3, q_ptfrx)                 if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0
+replace q_ptfrx = q_ptfrx                           if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0
 replace s_ptfrx = s_ptfrx + "_ratioptfrx/ptfxa(WO)" if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0 
-replace   ptfrx = ptfrx_new                       if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0
+replace   ptfrx = ptfrx_new                         if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0
 
-replace q_ptfpx = min(3, q_ptfpx)                 if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0
+replace q_ptfpx = q_ptfpx                           if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0
 replace s_ptfpx = s_ptfpx + "_ratioptfrx/ptfxa(WO)" if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0 
-replace   ptfpx = ptfpx_new                       if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0 
+replace   ptfpx = ptfpx_new                         if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0 
 
-replace q_ptfnx = min(3, q_ptfnx)                 if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0 
+replace q_ptfnx = q_ptfnx                           if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0 
 replace s_ptfnx = s_ptfnx + "_ratioptfrx/ptfxa(WO)" if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0  
-replace   ptfnx = ptfnx_new                       if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0 
+replace   ptfnx = ptfnx_new                         if coreterritory == "OD" & TH == 1 & iso != "PR" & ptfpx_new > 0 
 
-replace q_fdinx = min(3, q_fdinx)                 if coreterritory == "OD" & TH == 1 & iso != "PR" & fdipx_new > 0
+replace q_fdinx = q_fdinx                           if coreterritory == "OD" & TH == 1 & iso != "PR" & fdipx_new > 0
 replace s_fdinx = s_fdinx + "_ratiofdirx/fdixa(WO)" if coreterritory == "OD" & TH == 1 & iso != "PR" & fdipx_new > 0 
-replace   fdinx = fdinx_new                       if coreterritory == "OD" & TH == 1 & iso != "PR" & fdipx_new > 0 
+replace   fdinx = fdinx_new                         if coreterritory == "OD" & TH == 1 & iso != "PR" & fdipx_new > 0 
 drop *_new 
 
 // rescaling NWGXA for PR 
@@ -489,9 +489,9 @@ gen double fdixa_new = fdirx/rpa
 gen double fdixd_new = fdixa_new - fdixn
 gen double fdixn_new = (fdixa_new - fdixd_new)
 
-replace q_ptfxa = min(3, q_ptfxa) if iso == "PR" & ptfxd_new > 0  
-replace q_ptfxd = min(3, q_ptfxd) if iso == "PR" & ptfxd_new > 0 
-replace q_ptfxn = min(3, q_ptfxn) if iso == "PR" & ptfxd_new > 0 
+replace q_ptfxa = q_ptfxa if iso == "PR" & ptfxd_new > 0  
+replace q_ptfxd = q_ptfxd if iso == "PR" & ptfxd_new > 0 
+replace q_ptfxn = q_ptfxn if iso == "PR" & ptfxd_new > 0 
 replace s_ptfxa = s_ptfxa + "_ratioptfxa/ptfrx" if iso == "PR" & ptfxd_new > 0  
 replace s_ptfxd = s_ptfxd + "_ratioptfxa/ptfrx" if iso == "PR" & ptfxd_new > 0 
 replace s_ptfxn = s_ptfxn + "_ratioptfxa/ptfrx" if iso == "PR" & ptfxd_new > 0 
@@ -499,9 +499,9 @@ replace   ptfxa = ptfxa_new if iso == "PR" & ptfxd_new > 0
 replace   ptfxd = ptfxd_new if iso == "PR" & ptfxd_new > 0 
 replace   ptfxn = ptfxn_new if iso == "PR" & ptfxd_new > 0 
 
-replace q_fdixa = min(3, q_fdixa) if iso == "PR" & fdixd_new > 0  
-replace q_fdixd = min(3, q_fdixd) if iso == "PR" & fdixd_new > 0 
-replace q_fdixn = min(3, q_fdixn) if iso == "PR" & fdixd_new > 0 
+replace q_fdixa = q_fdixa if iso == "PR" & fdixd_new > 0  
+replace q_fdixd = q_fdixd if iso == "PR" & fdixd_new > 0 
+replace q_fdixn = q_fdixn if iso == "PR" & fdixd_new > 0 
 replace s_fdixa = s_fdixa + "_ratioptfxa/ptfrx" if iso == "PR" & fdixd_new > 0  
 replace s_fdixd = s_fdixd + "_ratioptfxa/ptfrx" if iso == "PR" & fdixd_new > 0 
 replace s_fdixn = s_fdixn + "_ratioptfxa/ptfrx" if iso == "PR" & fdixd_new > 0 
@@ -581,17 +581,17 @@ drop cap?? cag?? nsmnp
 
 // Calculate net national income
 quality flcin taxnx, gen(temp1)
-replace temp1= min(3,q_flcin) if missing(temp1) & missing(taxnx) & !missing(flcin)
-replace temp1= min(3,q_taxnx) if missing(temp1) & missing(flcin) & !missing(taxnx)
+replace temp1= q_flcin if missing(temp1) & missing(taxnx) & !missing(flcin)
+replace temp1= q_taxnx if missing(temp1) & missing(flcin) & !missing(taxnx)
 replace temp1= 0              if missing(temp1) & (missing(taxnx) & missing(flcin))
 replace  q_nnfin = temp1
 quality gdpro confc nnfin, gen(temp21)
 quality gdpro confc, gen(temp22)
 generate q_nninc = temp21
 replace  q_nninc = temp22 if missing(q_nninc)
-generate q_ndpro = min(3, cond(gdpro >= confc, q_gdpro, q_confc))
-generate q_gninc = min(3, cond(gdpro>= nnfin, q_gdpro, q_nnfin))
-replace  q_gninc = min(3, q_nnfin) if missing(q_gninc)
+generate q_ndpro = cond(gdpro >= confc, q_gdpro, q_confc)
+generate q_gninc = cond(gdpro>= nnfin, q_gdpro, q_nnfin)
+replace  q_gninc = q_nnfin if missing(q_gninc)
 drop temp*
 
 generate s_gdpro = "construction"

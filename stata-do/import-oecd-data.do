@@ -111,13 +111,13 @@ replace negpinpx = 0 if aux == 1
 cap swapval pinrx pinpx if aux == 1 
 replace pinrx = abs(pinrx) if aux == 1
 replace pinpx = abs(pinpx) if aux == 1
-replace q_pinrx = min(3, cond(pinrx>=pinpx,q_pinrx, q_pinpx))  if negpinpx == 1
+replace q_pinrx = cond(pinrx>=pinpx,q_pinrx, q_pinpx)  if negpinpx == 1
 replace s_pinrx = "pinrx,pinpx" if negpinpx == 1
 replace   pinrx = pinrx - pinpx if negpinpx == 1
 replace q_pinpx = 0 if negpinpx == 1 
 replace s_pinpx = "assumed" if negpinpx == 1 
 replace   pinpx = 0 if negpinpx == 1 
-replace q_pinpx = min(3,cond(pinpx>=pinrx,q_pinpx, q_pinrx)) if negpinrx == 1 
+replace q_pinpx = cond(pinpx>=pinrx,q_pinpx, q_pinrx) if negpinrx == 1 
 replace s_pinpx = "pinpx,pinrx" if negpinrx == 1 
 replace   pinpx = pinpx - pinrx if negpinrx == 1 
 replace q_pinrx = 0 if negpinrx == 1
@@ -132,13 +132,13 @@ replace negcompx = 0 if aux == 1
 cap swapval comrx compx if aux == 1 
 replace comrx = abs(comrx) if aux == 1
 replace compx = abs(compx) if aux == 1
-replace q_comrx = min(3,cond(comrx >=compx,q_comrx, q_compx)) if negcompx == 1
+replace q_comrx = cond(comrx >=compx,q_comrx, q_compx) if negcompx == 1
 replace s_comrx ="comrx,compx" if negcompx == 1
 replace   comrx = comrx - compx if negcompx == 1
 replace q_compx = 0 if negcompx == 1 
 replace s_compx = "assumed" if negcompx == 1 
 replace   compx = 0 if negcompx == 1 
-replace q_compx = min(3,cond(compx >= comrx,q_compx, q_comrx)) if negcomrx == 1 
+replace q_compx = cond(compx >= comrx,q_compx, q_comrx) if negcomrx == 1 
 replace s_compx = "compx,comrx" if negcomrx == 1 
 replace   compx = compx - comrx if negcomrx == 1 
 replace q_comrx = 0 if negcomrx == 1
@@ -153,13 +153,13 @@ replace negftaxx = 0 if aux == 1
 cap swapval fsubx ftaxx if aux == 1 
 replace fsubx = abs(fsubx) if aux == 1
 replace ftaxx = abs(ftaxx) if aux == 1
-replace q_fsubx = min(3,cond(fsubx>= ftaxx,q_fsubx, q_ftaxx)) if negftaxx == 1
+replace q_fsubx = cond(fsubx>= ftaxx,q_fsubx, q_ftaxx) if negftaxx == 1
 replace s_fsubx = "fsubx,ftaxx" if negftaxx == 1
 replace   fsubx = fsubx - ftaxx if negftaxx == 1
 replace q_ftaxx = 0 if negftaxx == 1 
 replace s_ftaxx = "assumed" if negftaxx == 1 
 replace   ftaxx = 0 if negftaxx == 1 
-replace q_ftaxx = min(3,cond(ftaxx >=fsubx,q_ftaxx, q_fsubx)) if negfsubx == 1 
+replace q_ftaxx = cond(ftaxx >=fsubx,q_ftaxx, q_fsubx) if negfsubx == 1 
 replace s_ftaxx = "ftaxx,fsubx" if negfsubx == 1 
 replace   ftaxx = ftaxx - fsubx if negfsubx == 1 
 replace q_fsubx = 0 if negfsubx == 1
@@ -167,7 +167,7 @@ replace s_fsubx ="assumed" if negfsubx == 1
 replace   fsubx = 0 if negfsubx == 1
 drop aux 
 
-replace q_taxnx = min(3,cond(fsubx>=ftaxx, q_fsubx, q_ftaxx)) if missing(taxnx)
+replace q_taxnx = cond(fsubx>=ftaxx, q_fsubx, q_ftaxx) if missing(taxnx)
 replace s_taxnx = "fsubx,ftaxx" if missing(taxnx)
 replace   taxnx = fsubx - ftaxx if missing(taxnx)
 
@@ -451,7 +451,7 @@ foreach v of varlist *hn {
 
 // No mixed income in the NPISH sector
 replace   gsrnp = gsmnp
-replace q_gsrnp = min(3, q_gsmnp) if !mi(gsrnp)
+replace q_gsrnp = q_gsmnp if !mi(gsrnp)
 replace s_gsrnp = "gsmnp"         if !mi(gsrnp)
 
 drop *gmxnp *gsmnp
@@ -482,7 +482,7 @@ quality ccsho cfcnp, gen(temp)
 generate q_ccshn = temp          if !missing(ccshn)
 generate s_ccshn = "ccsho,cfcnp" if !missing(ccshn)
 
-generate q_ccmhn = min(3,q_ccmho) if !missing(ccmho)
+generate q_ccmhn = q_ccmho if !missing(ccmho)
 generate s_ccmhn = "ccmho"        if !missing(ccmho)
 generate   ccmhn = ccmho
 
@@ -508,7 +508,7 @@ generate s_nmxho = "gmxho,ccmho"  if !missing(nmxho)
 
 
 generate   nmxhn = nmxho
-generate q_nmxhn = min(3,q_nmxho)  if !missing(nmxhn)
+generate q_nmxhn = q_nmxho  if !missing(nmxhn)
 generate s_nmxhn = "nmxho"         if !missing(nmxhn)
 
 
@@ -584,7 +584,7 @@ foreach v in `r(varlist)'{
 
 
 // Fix
-replace q_tpigo = min(3,cond(tpigo > spigo, q_tpigo, q_spigo)) if location == "CHN"
+replace q_tpigo = cond(tpigo > spigo, q_tpigo, q_spigo) if location == "CHN"
 replace s_tpigo = "tpigo,spigo" if location == "CHN"
 replace   tpigo = tpigo + spigo if location == "CHN"
 

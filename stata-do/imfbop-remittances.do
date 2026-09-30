@@ -44,15 +44,15 @@ replace negremittances_debit = 0 if aux == 1
 cap swapval remittances_credit remittances_debit if aux == 1 
 replace remittances_credit = abs(remittances_credit) if aux == 1
 replace remittances_debit = abs(remittances_debit) if aux == 1
-replace q_remittances_credit = min(3,cond(remittances_credit >= remittances_debit, q_remittances_credit, q_remittances_debit)) if negremittances_debit == 1
-replace s_remittances_credit = "remittances-credit,remittances-debit"                                                          if negremittances_debit == 1
-replace   remittances_credit = remittances_credit - remittances_debit                                                          if negremittances_debit == 1
+replace q_remittances_credit = cond(remittances_credit >= remittances_debit, q_remittances_credit, q_remittances_debit) if negremittances_debit == 1
+replace s_remittances_credit = "remittances-credit,remittances-debit"                                                   if negremittances_debit == 1
+replace   remittances_credit = remittances_credit - remittances_debit                                                   if negremittances_debit == 1
 replace q_remittances_debit = 0         if negremittances_debit == 1 
 replace s_remittances_debit = "assumed" if negremittances_debit == 1 
 replace   remittances_debit = 0         if negremittances_debit == 1 
-replace q_remittances_debit = min(3,cond(remittances_debit >= remittances_credit, remittances_debit, remittances_credit)) if negremittances_credit == 1 
-replace s_remittances_debit = "remittances-debit,remittances-credit"                                                      if negremittances_credit == 1 
-replace   remittances_debit = remittances_debit - remittances_credit                                                      if negremittances_credit == 1 
+replace q_remittances_debit = cond(remittances_debit >= remittances_credit, q_remittances_debit, q_remittances_credit) if negremittances_credit == 1 
+replace s_remittances_debit = "remittances-debit,remittances-credit"                                                   if negremittances_credit == 1 
+replace   remittances_debit = remittances_debit - remittances_credit                                                   if negremittances_credit == 1 
 replace q_remittances_credit = 0         if negremittances_credit == 1
 replace s_remittances_credit = "assumed" if negremittances_credit == 1
 replace   remittances_credit = 0         if negremittances_credit == 1
@@ -219,7 +219,7 @@ foreach v in remittances_credit remittances_debit {
 // ----- 5. Calculate net  -----------------------------------------------------
 gen   net_remittances = remittances_credit - remittances_debit 
 gen s_net_remittances = "remittances-credit,remittances-debit" // credit and debits are symetric
-gen q_net_remittances= min(3, cond(remittances_credit >= remittances_debit, q_remittances_credit, q_remittances_debit))  // credit and debits are symetric
+gen q_net_remittances= cond(remittances_credit >= remittances_debit, q_remittances_credit, q_remittances_debit)  // credit and debits are symetric
 
 // ----- 6. Export  ------------------------------------------------------------
 keep iso year *remittances_credit *remittances_debit  *net_remittances

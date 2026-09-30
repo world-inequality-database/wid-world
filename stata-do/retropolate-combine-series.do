@@ -107,10 +107,10 @@ replace s_comnx = "comrx, compx"
 replace s_pinnx = "pinrx, pinpx"
 replace s_nnfin = "finrx, finpx" if !(iso=="PE" & series==0)
 
-replace q_taxnx = min(3, cond(fsubx >= ftaxx, q_fsubx, q_ftaxx)) 
-replace q_comnx = min(3, cond(comrx >= compx, q_comrx, q_compx)) 
-replace q_pinnx = min(3, cond(pinrx >= pinpx, q_pinrx, q_pinpx)) 
-replace q_nnfin = min(3, cond(finrx >= finpx, q_finrx, q_finpx))  if !(iso=="PE" & series==0)
+replace q_taxnx = cond(fsubx >= ftaxx, q_fsubx, q_ftaxx) 
+replace q_comnx = cond(comrx >= compx, q_comrx, q_compx) 
+replace q_pinnx = cond(pinrx >= pinpx, q_pinrx, q_pinpx) 
+replace q_nnfin = cond(finrx >= finpx, q_finrx, q_finpx)  if !(iso=="PE" & series==0)
 
 *br iso series year cfc?? confc if iso == "MX"
 *br iso year series cfcgo prggo prigo confc if iso == "IT"
@@ -408,7 +408,7 @@ renvars value*, predrop(5)
 drop q_flag* s_flag* q_miss* s_miss* q_neg* s_neg*
 
 // Use data from value-added tables for compensation of employees
-replace q_comhn = min(3, cond(com_vahn, q_comnx, q_com_vahn, q_comnx)) if missing(comhn) & (!missing(com_vahn) & !missing(comnx))
+replace q_comhn = cond(com_vahn >= comnx, q_com_vahn, q_comnx) if missing(comhn) & (!missing(com_vahn) & !missing(comnx))
 replace s_comhn = "com-vahn,comnx" if missing(comhn) & (!missing(com_vahn) & !missing(comnx))
 replace   comhn = com_vahn + comnx if missing(comhn)
 drop *com_vahn
@@ -538,9 +538,9 @@ foreach x in r p {
 }
 drop minyear* maxyear* aux* share* nonmiss*
 
-replace s_pinnx = "pinrx,pinpx" if missing(pinnx) & corecountry == 1 & (!missing(pinrx) & !missing(pinpx))
-replace q_pinnx = min(3, cond(pinrx >= pinpx, q_pinrx, q_pinpx)) if missing(pinnx) & corecountry == 1 & (!missing(pinrx) & !missing(pinpx))
-replace   pinnx = pinrx - pinpx if missing(pinnx) & corecountry == 1
+replace s_pinnx = "pinrx,pinpx"                          if missing(pinnx) & corecountry == 1 & (!missing(pinrx) & !missing(pinpx))
+replace q_pinnx = cond(pinrx >= pinpx, q_pinrx, q_pinpx) if missing(pinnx) & corecountry == 1 & (!missing(pinrx) & !missing(pinpx))
+replace   pinnx = pinrx - pinpx                          if missing(pinnx) & corecountry == 1
 
 // 2nd: pinnx as a share of nnfin 
 // flagging first year where both variables have data
@@ -553,17 +553,17 @@ by iso : carryforward share_pinnx if corecountry == 1, replace
 
 // to make sure that signs hold consistent
 replace share_pinnx = abs(share_pinnx)     if ((nnfin > 0 & share_pinnx < 0) | (nnfin < 0 & share_pinnx > 0)) & missing(pinnx) & !missing(nnfin)
-replace s_pinnx = "nnfin_ratiopinnx/nnfin" if missing(pinnx) & corecountry == 1 & (!missing(pinnx) & !missing(nnfin))
-replace q_pinnx = min(3, cond(pinnx >= nnfin, q_pinnx, q_nnfin)) if missing(pinnx) & corecountry == 1 & (!missing(pinnx) & !missing(nnfin))
-replace   pinnx = share_pinnx*nnfin        if missing(pinnx) & corecountry == 1
+replace s_pinnx = "nnfin_ratiopinnx/nnfin"               if missing(pinnx) & corecountry == 1 & (!missing(share_pinnx) & !missing(nnfin))
+replace q_pinnx = cond(pinnx >= nnfin, q_pinnx, q_nnfin) if missing(pinnx) & corecountry == 1 & (!missing(share_pinnx) & !missing(nnfin))
+replace   pinnx = share_pinnx*nnfin                      if missing(pinnx) & corecountry == 1
 drop share* nonmiss
 
 // 3rd: pinnx = pinrx - pinpx 
 replace s_pinrx = "pinnx,pinpx" if (missing(pinrx) | pinrx == 0) & (!missing(pinnx) & pinnx !=0) & (!missing(pinpx) & pinpx !=0) & corecountry == 1
 replace s_pinpx = "pinrx,pinnx" if (missing(pinpx) | pinpx == 0) & (!missing(pinnx) & pinnx !=0) & (!missing(pinrx) & pinrx !=0) & corecountry == 1
 
-replace q_pinrx = min(3,cond(pinnx >= pinpx, q_pinnx, q_pinpx)) if (missing(pinrx) | pinrx == 0) & (!missing(pinnx) & pinnx !=0) & (!missing(pinpx) & pinpx !=0) & corecountry == 1
-replace q_pinpx = min(3,cond(pinrx >= pinnx, q_pinrx, q_pinnx)) if (missing(pinpx) | pinpx == 0) & (!missing(pinnx) & pinnx !=0) & (!missing(pinrx) & pinrx !=0) & corecountry == 1
+replace q_pinrx = cond(pinnx >= pinpx, q_pinnx, q_pinpx) if (missing(pinrx) | pinrx == 0) & (!missing(pinnx) & pinnx !=0) & (!missing(pinpx) & pinpx !=0) & corecountry == 1
+replace q_pinpx = cond(pinrx >= pinnx, q_pinrx, q_pinnx) if (missing(pinpx) | pinpx == 0) & (!missing(pinnx) & pinnx !=0) & (!missing(pinrx) & pinrx !=0) & corecountry == 1
 
 replace pinrx = pinnx + pinpx if (missing(pinrx) | pinrx == 0) & (!missing(pinnx) & pinnx !=0) & (!missing(pinpx) & pinpx !=0) & corecountry == 1
 replace pinpx = pinrx - pinnx if (missing(pinpx) | pinpx == 0) & (!missing(pinnx) & pinnx !=0) & (!missing(pinrx) & pinrx !=0) & corecountry == 1
@@ -589,10 +589,10 @@ gen checkfdirx = 1 if round(fdirx,.0000001) == round(pinrx,.0000001) & !missing(
 gen checkptfpx = 1 if round(ptfpx,.0000001) == round(pinpx,.0000001) & !missing(ptfpx) & !missing(pinpx)
 gen checkfdipx = 1 if round(fdipx,.0000001) == round(pinpx,.0000001) & !missing(fdipx) & !missing(pinpx)
 
-replace q_fdirx = min(3, q_pinrx) if missing(fdirx) | fdirx == 0 & corecountry == 1 & !mi(pinrx)
-replace q_ptfrx = min(3, q_pinrx) if missing(ptfrx) | ptfrx == 0 & corecountry == 1 & !mi(pinrx)
-replace q_fdipx = min(3, q_pinpx) if missing(fdipx) | fdipx == 0 & corecountry == 1 & !mi(pinpx)
-replace q_ptfpx = min(3, q_pinpx) if missing(ptfpx) | ptfpx == 0 & corecountry == 1 & !mi(pinpx)
+replace q_fdirx = q_pinrx if missing(fdirx) | fdirx == 0 & corecountry == 1 & !mi(pinrx)
+replace q_ptfrx = q_pinrx if missing(ptfrx) | ptfrx == 0 & corecountry == 1 & !mi(pinrx)
+replace q_fdipx = q_pinpx if missing(fdipx) | fdipx == 0 & corecountry == 1 & !mi(pinpx)
+replace q_ptfpx = q_pinpx if missing(ptfpx) | ptfpx == 0 & corecountry == 1 & !mi(pinpx)
 
 replace s_fdirx = "pinrx_ratiofdixa/nwgxa" if missing(fdirx) | fdirx == 0 & corecountry == 1 & !mi(pinrx)
 replace s_ptfrx = "pinrx_ratioptfxa/nwgxa" if missing(ptfrx) | ptfrx == 0 & corecountry == 1 & !mi(pinrx)
@@ -605,10 +605,10 @@ replace fdipx = pinpx*l.share_fdixd if missing(fdipx) | fdipx == 0 & corecountry
 replace ptfpx = pinpx*l.share_ptfxd if missing(ptfpx) | ptfpx == 0 & corecountry == 1 
 
 
-replace q_fdirx = min(3, q_pinrx) if (missing(fdirx) | fdirx == 0) & year == 1970 & corecountry == 1 & !mi(pinrx)
-replace q_ptfrx = min(3, q_pinrx) if (missing(ptfrx) | ptfrx == 0) & year == 1970 & corecountry == 1 & !mi(pinrx)
-replace q_fdipx = min(3, q_pinpx) if (missing(fdipx) | fdipx == 0) & year == 1970 & corecountry == 1 & !mi(pinpx)
-replace q_ptfpx = min(3, q_pinpx) if (missing(ptfpx) | ptfpx == 0) & year == 1970 & corecountry == 1 & !mi(pinpx)
+replace q_fdirx = q_pinrx if (missing(fdirx) | fdirx == 0) & year == 1970 & corecountry == 1 & !mi(pinrx)
+replace q_ptfrx = q_pinrx if (missing(ptfrx) | ptfrx == 0) & year == 1970 & corecountry == 1 & !mi(pinrx)
+replace q_fdipx = q_pinpx if (missing(fdipx) | fdipx == 0) & year == 1970 & corecountry == 1 & !mi(pinpx)
+replace q_ptfpx = q_pinpx if (missing(ptfpx) | ptfpx == 0) & year == 1970 & corecountry == 1 & !mi(pinpx)
 
 replace s_fdirx = "pinrx_ratiofdixa/nwgxa" if (missing(fdirx) | fdirx == 0) & year == 1970 & corecountry == 1 & !mi(pinrx)
 replace s_ptfrx = "pinrx_ratioptfxa/nwgxa" if (missing(ptfrx) | ptfrx == 0) & year == 1970 & corecountry == 1 & !mi(pinrx)
@@ -621,10 +621,10 @@ replace fdipx = pinpx*share_fdixd if (missing(fdipx) | fdipx == 0) & year == 197
 replace ptfpx = pinpx*share_ptfxd if (missing(ptfpx) | ptfpx == 0) & year == 1970 & corecountry == 1
 
 
-replace q_ptfrx = min(3, cond(pinrx >= fdirx, q_pinrx, q_fdirx)) if checkptfrx == 1 & corecountry == 1 & !mi(pinrx)
-replace q_fdirx = min(3, cond(pinrx >= ptfrx, q_pinrx, q_ptfrx)) if checkfdirx == 1 & corecountry == 1 & !mi(pinrx)
-replace q_ptfpx = min(3, cond(pinpx >= fdipx, q_pinpx, q_fdipx)) if checkptfpx == 1 & corecountry == 1 & !mi(pinpx)
-replace q_fdipx = min(3, cond(pinpx>= ptfpx,  q_pinpx, q_ptfpx)) if checkfdipx == 1 & corecountry == 1 & !mi(pinpx)
+replace q_ptfrx = cond(pinrx >= fdirx, q_pinrx, q_fdirx) if checkptfrx == 1 & corecountry == 1 & !mi(pinrx)
+replace q_fdirx = cond(pinrx >= ptfrx, q_pinrx, q_ptfrx) if checkfdirx == 1 & corecountry == 1 & !mi(pinrx)
+replace q_ptfpx = cond(pinpx >= fdipx, q_pinpx, q_fdipx) if checkptfpx == 1 & corecountry == 1 & !mi(pinpx)
+replace q_fdipx = cond(pinpx>= ptfpx,  q_pinpx, q_ptfpx) if checkfdipx == 1 & corecountry == 1 & !mi(pinpx)
 
 replace s_ptfrx = "pinrx,fdirx" if checkptfrx == 1 & corecountry == 1 & !mi(pinrx)
 replace s_fdirx = "pinrx,ptfrx" if checkfdirx == 1 & corecountry == 1 & !mi(pinrx)
@@ -682,7 +682,7 @@ replace sh_pinnx = shun_pinnx if missing(sh_pinnx)
 replace sh_pinnx = abs(sh_pinnx) if ((nnfin > 0 & sh_pinnx < 0) | (nnfin < 0 & sh_pinnx > 0)) & missing(pinnx) & !missing(nnfin) // (0 real changes made)
 
 replace s_pinnx = "nnfin_ratiopinnx/nnfin" if missing(pinnx) & iso == "CU" & !missing(nnfin)
-replace q_pinnx = min(3, q_nnfin)          if missing(pinnx) & iso == "CU" & !missing(nnfin)
+replace q_pinnx = q_nnfin          if missing(pinnx) & iso == "CU" & !missing(nnfin)
 replace   pinnx = nnfin*sh_pinnx           if missing(pinnx) & iso == "CU"
 drop sh*
 
@@ -699,11 +699,11 @@ replace sh_pinpx = shun_pinpx if missing(sh_pinpx)
 
 // to make sure that signs hold consistent. 25 values affected
 swapval sh_pinrx sh_pinpx if (pinnx > 0 & (sh_pinrx < 0 & sh_pinpx < 0)) | (pinnx < 0 & (sh_pinrx > 0 & sh_pinpx > 0))
-replace q_pinrx = min(3, q_pinnx)          if missing(pinrx) & iso == "CU" & !missing(pinrx)
+replace q_pinrx = q_pinnx          if missing(pinrx) & iso == "CU" & !missing(pinrx)
 replace s_pinrx = "pinnx_ratiopinrx/pinnx" if missing(pinrx) & iso == "CU" & !missing(pinrx)
 replace   pinrx = abs(pinnx*sh_pinrx)      if missing(pinrx) & iso == "CU"
 
-replace q_pinpx = min(3, q_pinnx)          if missing(pinpx) & iso == "CU" & !missing(pinpx)
+replace q_pinpx = q_pinnx          if missing(pinpx) & iso == "CU" & !missing(pinpx)
 replace s_pinpx = "pinnx_ratiopinpx/pinnx" if missing(pinpx) & iso == "CU" & !missing(pinpx)
 replace   pinpx = abs(pinnx*sh_pinpx)      if missing(pinpx) & iso == "CU"
 drop sh*
@@ -851,11 +851,11 @@ gen `var'_idx = `var'*index
 	replace `var' = `var'_idx/exrate_usd
 }
 
-replace q_comnx = min(3, cond(comrx >= compx, q_comrx, q_compx)) 
+replace q_comnx = cond(comrx >= compx, q_comrx, q_compx)
 replace s_comnx = "comrx,compx" 
 replace   comnx = comrx - compx 
 
-replace q_taxnx = min(3, cond(fsubx >= ftaxx,q_fsubx, q_ftaxx))
+replace q_taxnx = cond(fsubx >= ftaxx,q_fsubx, q_ftaxx)
 replace s_taxnx = "fsubx,ftaxx"  
 replace   taxnx = fsubx - ftaxx
 
@@ -881,10 +881,10 @@ gen ratio_ftaxx = ftaxx/totftaxx
 replace fsubx = fsubx - tottaxnx*ratio_fsubx if tottaxnx > 0 & corecountry == 1	
 replace ftaxx = ftaxx + tottaxnx*ratio_ftaxx if tottaxnx < 0 & corecountry == 1	// Keep the metadata as it is	
 
-replace q_comnx = min(3, cond(comrx >= compx, q_comrx, q_compx))
+replace q_comnx = cond(comrx >= compx, q_comrx, q_compx)
 replace s_comnx = "comrx,compx"
 replace   comnx = comrx - compx 
-replace q_taxnx = min(3, cond(fsubx >= ftaxx, q_fsubx, q_ftaxx))
+replace q_taxnx = cond(fsubx >= ftaxx, q_fsubx, q_ftaxx)
 replace s_taxnx = "fsubx,ftaxx"
 replace   taxnx = fsubx - ftaxx
 
@@ -1222,23 +1222,23 @@ replace s_ptfrx = "ptfrx-eq,ptfrx-deb,ptfrx-res" if !missing(auxptfrx) & corecou
 replace   ptfrx = auxptfrx                       if !missing(auxptfrx) & corecountry == 1
 
 egen auxptfpx = rowtotal(ptfpx_eq ptfpx_deb), missing
-replace q_ptfpx = min(3, cond(ptfpx_eq >= ptfpx_deb, q_ptfpx_eq, q_ptfpx_deb)) if !missing(auxptfpx) & corecountry == 1
+replace q_ptfpx = cond(ptfpx_eq >= ptfpx_deb, q_ptfpx_eq, q_ptfpx_deb) if !missing(auxptfpx) & corecountry == 1
 replace s_ptfpx = "ptfpx-eq,ptfpx-deb" if !missing(auxptfpx) & corecountry == 1
 replace   ptfpx = auxptfpx             if !missing(auxptfpx) & corecountry == 1
 
 egen auxpinrx = rowtotal(fdirx ptfrx)
 replace auxpinrx=.              if auxpinrx==0
-replace q_pinrx = min(3, cond(fdirx >=ptfrx, q_fdirx, q_ptfrx)) if !missing(auxpinrx) & corecountry == 1 
+replace q_pinrx = cond(fdirx >=ptfrx, q_fdirx, q_ptfrx) if !missing(auxpinrx) & corecountry == 1 
 replace s_pinrx = "fdirx,ptfrx" if !missing(auxpinrx) & corecountry == 1 
 replace   pinrx = auxpinrx      if !missing(auxpinrx) & corecountry == 1 
 
 egen auxpinpx = rowtotal(fdipx ptfpx)
 replace auxpinpx=.              if auxpinpx==0
-replace q_pinpx = min(3, cond(fdipx >= ptfpx, q_fdipx, q_ptfpx)) if !missing(auxpinpx) & corecountry == 1 
+replace q_pinpx = cond(fdipx >= ptfpx, q_fdipx, q_ptfpx) if !missing(auxpinpx) & corecountry == 1 
 replace s_pinpx = "fdipx,ptfpx" if !missing(auxpinpx) & corecountry == 1 
 replace   pinpx = auxpinpx      if !missing(auxpinpx) & corecountry == 1 
 
-replace q_pinnx = min(3, cond(pinrx >= pinpx, q_pinrx, q_pinpx))
+replace q_pinnx = cond(pinrx >= pinpx, q_pinrx, q_pinpx)
 replace s_pinnx = "pinrx,pinpx"
 replace   pinnx = pinrx - pinpx
 drop aux* corecountry

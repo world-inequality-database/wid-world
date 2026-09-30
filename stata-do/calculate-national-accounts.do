@@ -73,7 +73,7 @@ ds iso year gdp currency q_* s_* coef_*, not
 local varlist = r(varlist)
 foreach v of varlist `varlist' {
 	by iso : carryforward `v', replace
-	replace q_`v' = 2              if !missing(`v') & missing(q_`v') // &  year == $pastyear
+	replace q_`v' = 1              if !missing(`v') & missing(q_`v') // &  year == $pastyear
     replace s_`v' = "carryforward" if !missing(`v') & missing(s_`v') // &  year == $pastyear
 	
 	gen         q_y`v' = q_`v'  if !missing(`v')
@@ -139,7 +139,7 @@ foreach v in expgo999i gpsge999i defge999i polge999i ecoge999i envge999i houge99
 
     by iso : carryforward valuew`v', replace // &  year == $pastyear
 
-    replace q_w`v' = 2              if !mi(valuew`v') & mi(q_w`v') // &  year == $pastyear
+    replace q_w`v' = 1              if !mi(valuew`v') & mi(q_w`v') // &  year == $pastyear
     replace s_w`v' = "carryforward" if !mi(valuew`v') & mi(s_w`v') // &  year == $pastyear
 
     replace    q_m`v' = q_w`v'                    if mi(valuem`v') // & year == $pastyear 

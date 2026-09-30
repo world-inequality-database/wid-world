@@ -10,6 +10,7 @@ preserve
 
 // different grades in macro/distributional obs for fiinc 
 	drop if strpos(widcode, "fiinc") & p=="pall"
+	drop if p=="pall"
 	keep iso year widcode data_quality
 	duplicates drop
 	

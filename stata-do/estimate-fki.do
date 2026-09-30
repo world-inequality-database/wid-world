@@ -86,10 +86,10 @@ replace fdipx =. if fdipx == 0 & abs(fdixd) > 0 & negfdipx != 1
 replace ptfrx =. if ptfrx == 0 & abs(ptfxa) > 0
 replace ptfpx =. if ptfpx == 0 & abs(ptfxd) > 0
 
-replace q_fdirx = min(3, q_pinrx) if ptfrx == 0 & pinrx != 0
-replace q_fdipx = min(3, q_pinpx) if ptfpx == 0 & pinpx != 0
-replace q_ptfrx = min(3, q_pinrx) if fdirx == 0 & pinrx != 0
-replace q_ptfpx = min(3, q_pinpx) if fdipx == 0 & pinpx != 0
+replace q_fdirx = q_pinrx if ptfrx == 0 & pinrx != 0
+replace q_fdipx = q_pinpx if ptfpx == 0 & pinpx != 0
+replace q_ptfrx = q_pinrx if fdirx == 0 & pinrx != 0
+replace q_ptfpx = q_pinpx if fdipx == 0 & pinpx != 0
 replace s_fdirx = "pinrx"         if ptfrx == 0 & pinrx != 0
 replace s_fdipx = "pinpx"         if ptfpx == 0 & pinpx != 0
 replace s_ptfrx = "pinrx"         if fdirx == 0 & pinrx != 0
@@ -1051,7 +1051,7 @@ drop aux* avg*
 
 foreach v in ptfxa ptfxd fdixa fdixd ptfxd_deb ptfxd_eq ptfxd_fin ptfxa_res ptfxa_deb ptfxa_eq ptfxa_fin {
 	replace s_`v' = s_`v'+s_`v'_gdp       if iso == "CU" & !missing(`v'_gdp)
-	replace q_`v' = min(q_`v', q_`v'_gdp) if iso == "CU" & !missing(`v'_gdp)
+	*replace q_`v' = q_`v'                 if iso == "CU" & !missing(`v'_gdp)
 	replace   `v' = `v'_gdp*gdp           if iso == "CU"
 }
 
@@ -1064,10 +1064,10 @@ foreach v in fdixa fdixd ptfxa ptfxd ptfxd_deb ptfxd_eq ptfxd_fin ptfxa_res ptfx
 }
 
 // Completing for the countries where we have income but not asset
-replace q_fdixa = min(3, q_fdirx) if missing(fdixa) & !missing(fdirx)
-replace q_fdixd = min(3, q_fdipx) if missing(fdixd) & !missing(fdipx)
-replace q_ptfxa = min(3, q_ptfrx) if missing(ptfxa) & !missing(ptfrx)
-replace q_ptfxd = min(3, q_ptfpx) if missing(ptfxd) & !missing(ptfpx)
+replace q_fdixa = q_fdirx if missing(fdixa) & !missing(fdirx)
+replace q_fdixd = q_fdipx if missing(fdixd) & !missing(fdipx)
+replace q_ptfxa = q_ptfrx if missing(ptfxa) & !missing(ptfrx)
+replace q_ptfxd = q_ptfpx if missing(ptfxd) & !missing(ptfpx)
 replace s_fdixa = "fdirx_return"+s_rf_a if missing(fdixa) & !missing(fdirx)
 replace s_fdixd = "fdipx_return"+s_rf_d if missing(fdixd) & !missing(fdipx)
 replace s_ptfxa = "ptfrx_return"+s_rp_a if missing(ptfxa) & !missing(ptfrx)
@@ -1077,11 +1077,11 @@ replace   fdixd = fdipx/rf_d if missing(fdixd)
 replace   ptfxa = ptfrx/rp_a if missing(ptfxa)
 replace   ptfxd = ptfpx/rp_d if missing(ptfxd)
 
-replace q_ptfxa_eq  = min(3, q_ptfrx_eq)  if missing(ptfxa_eq)  & !missing(ptfrx_eq)
-replace q_ptfxa_deb = min(3, q_ptfrx_deb) if missing(ptfxa_deb) & !missing(ptfrx_deb)
-replace q_ptfxa_res = min(3, q_ptfrx_res) if missing(ptfxa_res) & !missing(ptfrx_res)
-replace q_ptfxd_eq  = min(3, q_ptfpx_eq)  if missing(ptfxd_eq)  & !missing(ptfpx_eq)
-replace q_ptfxd_deb = min(3, q_ptfpx_deb) if missing(ptfxd_deb) & !missing(ptfpx_deb)
+replace q_ptfxa_eq  = q_ptfrx_eq  if missing(ptfxa_eq)  & !missing(ptfrx_eq)
+replace q_ptfxa_deb = q_ptfrx_deb if missing(ptfxa_deb) & !missing(ptfrx_deb)
+replace q_ptfxa_res = q_ptfrx_res if missing(ptfxa_res) & !missing(ptfrx_res)
+replace q_ptfxd_eq  = q_ptfpx_eq  if missing(ptfxd_eq)  & !missing(ptfpx_eq)
+replace q_ptfxd_deb = q_ptfpx_deb if missing(ptfxd_deb) & !missing(ptfpx_deb)
 replace s_ptfxa_eq  = "ptfrx-eq_return" +s_rpeq_a  if missing(ptfxa_eq)  & !missing(ptfrx_eq) 
 replace s_ptfxa_deb = "ptfrx-deb_return"+s_rpdeb_a if missing(ptfxa_deb) & !missing(ptfrx_deb)
 replace s_ptfxa_res = "ptfrx-res_return"+s_rpres_a  if missing(ptfxa_res) & !missing(ptfrx_res)
@@ -1097,10 +1097,10 @@ replace   ptfxd_deb = ptfpx_deb/rpdeb_d if missing(ptfxd_deb)
 // -------------------------------------------------------------------------- //
 // ---- 7. completing missing income ---------------------------------------- //
 // -------------------------------------------------------------------------- //
-replace q_fdirx = min(3,q_fdixa) if !missing(fdixa) 
-replace q_fdipx = min(3,q_fdixd) if !missing(fdixd)
-replace q_ptfrx = min(3,q_ptfxa) if !missing(ptfxa) 
-replace q_ptfpx = min(3,q_ptfxd) if !missing(ptfxd) 
+replace q_fdirx = q_fdixa if !missing(fdixa) 
+replace q_fdipx = q_fdixd if !missing(fdixd)
+replace q_ptfrx = q_ptfxa if !missing(ptfxa) 
+replace q_ptfpx = q_ptfxd if !missing(ptfxd) 
 replace s_fdirx = "fdixa_return"+s_rf_a if !missing(fdixa) 
 replace s_fdipx = "fdixd_return"+s_rf_d if !missing(fdixd) 
 replace s_ptfrx = "ptfxa_return"+s_rp_a if !missing(ptfxa) 
@@ -1110,11 +1110,11 @@ replace   fdipx = fdixd * rf_d if !missing(fdixd)
 replace   ptfrx = ptfxa * rp_a if !missing(ptfxa)
 replace   ptfpx = ptfxd * rp_d if !missing(ptfxd)
 
-replace q_ptfrx_eq  = min(3, q_ptfxa_eq)  if !missing(ptfxa_eq) 
-replace q_ptfrx_deb = min(3, q_ptfxa_deb) if !missing(ptfxa_deb) 
-replace q_ptfrx_res = min(3, q_ptfxa_res) if !missing(ptfxa_res) 
-replace q_ptfpx_eq  = min(3, q_ptfxd_eq)  if !missing(ptfxd_eq)  
-replace q_ptfpx_deb = min(3, q_ptfxd_deb) if !missing(ptfxd_deb) 
+replace q_ptfrx_eq  = q_ptfxa_eq  if !missing(ptfxa_eq) 
+replace q_ptfrx_deb = q_ptfxa_deb if !missing(ptfxa_deb) 
+replace q_ptfrx_res = q_ptfxa_res if !missing(ptfxa_res) 
+replace q_ptfpx_eq  = q_ptfxd_eq  if !missing(ptfxd_eq)  
+replace q_ptfpx_deb = q_ptfxd_deb if !missing(ptfxd_deb) 
 replace s_ptfrx_eq  = "ptfxa-eq_return" + s_rpeq_a  if !missing(ptfxa_eq)  
 replace s_ptfrx_deb = "ptfxa-deb_return"+ s_rpdeb_a if !missing(ptfxa_deb) 
 replace s_ptfrx_res = "ptfxa-res_return"+ s_rpres_a if !missing(ptfxa_res) 
@@ -1139,10 +1139,10 @@ foreach v in rp_a rp_d rf_a rf_d rpeq_a rpdeb_a rpres_a rpeq_d rpdeb_d {
 	replace s_`v'= "assumed" if iso == "CU"
 	replace   `v'= .01       if iso == "CU"
 }
-replace q_fdirx = min(3, q_fdixa) if iso == "CU"
-replace q_fdipx = min(3, q_fdixd) if iso == "CU" 
-replace q_ptfrx = min(3, q_ptfxa) if iso == "CU"
-replace q_ptfpx = min(3, q_ptfxd) if iso == "CU"
+replace q_fdirx = q_fdixa if iso == "CU"
+replace q_fdipx = q_fdixd if iso == "CU" 
+replace q_ptfrx = q_ptfxa if iso == "CU"
+replace q_ptfpx = q_ptfxd if iso == "CU"
 replace s_fdirx = "fdixa_return" + s_rf_a if iso == "CU"
 replace s_fdipx = "fdixd_return" + s_rf_d if iso == "CU" 
 replace s_ptfrx = "ptfxa_return" + s_rp_a if iso == "CU"
@@ -1152,11 +1152,11 @@ replace   fdipx = fdixd*rf_d if iso == "CU"
 replace   ptfrx = ptfxa*rp_a if iso == "CU"
 replace   ptfpx = ptfxd*rp_d if iso == "CU"
 
-replace q_ptfrx_eq  = min(3, q_ptfxa_eq)  if iso == "CU"
-replace q_ptfrx_deb = min(3, q_ptfxa_deb) if iso == "CU"
-replace q_ptfrx_res = min(3, q_ptfxa_res) if iso == "CU"
-replace q_ptfpx_eq  = min(3, q_ptfxd_eq)  if iso == "CU"
-replace q_ptfpx_deb = min(3, q_ptfxd_deb) if iso == "CU"
+replace q_ptfrx_eq  = q_ptfxa_eq  if iso == "CU"
+replace q_ptfrx_deb = q_ptfxa_deb if iso == "CU"
+replace q_ptfrx_res = q_ptfxa_res if iso == "CU"
+replace q_ptfpx_eq  = q_ptfxd_eq  if iso == "CU"
+replace q_ptfpx_deb = q_ptfxd_deb if iso == "CU"
 replace s_ptfrx_eq  = "ptfxa-eq_return"  + s_rpeq_a  if iso == "CU"
 replace s_ptfrx_deb = "ptfxa-deb_return" + s_rpdeb_a if iso == "CU"
 replace s_ptfrx_res = "ptfxa-res_return" + s_rpres_a if iso == "CU"
@@ -1237,7 +1237,7 @@ replace ratio = 0 if mi(ratio)
 
 foreach var in ptfrx_deb ptfrx_eq ptfrx_res {
 	local v_dash = subinstr("`var'", "_", "-", .)
-	replace q_`var' = min(3, q_`var')                                   if !missing(auxptfrx) & flagpinrx == 0  // Keep the metadata as it is
+	replace q_`var' = q_`var'                                   if !missing(auxptfrx) & flagpinrx == 0  // Keep the metadata as it is
 	replace s_`var' = "`v_dash'_ratio(ptfrx-eq,ptfrx-deb,ptfrx-res)/ptfrx" if !missing(auxptfrx) & flagpinrx == 0  // Keep the metadata as it is
 	replace   `var' = `var'/ratio                                       if !missing(auxptfrx) & flagpinrx == 0  // Keep the metadata as it is
 }
@@ -1250,32 +1250,32 @@ replace   ptfrx = auxptfrx    if missing(ptfrx)
 
 *------ ptfpx
 egen   auxptfpx = rowtotal(ptfpx_eq ptfpx_deb), missing
-replace q_ptfpx = min(3, cond(ptfpx_eq >= ptfpx_deb, q_ptfpx_eq, q_ptfpx_deb)) if !missing(auxptfpx) & flagpinpx == 1 & iso != "KY"
+replace q_ptfpx = cond(ptfpx_eq >= ptfpx_deb, q_ptfpx_eq, q_ptfpx_deb) if !missing(auxptfpx) & flagpinpx == 1 & iso != "KY"
 replace s_ptfpx = "ptfpx-eq,ptfpx-deb"   if !missing(auxptfpx) & flagpinpx == 1 & iso != "KY"
 replace   ptfpx = auxptfpx if !missing(auxptfpx) & flagpinpx == 1 & iso != "KY"
 gen     ratio = auxptfpx/ptfpx 
 replace ratio = 0 if mi(ratio)
 foreach var in ptfpx_deb ptfpx_eq {
 	local v_dash = subinstr("`var'", "_", "-", .)
-	replace q_`var' = min(3, q_`var') if !missing(auxptfpx) & flagpinpx == 0  // Keep the metadata as it is
+	replace q_`var' = q_`var' if !missing(auxptfpx) & flagpinpx == 0  // Keep the metadata as it is
 	replace s_`var' = "`v_dash'_ratio(ptfpx-eq + ptfpx-deb)/ptfpx" if !missing(auxptfpx) & flagpinpx == 0  // Keep the metadata as it is
 	replace   `var' = `var'/ratio if !missing(auxptfpx) & flagpinpx == 0  // Keep the metadata as it is
 	replace s_`var' = "`v_dash'_ratio(ptfpx-eq + ptfpx-deb)/ptfpx" if !missing(auxptfpx) & iso == "KY" & flagpinpx != 0  // Keep the metadata as it is
-	replace q_`var' = min(3, q_`var') if !missing(auxptfpx) & iso == "KY" & flagpinpx != 0  // Keep the metadata as it is
+	replace q_`var' = q_`var' if !missing(auxptfpx) & iso == "KY" & flagpinpx != 0  // Keep the metadata as it is
 	replace   `var' = `var'/ratio     if !missing(auxptfpx) & iso == "KY" & flagpinpx != 0  // Keep the metadata as it is
 }
 drop ratio 
-replace q_ptfpx = min(3, cond(ptfpx_eq >= ptfpx_deb, q_ptfpx_eq, q_ptfpx_deb)) if missing(ptfpx)
+replace q_ptfpx = cond(ptfpx_eq >= ptfpx_deb, q_ptfpx_eq, q_ptfpx_deb) if missing(ptfpx)
 replace s_ptfpx = "ptfpx-eq,ptfpx-deb" if missing(ptfpx)
 replace   ptfpx = auxptfpx             if missing(ptfpx)
 
-replace q_ptfnx = min(3, cond(ptfrx >= ptfpx, q_ptfrx, q_ptfpx))
+replace q_ptfnx = cond(ptfrx >= ptfpx, q_ptfrx, q_ptfpx)
 replace s_ptfnx = "ptfrx,ptfpx"
 replace   ptfnx = ptfrx - ptfpx 
 
 *------ pinrx
 egen auxpinrx = rowtotal(fdirx ptfrx), missing
-replace q_pinrx = min(3, cond(fdirx >= ptfrx, q_fdirx, q_ptfrx)) if !missing(auxpinrx) & flagpinrx == 1
+replace q_pinrx = cond(fdirx >= ptfrx, q_fdirx, q_ptfrx) if !missing(auxpinrx) & flagpinrx == 1
 replace s_pinrx = "fdirx,ptfrx"                                  if !missing(auxpinrx) & flagpinrx == 1
 replace   pinrx = auxpinrx                                       if !missing(auxpinrx) & flagpinrx == 1
 gen       ratio = auxpinrx/pinrx 
@@ -1284,19 +1284,19 @@ replace ratio = 0 if mi(ratio)
 foreach var in fdirx ptfrx {
 	replace s_`var' = "`var'_ratio(fdirx + ptfrx)/pinrx" if !missing(auxpinrx) & flagpinrx == 0  
 	replace s_`var' = "`var'_assumedratio0"              if !missing(auxpinrx) & flagpinrx == 0  & ratio==0
-	replace q_`var' = min(3, q_`var') if !missing(auxpinrx) & flagpinrx == 0  
+	replace q_`var' = q_`var' if !missing(auxpinrx) & flagpinrx == 0  
 	replace   `var' = `var'/ratio if !missing(auxpinrx) & flagpinrx == 0  
 }
 drop ratio 
 
 
-replace q_pinrx = min(3, cond(fdirx >= ptfrx, q_fdirx, q_ptfrx)) if missing(pinrx)
+replace q_pinrx = cond(fdirx >= ptfrx, q_fdirx, q_ptfrx) if missing(pinrx)
 replace s_pinrx = "fdirx,ptfrx"                                  if missing(pinrx)
 replace   pinrx = auxpinrx                                       if missing(pinrx)
 
 *------ pinpx
 egen auxpinpx = rowtotal(fdipx ptfpx), missing
-replace q_pinpx = min(3, cond(fdipx >= ptfpx, q_fdipx, q_ptfpx)) if !missing(auxpinpx) & flagpinpx == 1
+replace q_pinpx = cond(fdipx >= ptfpx, q_fdipx, q_ptfpx) if !missing(auxpinpx) & flagpinpx == 1
 replace s_pinpx = "fdipx,ptfpx"                                  if !missing(auxpinpx) & flagpinpx == 1
 replace   pinpx = auxpinpx                                       if !missing(auxpinpx) & flagpinpx == 1
 gen     ratio = auxpinpx/pinpx 
@@ -1304,11 +1304,11 @@ replace ratio = 0 if mi(ratio)
 foreach var in fdipx ptfpx {
 	replace s_`var' = "`var'_ratio(fdipx + ptfpx)/pinpx" if !missing(auxpinpx) & flagpinpx == 0
 	replace s_`var' = "`var'_assumedratio0"              if !missing(auxpinpx) & flagpinpx == 0 & ratio==0
-	replace q_`var' = min(3,cond(fdipx >= ptfpx, q_fdipx, q_ptfpx)) if !missing(auxpinpx) & flagpinpx == 0
+	*replace q_`var' = q_`v' if !missing(auxpinpx) & flagpinpx == 0
 	replace   `var' = `var'/ratio if !missing(auxpinpx) & flagpinpx == 0
 }
 drop ratio 
-replace q_pinpx = min(3, cond(fdipx >= ptfpx, q_fdipx, q_ptfpx)) if missing(pinpx)
+replace q_pinpx = cond(fdipx >= ptfpx, q_fdipx, q_ptfpx) if missing(pinpx)
 replace s_pinpx = "fdipx,ptfpx" if missing(pinpx)
 replace   pinpx = auxpinpx      if missing(pinpx)
 
@@ -1333,14 +1333,14 @@ foreach var in fdixa fdixd ptfxa ptfxd fdirx fdipx ptfrx ptfpx pinrx pinpx ptfxa
 gen ratio = (ptfxa_eq + ptfxa_deb + ptfxa_res + ptfxa_fin) / ptfxa 
 foreach var in ptfxa_eq ptfxa_deb ptfxa_res ptfxa_fin {
 	local v_dash = subinstr("`var'", "_", "-", .)
-	replace q_`var' = min(3,q_`var')
+	replace q_`var' = q_`var'
 	replace s_`var' = "`v_dash'_ratio(ptfxa-eq + ptfxa-deb + ptfxa-res + ptfxa-fin)/ptfxa" 
 	replace   `var' = `var'/ratio  
 }
 gen ratio2 = (ptfxd_eq + ptfxd_deb + ptfxd_fin) / ptfxd 
 foreach var in ptfxd_eq ptfxd_deb ptfxd_fin {
 	local v_dash = subinstr("`var'", "_", "-", .)
-	replace q_`var' = min(3,q_`var')
+	replace q_`var' = q_`var'
 	replace s_`var' = "`v_dash'_ratio(ptfxd-eq + ptfxd-deb + ptfxd-fin)/ptfxd" 
 	replace   `var' = `var'/ratio2                          
 }
@@ -1352,11 +1352,11 @@ drop ratio*
 //	gsort iso year
 //	by iso : carryforward fdirx, replace
 
-gen q_nwgxa = min(3, cond(fdixa >= ptfxa, q_fdixa, q_ptfxa))
+gen q_nwgxa = cond(fdixa >= ptfxa, q_fdixa, q_ptfxa)
 gen s_nwgxa = "fdixa,ptfxa"
 gen   nwgxa = fdixa + ptfxa
 
-gen q_nwgxd = min(3, cond(fdixd >= ptfxd, q_fdixd, q_ptfxd))
+gen q_nwgxd = cond(fdixd >= ptfxd, q_fdixd, q_ptfxd)
 gen s_nwgxd = "fdixd,ptfxd"
 gen   nwgxd = fdixd + ptfxd
 foreach v in nwgxa nwgxd fdirx fdipx ptfrx ptfpx {
@@ -1390,10 +1390,16 @@ foreach var in ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb fdirx fdipx {
 	replace s_`var' = "carryfor" if iso == "IQ" & inrange(year, 1991, 1993)
 }
 
-replace q_ptfrx = min(q_ptfrx_eq, q_ptfrx_deb, q_ptfrx_res)
-replace q_ptfpx = min(q_ptfpx_eq, q_ptfpx_deb)
-replace q_pinrx = min(q_fdirx, q_ptfrx)
-replace q_pinpx = min(q_fdipx, q_ptfpx) 
+quality ptfrx_eq ptfrx_deb ptfrx_res, gen(q_ptfrx_aux)
+quality ptfpx_eq ptfpx_deb, gen(q_ptfpx_aux )
+quality fdirx ptfrx, gen(q_pinrx_aux)
+quality fdipx ptfpx, gen(q_pinpx_aux)
+
+replace q_ptfrx = q_ptfrx_aux
+replace q_ptfpx = q_ptfpx_aux
+replace q_pinrx = q_pinrx_aux
+replace q_pinpx = q_pinpx_aux
+drop *_aux
 replace s_ptfrx = s_ptfrx_eq 
 replace s_ptfpx = s_ptfpx_eq 
 replace s_pinrx = s_fdirx 
@@ -1405,9 +1411,9 @@ replace pinpx = fdipx + ptfpx
 
 
 
-gen q_pinnx = min(3, cond(pinrx >= pinpx, q_pinrx, q_pinpx))
-gen q_fdinx = min(3, cond(fdirx >= fdipx, q_fdirx, q_fdipx))
-gen q_ptfnx = min(3, cond(ptfrx >= ptfpx, q_ptfrx, q_ptfpx))
+gen q_pinnx = cond(pinrx >= pinpx, q_pinrx, q_pinpx)
+gen q_fdinx = cond(fdirx >= fdipx, q_fdirx, q_fdipx)
+gen q_ptfnx = cond(ptfrx >= ptfpx, q_ptfrx, q_ptfpx)
 gen s_pinnx = "pinrx,pinpx"
 gen s_fdinx = "fdirx,fdipx"
 gen s_ptfnx = "ptfrx,ptfpx"
@@ -1624,21 +1630,21 @@ replace s_ptfrx = "ptfrx-eq,ptfrx-deb,ptfrx-res" if !missing(auxptfrx)
 replace   ptfrx = auxptfrx if !missing(auxptfrx)
 
 egen auxptfpx = rowtotal(ptfpx_eq ptfpx_deb), missing
-replace q_ptfpx = min(3, cond(ptfpx_eq >= ptfpx_deb,q_ptfpx_eq, q_ptfpx_deb)) if !missing(auxptfpx)
+replace q_ptfpx = cond(ptfpx_eq >= ptfpx_deb,q_ptfpx_eq, q_ptfpx_deb) if !missing(auxptfpx)
 replace s_ptfpx = "ptfpx-eq,ptfpx-deb" if !missing(auxptfpx)
 replace   ptfpx = auxptfpx             if !missing(auxptfpx)
 
 egen auxpinrx = rowtotal(fdirx ptfrx)
-replace q_pinrx = min(3, cond(fdirx >= ptfrx, q_fdirx, q_ptfrx)) if !missing(auxpinrx)
+replace q_pinrx = cond(fdirx >= ptfrx, q_fdirx, q_ptfrx) if !missing(auxpinrx)
 replace s_pinrx = "fdirx,ptfrx" if !missing(auxpinrx)
 replace   pinrx = auxpinrx      if !missing(auxpinrx)
 
 egen auxpinpx = rowtotal(fdipx ptfpx)
-replace q_pinpx = min(3, cond(fdipx >= ptfpx, q_fdipx, q_ptfpx)) if !missing(auxpinpx)
+replace q_pinpx = cond(fdipx >= ptfpx, q_fdipx, q_ptfpx) if !missing(auxpinpx)
 replace s_pinpx = "fdipx,ptfpx" if !missing(auxpinpx)
 replace   pinpx = auxpinpx      if !missing(auxpinpx)
 
-replace q_pinnx = min(3, cond(pinrx >= pinpx,q_pinrx, q_pinpx))
+replace q_pinnx = cond(pinrx >= pinpx,q_pinrx, q_pinpx)
 replace s_pinnx = "pinrx,pinpx"
 replace   pinnx = pinrx - pinpx
 drop aux* 

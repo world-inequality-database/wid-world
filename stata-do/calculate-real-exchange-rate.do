@@ -89,7 +89,7 @@ assert dup==0
 drop dup
 
 drop currency
-reshape wide value data_quality s_, i(iso year p) j(widcode) string
+greshape wide value data_quality s_, i(iso year p) j(widcode) string
 rename  value* *
 
 * Gen real exchange rate for USD
@@ -112,7 +112,7 @@ keep iso year p *xrer*
 drop if missing(valuexreryu999i) & missing(valuexrereu999i) & missing(valuexrerus999i)
 
 
-reshape long value data_quality s_, i(iso year p) j(widcode) string
+greshape long value data_quality s_, i(iso year p) j(widcode) string
 
 /*
 * Generate the Metadata

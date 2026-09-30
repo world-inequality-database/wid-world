@@ -495,10 +495,10 @@ foreach x in a d {
 	replace s_fdix`x' = "nwgx`x',ptfx`x'" if fdix`x' < 0 & !missing(nwgx`x')
 	replace s_ptfx`x' = "nwgx`x',fdix`x'" if ptfx`x' < 0 & !missing(nwgx`x')
 
-	replace q_fdix`x' = min(3, q_nwgx`x') if missing(fdix`x') & !missing(nwgx`x')
-	replace q_ptfx`x' = min(3, q_nwgx`x') if missing(ptfx`x') & !missing(nwgx`x')
-	replace q_fdix`x' = min(3, cond(nwgx`x' >= ptfx`x', q_nwgx`x', q_ptfx`x')) if fdix`x' < 0      & !missing(nwgx`x')
-	replace q_ptfx`x' = min(3, cond(nwgx`x' >= fdix`x', q_nwgx`x', q_ptfx`x')) if ptfx`x' < 0      & !missing(nwgx`x')
+	replace q_fdix`x' = q_nwgx`x' if missing(fdix`x') & !missing(nwgx`x')
+	replace q_ptfx`x' = q_nwgx`x' if missing(ptfx`x') & !missing(nwgx`x')
+	replace q_fdix`x' = cond(nwgx`x' >= ptfx`x', q_nwgx`x', q_ptfx`x') if fdix`x' < 0      & !missing(nwgx`x')
+	replace q_ptfx`x' = cond(nwgx`x' >= fdix`x', q_nwgx`x', q_ptfx`x') if ptfx`x' < 0      & !missing(nwgx`x')
 
 	replace fdix`x' = share_fdi`x'*nwgx`x' if missing(fdix`x')
 	replace ptfx`x' = share_ptf`x'*nwgx`x' if missing(ptfx`x')
@@ -508,11 +508,11 @@ foreach x in a d {
 
 gen      checka = fdixa + ptfxa
 replace s_nwgxa = "ptfxa,fdixa" if round(checka,.1) != round(nwgxa,.1) // (295 real changes made)
-replace q_nwgxa = min(3, cond(ptfxa>=fdixa, q_ptfxa, q_fdixa)) if round(checka,.1) != round(nwgxa,.1) // (295 real changes made)
+replace q_nwgxa = cond(ptfxa>=fdixa, q_ptfxa, q_fdixa) if round(checka,.1) != round(nwgxa,.1) // (295 real changes made)
 replace   nwgxa = ptfxa + fdixa         if round(checka,.1) != round(nwgxa,.1) // (295 real changes made)
 gen      checkd = fdixd + ptfxd
 replace s_nwgxd = "ptfxd,fdixd" if round(checkd,.1) != round(nwgxd,.1) // (312 real changes made)
-replace q_nwgxd = min(3, cond(ptfxd>=fdixd, q_ptfxd, q_fdixd)) if round(checkd,.1) != round(nwgxd,.1) // (312 real changes made)
+replace q_nwgxd = cond(ptfxd>=fdixd, q_ptfxd, q_fdixd) if round(checkd,.1) != round(nwgxd,.1) // (312 real changes made)
 replace   nwgxd = ptfxd + fdixd         if round(checkd,.1) != round(nwgxd,.1) // (312 real changes made)
 drop check* 
 
@@ -550,7 +550,7 @@ foreach v in ptfxa fdixa {
 	bys geoundet year : egen auxsh_`v' = mean(share_`v') if corecountry == 1 & (flagcountrynwgxa == 0 | flagcountry2nwgxa == 0) & TH == 0
 	bys geoundet year : egen    sh_`v' = mode(auxsh_`v')
 	replace s_`v' = "nwgxa_ratiomean[`v'/nwgxa]reg" + geoundet if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 0
-	replace q_`v' = min(3,q_nwgxa)           if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 0
+	replace q_`v' = q_nwgxa           if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 0
 	replace `v' = sh_`v'*nwgxa  if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 0
 }
 drop aux* sh*
@@ -559,7 +559,7 @@ foreach v in ptfxd fdixd {
 	bys geoundet year : egen auxsh_`v' = mean(share_`v') if corecountry == 1 & (flagcountrynwgxd == 0 | flagcountry2nwgxd == 0) & TH == 0
 	bys geoundet year : egen    sh_`v' = mode(auxsh_`v')
 	replace s_`v' = "nwgxd_ratiomean[`v'/nwgxd]reg" + geoundet if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 0
-	replace q_`v' = min(3,q_nwgxd) if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 0
+	replace q_`v' = q_nwgxd if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 0
 	replace   `v' = sh_`v'*nwgxd   if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 0
 }
 drop aux* sh*
@@ -569,7 +569,7 @@ foreach v in ptfxa fdixa {
 	bys year : egen auxsh_`v' = mean(share_`v') if corecountry == 1 & (flagcountrynwgxa == 0 | flagcountry2nwgxa == 0) & TH == 1
 	bys year : egen    sh_`v' = mode(auxsh_`v')
 	replace s_`v' = "nwgxa_ratiomean[`v'/nwgxa]reg" + geoundet  if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 1
-	replace q_`v' = min(3,q_nwgxa) if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 1
+	replace q_`v' = q_nwgxa if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 1
 	replace   `v' = sh_`v'*nwgxa   if corecountry == 1 & (flagcountrynwgxa == 1 | flagcountry2nwgxa == 1) & TH == 1
 }
 drop aux* sh*
@@ -578,7 +578,7 @@ foreach v in ptfxd fdixd {
 	bys year : egen auxsh_`v' = mean(share_`v') if corecountry == 1 & (flagcountrynwgxd == 0 | flagcountry2nwgxd == 0) & TH == 1
 	bys year : egen    sh_`v' = mode(auxsh_`v')
 	replace s_`v' = "nwgxa_ratiomean[`v'/nwgxd]reg" + geoundet  if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 1
-	replace q_`v' = min(3,q_nwgxd) if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 1
+	replace q_`v' = q_nwgxd if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 1
 	replace   `v' = sh_`v'*nwgxd   if corecountry == 1 & (flagcountrynwgxd == 1 | flagcountry2nwgxd == 1) & TH == 1
 }
 drop aux* sh*
@@ -618,7 +618,7 @@ foreach v in portfolioequityassets portfoliodebtassets otherinvestmentassets fin
 
 	replace s_`v' = "ptfxa_ratio`v'/ptfxa"        if !missing(ptfxa) & !missing(share_`v')  & missing(share2_`v')
 	replace s_`v' = "ptfxa_carriedratio`v'/ptfxa" if !missing(ptfxa) & !missing(share2_`v')
-	replace q_`v' = min(3,q_ptfxa)                   if !missing(ptfxa)
+	replace q_`v' = q_ptfxa                   if !missing(ptfxa)
 	replace   `v' = share2_`v'*ptfxa 
 }
 drop avsh* share*
@@ -660,7 +660,7 @@ foreach v in portfolioequityliab portfoliodebtliab otherinvliab finderivliab {
 	
 	replace s_`v' = "ptfxd_ratio`v'/ptfxd"        if !missing(ptfxd) & !missing(share_`v') &  missing(share2_`v')
 	replace s_`v' = "ptfxd_carriedratio`v'/ptfxd" if !missing(ptfxd) &  missing(share_`v')  & !missing(share2_`v') & !strpos(s_ptfxd,"(carried")
-	replace q_`v' = min(3,q_ptfxd)                   if !missing(ptfxd)
+	replace q_`v' = q_ptfxd                   if !missing(ptfxd)
 	replace    `v' = share2_`v'*ptfxd
 }
 drop avsh* share*
@@ -706,8 +706,8 @@ replace finderivliab=finderivliab/ratio
 
 gen s_debtass  = "portfoliodebtassets,otherinvestmentassets"	
 gen s_debtliab = "portfoliodebtliabilities,otherinvliabilities"
-gen q_debtass  = min(3, cond(portfoliodebtassets >= otherinvestmentassets, q_portfoliodebtassets, q_otherinvestmentassets))	
-gen q_debtliab = min(3, cond(portfoliodebtliab >= otherinvliab , q_portfoliodebtliab,   q_otherinvliab))
+gen q_debtass  = cond(portfoliodebtassets >= otherinvestmentassets, q_portfoliodebtassets, q_otherinvestmentassets)	
+gen q_debtliab = cond(portfoliodebtliab >= otherinvliab , q_portfoliodebtliab,   q_otherinvliab)
 gen debtass    = portfoliodebtassets + otherinvestmentassets	
 gen debtliab   = portfoliodebtliab   + otherinvliab 
 drop *portfoliodebtassets *otherinvestmentassets *portfoliodebtliab *otherinvliab ratio

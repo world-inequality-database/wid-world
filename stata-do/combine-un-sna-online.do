@@ -151,13 +151,13 @@ foreach v of varlist new* {
 drop new* 
 		
 // Use production taxes from generation of income account if necessary
-replace q_ptxgo = cond(missing(taxnx), q_ptxgo_va, min(q_ptxgo_va, q_taxnx)) if missing(ptxgo)
+replace q_ptxgo = cond(missing(taxnx), q_ptxgo_va, cond(ptxgo_va >= taxnx, q_ptxgo_va, q_taxnx)) if missing(ptxgo)
 replace s_ptxgo = "ptxgo-va" + cond(missing(taxnx), "", ", taxnx") if missing(ptxgo)
 replace   ptxgo = ptxgo_va + cond(missing(taxnx), 0, taxnx) if missing(ptxgo)
-replace q_tpigo = cond(missing(ftaxx), q_tpigo_va, min(q_tpigo_va, q_taxnx)) if missing(tpigo)
+replace q_tpigo = cond(missing(ftaxx), q_tpigo_va, cond(tpigo_va >=taxnx, q_tpigo_va, q_taxnx)) if missing(tpigo)
 replace s_tpigo = "tpigo-va" + cond(missing(ftaxx),"", ", ftaxx") if missing(tpigo)
 replace   tpigo = tpigo_va + cond(missing(ftaxx), 0, ftaxx) if missing(tpigo)
-replace q_spigo = cond(missing(fsubx), q_spigo_va, min(q_spigo_va, q_fsubx)) if missing(spigo)
+replace q_spigo = cond(missing(fsubx), q_spigo_va, cond(spigo_va >= fsubx, q_spigo_va, q_fsubx)) if missing(spigo)
 replace s_spigo = "spigo-va" + cond(missing(fsubx), "", ", fsubx") if missing(spigo)
 replace   spigo = spigo_va + cond(missing(fsubx), 0, fsubx) if missing(spigo)
 
@@ -333,9 +333,9 @@ generate savin = savhn + savgo + secco
 generate savig = savin + confc
 
 // Complete metadata
-egen q_fkpin= rowmin(q_prphn q_prico q_nsrhn q_prpgo)
-egen q_savin= rowmin(q_savhn q_savgo q_secco)
-egen q_savig= rowmin(q_savin q_confc)
+quality prphn prico nsrhn prpgo, gen(q_fkpin)
+quality savhn savgo secco, gen(q_savin)
+quality savin confc, gen(q_savig)
 
 gen s_fkpin= "prphn,prico,nsrhn,prpgo"
 gen s_savin= "savhn,savgo,secco"

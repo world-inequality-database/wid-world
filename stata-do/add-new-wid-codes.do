@@ -383,9 +383,9 @@ drop if (iso == "SE") & (subcategory == "average income per adult")
 // (A) For macro data ----------------------------------------------------------
 gen data_quality=.
 /// Macro variables
-replace data_quality=5 if inlist(substr(widcode,1,1),"m","w","c,", "n", "a") & p=="pall"
+replace data_quality=4 if inlist(substr(widcode,1,1),"m","w","c,", "n", "a") & p=="pall"
 /// Indexes
-replace data_quality=5 if inlist(substr(widcode,1,1),"i")
+replace data_quality=4 if inlist(substr(widcode,1,1),"i")
 /// Correcting for Distributions
 replace data_quality=. if inlist(substr(widcode,1,1),"a","t","s") & p!="pall"
 

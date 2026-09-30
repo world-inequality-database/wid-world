@@ -891,7 +891,7 @@ generate ratio999i = npopul999i/npopul999i_un
 foreach v of varlist npopul*_un {
 	local widcode = substr("`v'", 1, 10)
 	generate resc_`widcode' = `v'*ratio999i if (ratio999i < .)
-	generate data_qualityresc_`widcode'=min(data_qualitynpopul999i, data_qualitynpopul999i_un) if (ratio999i < .)
+	generate data_qualityresc_`widcode'=data_qualitynpopul999i if (ratio999i < .)
 }
 
 // Adults & children
@@ -902,11 +902,11 @@ foreach v of varlist npopul*_un {
 	local agecode = substr("`v'", 7, 3)
 	if (`agecode' < 200 & `agecode' != 111) {
 		replace resc_`widcode' = `v'*ratio991i if (ratio991i < .)
-		replace data_qualityresc_`widcode'=min(data_qualitynpopul991i, data_qualitynpopul991i_un) if (ratio999i < .)
+		replace data_qualityresc_`widcode'=data_qualitynpopul991i if (ratio999i < .)
 	}
 	else {
 		replace resc_`widcode' = `v'*ratio992i if (ratio992i < .)
-		replace data_qualityresc_`widcode'=min(data_qualitynpopul992i, data_qualitynpopul992i_un) if (ratio999i < .)
+		replace data_qualityresc_`widcode'=data_qualitynpopul992i if (ratio999i < .)
 	}
 }
 

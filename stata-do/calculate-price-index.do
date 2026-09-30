@@ -602,7 +602,7 @@ foreach x in un wb weo {
 replace data_quality = 4     if strpos(index_source, "_pred" )
 
 *Data from academic researcher
-foreach x in np east arklems cbs fw {
+foreach x in np east arklems cbs fw mw {
 	* Reported Data
 	replace data_quality = 4 if        index_source=="delta_def_`x'"
 	* Inputed data to a second country

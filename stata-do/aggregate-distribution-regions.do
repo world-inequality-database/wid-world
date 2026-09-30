@@ -223,13 +223,16 @@ foreach u in 2 9 {
 
 preserve
     use `regional_quality', clear
+	
     expand 2 if concept == "ptinc", gen(posttax)
     replace concept = "diinc" if posttax
+	
     drop posttax
     duplicates drop
+	
     isid iso year concept population_group
+	
     save `regional_quality', replace
-	save "/Users/anavanderree/Documents/region_quality.dta", replace
 restore
 
 // ------------ 3.2.2 Main Aggregation of values/series for regions 

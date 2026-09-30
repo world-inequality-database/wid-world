@@ -293,7 +293,7 @@ generate toreplace = 0
 // Start with CFC of the government sector
 // -------------------------------------------------------------------------- //
 
-replace q_cfcgo = min(3,q_gsrgo) if missing(cfcgo) & !missing(gsrgo)
+replace q_cfcgo = q_gsrgo if missing(cfcgo) & !missing(gsrgo)
 replace s_cfcgo = "gsrgo"        if missing(cfcgo) & !missing(gsrgo)
 replace   cfcgo = gsrgo          if missing(cfcgo)
 
@@ -307,7 +307,7 @@ replace   cfcgo = 0.75*confc         if flag
 replace q_nsrgo = 0          if flag
 replace s_nsrgo = "assumed0" if flag
 replace   nsrgo = 0          if flag
-replace q_gsrgo = min(3, q_cfcgo) if flag & !missing(cfcgo)
+replace q_gsrgo = q_cfcgo if flag & !missing(cfcgo)
 replace s_gsrgo = "cfcgo"         if flag & !missing(cfcgo)
 replace   gsrgo =  cfcgo          if flag
 drop old_cfcgo
@@ -326,30 +326,30 @@ replace   cfcgo = 0.10*confc         if flag
 replace q_nsrgo = 0          if flag
 replace s_nsrgo = "assumed0" if flag
 replace   nsrgo = 0          if flag
-replace q_gsrgo = min(3, q_cfcgo) if flag & !missing(cfcgo)
-replace s_gsrgo = "cfcgo"         if flag & !missing(cfcgo)
-replace   gsrgo =  cfcgo          if flag
+replace q_gsrgo = q_cfcgo if flag & !missing(cfcgo)
+replace s_gsrgo = "cfcgo" if flag & !missing(cfcgo)
+replace   gsrgo =  cfcgo  if flag
 drop old_cfcgo
 
 replace toreplace = 1 if flag
 drop flag
 
 // Impute cfcgo
-replace q_cfcgo = min(3, q_gsrgo) if missing(cfcgo) & !missing(gsrgo) 
-replace s_cfcgo = "gsrgo"         if missing(cfcgo) & !missing(gsrgo)
-replace   cfcgo = gsrgo           if missing(cfcgo) // In general, nsrgo = 0
+replace q_cfcgo = q_gsrgo  if missing(cfcgo) & !missing(gsrgo) 
+replace s_cfcgo = "gsrgo"  if missing(cfcgo) & !missing(gsrgo)
+replace   cfcgo = gsrgo    if missing(cfcgo) // In general, nsrgo = 0
 gegen   median_cfcgo1 = median(cfcgo/confc), by(iso)
 gegen   median_cfcgo2 = median(cfcgo/confc)
-replace q_cfcgo = min(3, q_confc)                    if missing(cfcgo) & !missing(confc) & !missing(median_cfcgo1)
+replace q_cfcgo = q_confc                            if missing(cfcgo) & !missing(confc) & !missing(median_cfcgo1)
 replace s_cfcgo = "confc_median[cfcgo/confc]iso"+iso if missing(cfcgo) & !missing(confc) & !missing(median_cfcgo1)
 replace   cfcgo = confc*median_cfcgo1                if missing(cfcgo)
-replace q_cfcgo = min(3, q_confc)                    if missing(cfcgo) & !missing(confc) & !missing(median_cfcgo2)
+replace q_cfcgo = q_confc                            if missing(cfcgo) & !missing(confc) & !missing(median_cfcgo2)
 replace s_cfcgo = "confc_median[cfcgo/confc]isoWO"   if missing(cfcgo) & !missing(confc) & !missing(median_cfcgo2)
 replace   cfcgo = confc*median_cfcgo2                if missing(cfcgo)
 
 // Then split remaining CFC between households and corporations
-generate q_cfc_private = min(3, cond(confc >= cfcgo,q_confc, q_cfcgo))  if !missing(confc) & !missing(cfcgo)
-generate s_cfc_private = "confc,cfcgo"                                  if !missing(confc) & !missing(cfcgo)
+generate q_cfc_private = cond(confc >= cfcgo,q_confc, q_cfcgo) if !missing(confc) & !missing(cfcgo)
+generate s_cfc_private = "confc,cfcgo"                         if !missing(confc) & !missing(cfcgo)
 generate   cfc_private = confc - cfcgo
 
 foreach v of varlist cfchn cfcco {
@@ -371,7 +371,7 @@ foreach v of varlist cfchn cfcco {
 	replace s_share = "median[`v'/cfc-private]iso("+iso+")"  if missing(s_share) | !missing(share1)
 	replace s_share = "median[`v'/cfc-private]iso(WO)"   if missing(s_share) | !missing(share2)
 	
-	replace q_`v' = min(3, q_`v')               if !missing(cfc_private) & !missing(share)
+	*replace q_`v' = q_`v'               if !missing(cfc_private) & !missing(share)
 	replace s_`v' = "cfc-private_ratio"+s_share if !missing(cfc_private) & !missing(share)
 	replace   `v' = share*cfc_private
 	
@@ -399,7 +399,7 @@ foreach v of varlist cfcnf cfcfc {
 	replace s_share = "median[`v'/cfcco]iso("+iso+")" if missing(s_share) | !missing(share1)
 	replace s_share = "median[`v'/cfcco]iso(WO)"      if missing(s_share) | !missing(share2)
 	
-	replace q_`v' = min(3, q_cfcco) if !missing(cfcco)
+	replace q_`v' = q_cfcco if !missing(cfcco)
 	replace s_`v' = "cfcco_ratio"+s_share if !missing(cfcco)
 	replace   `v' = share*cfcco
 	
@@ -426,7 +426,7 @@ foreach v of varlist cfcnp cfcho {
 	replace s_share = "median[`v'/cfchn]iso("+iso+")" if missing(s_share) | !missing(share1)
 	replace s_share = "median[`v'/cfchn]iso(WO)"      if missing(s_share) | !missing(share2)
 	
-	replace q_`v' = min(q_`v', q_cfchn) if !missing(cfchn)
+	replace q_`v' =  q_cfchn              if !missing(cfchn)
 	replace s_`v' = "cfchn_ratio"+s_share if !missing(cfchn)
 	replace   `v' = share*cfchn
 	
@@ -434,48 +434,47 @@ foreach v of varlist cfcnp cfcho {
 }
 
 // Split CFC between operating surplus and mixed income
-quality cfcho gsrho gmxho, gen(temp1)
-replace q_ccsho = temp1                           if missing(ccsho)
+replace q_ccsho = q_cfcho                         if missing(ccsho)
 replace s_ccsho = "cfcho*gsrho/(gsrho+0.3gmxho)"  if missing(ccsho)
 replace   ccsho = cfcho*gsrho/(gsrho + 0.3*gmxho) if missing(ccsho)
-quality cfcho gmxho gsrho, gen(temp2)
-replace q_ccmho = temp2                               if missing(ccmho)
+
+replace q_ccmho = q_cfcho                             if missing(ccmho)
 replace s_ccmho = "cfcho*0.3gmxho/(gsrho+0.3gmxho)"   if missing(ccmho)
 replace   ccmho = cfcho*0.3*gmxho/(gsrho + 0.3*gmxho) if missing(ccmho)
 
-quality cfcho nsrho nmxho, gen(temp3)
-replace q_ccsho = temp3                           if missing(ccsho)
+
+replace q_ccsho = q_cfcho                         if missing(ccsho)
 replace s_ccsho = "cfcho*nsrho/(nsrho+0.3nmxho)"  if missing(ccsho)
 replace   ccsho = cfcho*nsrho/(nsrho + 0.3*nmxho) if missing(ccsho)
-quality cfcho nmxho nsrho, gen(temp4)
-replace q_ccmho = temp4                               if missing(ccmho)
+
+replace q_ccmho = q_cfcho                               if missing(ccmho)
 replace s_ccmho = "cfcho*0.3nmxho/(nsrho+0.3nmxho)"   if missing(ccmho)
 replace   ccmho = cfcho*0.3*nmxho/(nsrho + 0.3*nmxho) if missing(ccmho)
 
-replace q_ccshn = min(3, cond(ccsho >= cfcnp, q_ccsho, q_cfcnp)) if missing(ccshn)
+replace q_ccshn = cond(ccsho >= cfcnp, q_ccsho, q_cfcnp) if missing(ccshn)
 replace s_ccshn = "ccsho,cfcnp"                                  if missing(ccshn)
 replace   ccshn = ccsho + cfcnp                                  if missing(ccshn)
-replace q_ccmhn = min(3,q_ccmho) if missing(ccmhn)
+replace q_ccmhn = q_ccmho if missing(ccmhn)
 replace s_ccmhn = "ccmho"        if missing(ccmhn)
 replace   ccmhn = ccmho          if missing(ccmhn)
 
-quality cfchn gsrhn gmxhn, gen(temp5)
-replace q_ccshn = temp5                           if missing(ccshn)
+
+replace q_ccshn = q_cfchn                         if missing(ccshn)
 replace s_ccshn = "cfchn*gsrhn/(gsrhn+0.3gmxhn)"  if missing(ccshn)
 replace   ccshn = cfchn*gsrhn/(gsrhn + 0.3*gmxhn) if missing(ccshn)
-quality cfchn gmxhn gsrhn, gen(temp6)
-replace q_ccmhn = temp6                               if missing(ccmhn)
+
+replace q_ccmhn = q_cfchn                             if missing(ccmhn)
 replace s_ccmhn = "cfchn*0.3gmxhn/(gsrhn+0.3gmxhn)"   if missing(ccmhn)
 replace   ccmhn = cfchn*0.3*gmxhn/(gsrhn + 0.3*gmxhn) if missing(ccmhn)
 
-quality cfchn nsrhn nmxhn, gen(temp7)
-replace q_ccshn = temp7                           if missing(ccshn)
+replace q_ccshn = q_cfchn                         if missing(ccshn)
 replace s_ccshn = "cfchn*nsrhn/(nsrhn+0.3nmxhn)"  if missing(ccshn)
 replace   ccshn = cfchn*nsrhn/(nsrhn + 0.3*nmxhn) if missing(ccshn)
-replace q_ccmhn = min(q_cfchn, q_nmxhn, q_nsrhn)      if missing(ccmhn)
+
+replace q_ccmhn = q_cfchn                             if missing(ccmhn)
 replace s_ccmhn = "cfchn*0.3nmxhn/(nsrhn+0.3nmxhn)"   if missing(ccmhn)
 replace   ccmhn = cfchn*0.3*nmxhn/(nsrhn + 0.3*nmxhn) if missing(ccmhn)
-drop temp*
+
 // Ensure consistency
 enforce (confc = cfcgo + cfcco + cfchn) ///
 		(cfcco = cfcnf + cfcfc) ///

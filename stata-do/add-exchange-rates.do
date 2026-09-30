@@ -31,7 +31,7 @@ preserve
 	bysort year: egen q_ea = mode(data_quality)
     * duplicates drop year, force
 	
-	collapse (first) q_ea (mean) xlcusx999i [aweight=gdp], by(year)
+	collapse (mean) xlcusx999i q_ea [aweight=gdp], by(year)
 	rename xlcusx999i EURUSDpre
 	
 	tempfile eurusdpre99
@@ -45,8 +45,8 @@ preserve
 						& (inlist(iso, "DE", "ES", "FR", "IT", "NL")) 
 
 //	duplicates drop year, force
-	bysort year: egen q_ea = mode(data_quality)
-	collapse  (first) q_ea (mean) xlcusx999i, by(year)
+	bysort year: egen q_ea = mode(data_quality) // This is posible since they all have the same grade ater 1999 given that they all have the acting Euro.
+	collapse  (mean) q_ea xlcusx999i, by(year)
 	rename xlcusx999i EURUSDpos
 	
 	tempfile eurusdpos99
@@ -89,8 +89,8 @@ restore
 gen xlceux999i = xlcusx999i/EURUSD
 gen xlcyux999i = xlcusx999i/CNYUSD
 
-gen data_qualityxlceux999i = min(q_ea, data_quality)
-gen data_qualityxlcyux999i = min(q_cn, data_quality)
+gen data_qualityxlceux999i = min(data_quality, q_ea)
+gen data_qualityxlcyux999i = min(data_quality, q_cn)
 gen s_xlceux999i = "triang"
 gen s_xlcyux999i = "triang"
 

@@ -153,9 +153,9 @@ replace q_finpx = .  if finpx < 0
 replace s_finpx = "" if finpx < 0 
 replace   finpx = .  if finpx < 0 
  
-replace q_pinrx     = min(3, cond(pinrx >= ptfrx_res, q_pinrx, q_ptfrx_res)) if ptfrx_res < 0
-replace q_ptfrx     = min(3, cond(ptfrx >= ptfrx_res, q_ptfrx, q_ptfrx_res)) if ptfrx_res < 0
-replace q_finrx     = min(3, cond(finrx <= ptfrx_res, q_finrx, q_ptfrx_res)) if ptfrx_res < 0
+replace q_pinrx     = cond(pinrx >= ptfrx_res, q_pinrx, q_ptfrx_res) if ptfrx_res < 0
+replace q_ptfrx     = cond(ptfrx >= ptfrx_res, q_ptfrx, q_ptfrx_res) if ptfrx_res < 0
+replace q_finrx     = cond(finrx <= ptfrx_res, q_finrx, q_ptfrx_res) if ptfrx_res < 0
 replace q_ptfrx_res = 0                                                      if ptfrx_res < 0 
 replace s_pinrx     = "pinrx,ptfrx-res" if ptfrx_res < 0
 replace s_ptfrx     = "ptfrx,ptfrx-res" if ptfrx_res < 0
@@ -167,9 +167,9 @@ replace finrx       = finrx - ptfrx_res if ptfrx_res < 0
 replace   ptfrx_res = 0 if ptfrx_res < 0 
 
 *adding the negative values to the other gross aggregated component
-replace q_pinrx = min(3, cond(pinrx >= ptfpx_oth, q_pinrx, q_ptfpx_oth)) if negptfpx_oth == 1
-replace q_pinpx = min(3, cond(pinpx >= ptfpx_oth, q_pinpx, q_ptfpx_oth)) if negptfpx_oth == 1
-replace q_pinpx = min(3, cond(pinpx >= ptfrx_oth, q_pinpx, q_ptfrx_oth)) if negptfrx_oth == 1
+replace q_pinrx = cond(pinrx >= ptfpx_oth, q_pinrx, q_ptfpx_oth) if negptfpx_oth == 1
+replace q_pinpx = cond(pinpx >= ptfpx_oth, q_pinpx, q_ptfpx_oth) if negptfpx_oth == 1
+replace q_pinpx = cond(pinpx >= ptfrx_oth, q_pinpx, q_ptfrx_oth) if negptfrx_oth == 1
 replace s_pinrx = "pinrx,ptfrx-oth" if negptfrx_oth == 1
 replace s_pinrx = "pinrx,ptfpx-oth" if negptfpx_oth == 1
 replace s_pinpx = "pinpx,ptfpx-oth" if negptfpx_oth == 1
@@ -179,10 +179,10 @@ replace   pinrx = pinrx - ptfpx_oth if negptfpx_oth == 1
 replace   pinpx = pinpx - ptfpx_oth if negptfpx_oth == 1
 replace   pinpx = pinpx - ptfrx_oth if negptfrx_oth == 1
 
-replace q_ptfrx = min(3, cond(ptfrx >= ptfrx_oth, q_ptfrx, q_ptfrx_oth)) if negptfrx_oth == 1
-replace q_ptfrx = min(3, cond(ptfrx >= ptfpx_oth, q_ptfrx, q_ptfpx_oth)) if negptfpx_oth == 1
-replace q_ptfpx = min(3, cond(ptfpx >= ptfpx_oth, q_ptfpx, q_ptfpx_oth)) if negptfpx_oth == 1
-replace q_ptfpx = min(3, cond(ptfpx >= ptfrx_oth, q_ptfpx, q_ptfrx_oth)) if negptfrx_oth == 1
+replace q_ptfrx = cond(ptfrx >= ptfrx_oth, q_ptfrx, q_ptfrx_oth) if negptfrx_oth == 1
+replace q_ptfrx = cond(ptfrx >= ptfpx_oth, q_ptfrx, q_ptfpx_oth) if negptfpx_oth == 1
+replace q_ptfpx = cond(ptfpx >= ptfpx_oth, q_ptfpx, q_ptfpx_oth) if negptfpx_oth == 1
+replace q_ptfpx = cond(ptfpx >= ptfrx_oth, q_ptfpx, q_ptfrx_oth) if negptfrx_oth == 1
 replace s_ptfrx = "ptfrx,ptfrx-oth" if negptfrx_oth == 1
 replace s_ptfrx = "ptfrx,ptfpx-oth" if negptfpx_oth == 1
 replace s_ptfpx = "ptfpx,ptfpx-oth" if negptfpx_oth == 1
@@ -193,10 +193,10 @@ replace   ptfpx = ptfpx - ptfpx_oth if negptfpx_oth == 1
 replace   ptfpx = ptfpx - ptfrx_oth if negptfrx_oth == 1
 
 
-replace q_finrx = min(3, cond(finrx >= ptfrx_oth, q_finrx, q_ptfrx_oth)) if negptfrx_oth == 1
-replace q_finrx = min(3, cond(finrx >= ptfpx_oth, q_finrx, q_ptfpx_oth)) if negptfpx_oth == 1
-replace q_finpx = min(3, cond(finpx >= ptfpx_oth, q_finpx, q_ptfpx_oth)) if negptfpx_oth == 1
-replace q_finpx = min(3, cond(finpx >= ptfrx_oth, q_finpx, q_ptfrx_oth)) if negptfrx_oth == 1
+replace q_finrx = cond(finrx >= ptfrx_oth, q_finrx, q_ptfrx_oth) if negptfrx_oth == 1
+replace q_finrx = cond(finrx >= ptfpx_oth, q_finrx, q_ptfpx_oth) if negptfpx_oth == 1
+replace q_finpx = cond(finpx >= ptfpx_oth, q_finpx, q_ptfpx_oth) if negptfpx_oth == 1
+replace q_finpx = cond(finpx >= ptfrx_oth, q_finpx, q_ptfrx_oth) if negptfrx_oth == 1
 replace s_finrx = "finrx,ptfrx-oth" if negptfrx_oth == 1
 replace s_finrx = "finrx,ptfpx-oth" if negptfpx_oth == 1
 replace s_finpx = "finpx,ptfpx-oth" if negptfpx_oth == 1
@@ -212,13 +212,13 @@ replace negptfpx_oth = 0 if aux == 1
 cap swapval ptfrx_oth ptfpx_oth if aux == 1 
 replace ptfrx_oth = abs(ptfrx_oth) if aux == 1
 replace ptfpx_oth = abs(ptfpx_oth) if aux == 1
-replace q_ptfrx_oth = min(3, cond(ptfrx_oth >= ptfpx_oth, q_ptfrx_oth, q_ptfpx_oth)) if negptfpx_oth == 1
+replace q_ptfrx_oth = cond(ptfrx_oth >= ptfpx_oth, q_ptfrx_oth, q_ptfpx_oth) if negptfpx_oth == 1
 replace s_ptfrx_oth = "ptfrx-oth,ptfpx-oth" if negptfpx_oth == 1
 replace   ptfrx_oth = ptfrx_oth - ptfpx_oth if negptfpx_oth == 1
 replace q_ptfpx_oth = 0         if negptfpx_oth == 1 
 replace s_ptfpx_oth = "assumed" if negptfpx_oth == 1 
 replace   ptfpx_oth = 0         if negptfpx_oth == 1 
-replace q_ptfpx_oth = min(3, cond(ptfpx_oth >= ptfrx_oth, q_ptfpx_oth, q_ptfrx_oth)) if negptfrx_oth == 1 
+replace q_ptfpx_oth = cond(ptfpx_oth >= ptfrx_oth, q_ptfpx_oth, q_ptfrx_oth) if negptfrx_oth == 1 
 replace s_ptfpx_oth = "ptfpx-oth,ptfrx-oth" if negptfrx_oth == 1 
 replace   ptfpx_oth = ptfpx_oth - ptfrx_oth if negptfrx_oth == 1 
 replace q_ptfrx_oth = 0         if negptfrx_oth == 1
@@ -226,10 +226,10 @@ replace s_ptfrx_oth = "assumed" if negptfrx_oth == 1
 replace   ptfrx_oth = 0         if negptfrx_oth == 1
 drop aux 
 
-replace q_pinrx = min(3, cond(pinrx >= ptfrx_deb, q_pinrx, q_ptfrx_deb)) if negptfrx_deb == 1
-replace q_pinrx = min(3, cond(pinrx >= ptfpx_deb, q_pinrx, q_ptfpx_deb)) if negptfpx_deb == 1
-replace q_pinpx = min(3, cond(pinpx >= ptfpx_deb, q_pinpx, q_ptfpx_deb)) if negptfpx_deb == 1
-replace q_pinpx = min(3, cond(pinpx >= ptfrx_deb, q_pinpx, q_ptfrx_deb)) if negptfrx_deb == 1
+replace q_pinrx = cond(pinrx >= ptfrx_deb, q_pinrx, q_ptfrx_deb) if negptfrx_deb == 1
+replace q_pinrx = cond(pinrx >= ptfpx_deb, q_pinrx, q_ptfpx_deb) if negptfpx_deb == 1
+replace q_pinpx = cond(pinpx >= ptfpx_deb, q_pinpx, q_ptfpx_deb) if negptfpx_deb == 1
+replace q_pinpx = cond(pinpx >= ptfrx_deb, q_pinpx, q_ptfrx_deb) if negptfrx_deb == 1
 replace s_pinrx = "pinrx,ptfrx-deb" if negptfrx_deb == 1
 replace s_pinrx = "pinrx,ptfpx-deb" if negptfpx_deb == 1
 replace s_pinpx = "pinpx,ptfpx-deb" if negptfpx_deb == 1
@@ -239,10 +239,10 @@ replace   pinrx = pinrx - ptfpx_deb if negptfpx_deb == 1
 replace   pinpx = pinpx - ptfpx_deb if negptfpx_deb == 1
 replace   pinpx = pinpx - ptfrx_deb if negptfrx_deb == 1
 
-replace q_ptfrx = min(3, cond(ptfrx >= ptfrx_deb, q_ptfrx, q_ptfrx_deb)) if negptfrx_deb == 1
-replace q_ptfrx = min(3, cond(ptfrx >= ptfpx_deb, q_ptfrx, q_ptfpx_deb)) if negptfpx_deb == 1
-replace q_ptfpx = min(3, cond(ptfpx >= ptfpx_deb, q_ptfpx, q_ptfpx_deb)) if negptfpx_deb == 1
-replace q_ptfpx = min(3, cond(ptfpx >= ptfrx_deb, q_ptfpx, q_ptfrx_deb)) if negptfrx_deb == 1
+replace q_ptfrx = cond(ptfrx >= ptfrx_deb, q_ptfrx, q_ptfrx_deb) if negptfrx_deb == 1
+replace q_ptfrx = cond(ptfrx >= ptfpx_deb, q_ptfrx, q_ptfpx_deb) if negptfpx_deb == 1
+replace q_ptfpx = cond(ptfpx >= ptfpx_deb, q_ptfpx, q_ptfpx_deb) if negptfpx_deb == 1
+replace q_ptfpx = cond(ptfpx >= ptfrx_deb, q_ptfpx, q_ptfrx_deb) if negptfrx_deb == 1
 replace s_ptfrx = "ptfrx,ptfrx-deb" if negptfrx_deb == 1
 replace s_ptfrx = "ptfrx,ptfpx-deb" if negptfpx_deb == 1
 replace s_ptfpx = "ptfpx,ptfpx-deb" if negptfpx_deb == 1
@@ -252,10 +252,10 @@ replace   ptfrx = ptfrx - ptfpx_deb if negptfpx_deb == 1
 replace   ptfpx = ptfpx - ptfpx_deb if negptfpx_deb == 1
 replace   ptfpx = ptfpx - ptfrx_deb if negptfrx_deb == 1
 
-replace q_finrx = min(3, cond(finrx >= ptfrx_deb, q_finrx, q_ptfrx_deb)) if negptfrx_deb == 1
-replace q_finrx = min(3, cond(finrx >= ptfpx_deb, q_finrx, q_ptfpx_deb)) if negptfpx_deb == 1
-replace q_finpx = min(3, cond(finpx >= ptfpx_deb, q_finpx, q_ptfpx_deb)) if negptfpx_deb == 1
-replace q_finpx = min(3, cond(finpx >= ptfrx_deb, q_finpx, q_ptfrx_deb)) if negptfrx_deb == 1
+replace q_finrx = cond(finrx >= ptfrx_deb, q_finrx, q_ptfrx_deb) if negptfrx_deb == 1
+replace q_finrx = cond(finrx >= ptfpx_deb, q_finrx, q_ptfpx_deb) if negptfpx_deb == 1
+replace q_finpx = cond(finpx >= ptfpx_deb, q_finpx, q_ptfpx_deb) if negptfpx_deb == 1
+replace q_finpx = cond(finpx >= ptfrx_deb, q_finpx, q_ptfrx_deb) if negptfrx_deb == 1
 replace s_finrx = "finrx,ptfrx-deb" if negptfrx_deb == 1
 replace s_finrx = "finrx,ptfpx-deb" if negptfpx_deb == 1
 replace s_finpx = "finpx,ptfpx-deb" if negptfpx_deb == 1
@@ -271,13 +271,13 @@ replace negptfpx_deb = 0 if aux == 1
 cap swapval ptfrx_deb ptfpx_deb if aux == 1 
 replace ptfrx_deb = abs(ptfrx_deb) if aux == 1
 replace ptfpx_deb = abs(ptfpx_deb) if aux == 1
-replace q_ptfrx_deb = min(3,cond(ptfrx_deb >= ptfpx_deb, q_ptfrx_deb, q_ptfpx_deb)) if negptfpx_deb == 1
+replace q_ptfrx_deb = cond(ptfrx_deb >= ptfpx_deb, q_ptfrx_deb, q_ptfpx_deb) if negptfpx_deb == 1
 replace s_ptfrx_deb = "ptfrx-deb,ptfpx-deb" if negptfpx_deb == 1
 replace   ptfrx_deb = ptfrx_deb - ptfpx_deb if negptfpx_deb == 1
 replace q_ptfpx_deb = 0  if negptfpx_deb == 1 
 replace s_ptfpx_deb = "" if negptfpx_deb == 1 
 replace   ptfpx_deb = 0  if negptfpx_deb == 1 
-replace q_ptfpx_deb = min(3,cond(ptfpx_deb >= ptfrx_deb, q_ptfpx_deb, q_ptfrx_deb)) if negptfrx_deb == 1
+replace q_ptfpx_deb = cond(ptfpx_deb >= ptfrx_deb, q_ptfpx_deb, q_ptfrx_deb) if negptfrx_deb == 1
 replace s_ptfpx_deb = "ptfpx-deb,ptfrx-deb" if negptfrx_deb == 1
 replace   ptfpx_deb = ptfpx_deb - ptfrx_deb if negptfrx_deb == 1
 replace q_ptfrx_deb = 0 if negptfrx_deb == 1
@@ -285,10 +285,10 @@ replace s_ptfrx_deb = "assumed" if negptfrx_deb == 1
 replace   ptfrx_deb = 0 if negptfrx_deb == 1
 drop aux 
 
-replace q_pinrx = min(3,cond(pinrx >= ptfrx_eq, q_pinrx, q_ptfrx_eq)) if negptfrx_eq == 1
-replace q_pinrx = min(3,cond(pinrx >= ptfpx_eq, q_pinrx, q_ptfpx_eq)) if negptfpx_eq == 1
-replace q_pinpx = min(3,cond(pinpx >= ptfpx_eq, q_pinpx, q_ptfpx_eq)) if negptfpx_eq == 1
-replace q_pinpx = min(3,cond(pinpx >= ptfrx_eq, q_pinpx, q_ptfrx_eq)) if negptfrx_eq == 1
+replace q_pinrx = cond(pinrx >= ptfrx_eq, q_pinrx, q_ptfrx_eq) if negptfrx_eq == 1
+replace q_pinrx = cond(pinrx >= ptfpx_eq, q_pinrx, q_ptfpx_eq) if negptfpx_eq == 1
+replace q_pinpx = cond(pinpx >= ptfpx_eq, q_pinpx, q_ptfpx_eq) if negptfpx_eq == 1
+replace q_pinpx = cond(pinpx >= ptfrx_eq, q_pinpx, q_ptfrx_eq) if negptfrx_eq == 1
 replace s_pinrx = "pinrx,ptfrx-eq" if negptfrx_eq == 1
 replace s_pinrx = "pinrx,ptfpx-eq" if negptfpx_eq == 1
 replace s_pinpx = "pinpx,ptfpx-eq" if negptfpx_eq == 1
@@ -298,10 +298,10 @@ replace   pinrx = pinrx - ptfpx_eq if negptfpx_eq == 1
 replace   pinpx = pinpx - ptfpx_eq if negptfpx_eq == 1
 replace   pinpx = pinpx - ptfrx_eq if negptfrx_eq == 1
 
-replace q_ptfrx = min(3,cond(ptfrx >= ptfrx_eq, q_ptfrx, q_ptfrx_eq)) if negptfrx_eq == 1
-replace q_ptfrx = min(3,cond(ptfrx >= ptfpx_eq, q_ptfrx, q_ptfpx_eq)) if negptfpx_eq == 1
-replace q_ptfpx = min(3,cond(ptfpx >= ptfpx_eq, q_ptfpx, q_ptfpx_eq)) if negptfpx_eq == 1
-replace q_ptfpx = min(3,cond(ptfpx >= ptfrx_eq, q_ptfpx, q_ptfrx_eq)) if negptfrx_eq == 1
+replace q_ptfrx = cond(ptfrx >= ptfrx_eq, q_ptfrx, q_ptfrx_eq) if negptfrx_eq == 1
+replace q_ptfrx = cond(ptfrx >= ptfpx_eq, q_ptfrx, q_ptfpx_eq) if negptfpx_eq == 1
+replace q_ptfpx = cond(ptfpx >= ptfpx_eq, q_ptfpx, q_ptfpx_eq) if negptfpx_eq == 1
+replace q_ptfpx = cond(ptfpx >= ptfrx_eq, q_ptfpx, q_ptfrx_eq) if negptfrx_eq == 1
 replace s_ptfrx = "ptfrx,ptfrx-eq" if negptfrx_eq == 1
 replace s_ptfrx = "ptfrx,ptfpx-eq" if negptfpx_eq == 1
 replace s_ptfpx = "ptfpx,ptfpx-eq" if negptfpx_eq == 1
@@ -312,10 +312,10 @@ replace   ptfpx = ptfpx - ptfpx_eq if negptfpx_eq == 1
 replace   ptfpx = ptfpx - ptfrx_eq if negptfrx_eq == 1
 
 
-replace q_finrx = min(3,cond(finrx >= ptfrx_eq, q_finrx, q_ptfrx_eq)) if negptfrx_eq == 1
-replace q_finrx = min(3,cond(finrx >= ptfpx_eq, q_finrx, q_ptfpx_eq)) if negptfpx_eq == 1
-replace q_finpx = min(3,cond(finpx >= ptfpx_eq, q_finpx, q_ptfpx_eq)) if negptfpx_eq == 1
-replace q_finpx = min(3,cond(finpx >= ptfrx_eq, q_finpx, q_ptfrx_eq)) if negptfrx_eq == 1
+replace q_finrx = cond(finrx >= ptfrx_eq, q_finrx, q_ptfrx_eq) if negptfrx_eq == 1
+replace q_finrx = cond(finrx >= ptfpx_eq, q_finrx, q_ptfpx_eq) if negptfpx_eq == 1
+replace q_finpx = cond(finpx >= ptfpx_eq, q_finpx, q_ptfpx_eq) if negptfpx_eq == 1
+replace q_finpx = cond(finpx >= ptfrx_eq, q_finpx, q_ptfrx_eq) if negptfrx_eq == 1
 replace s_finrx = "finrx,ptfrx-eq" if negptfrx_eq == 1
 replace s_finrx = "finrx,ptfpx-eq" if negptfpx_eq == 1
 replace s_finpx = "finpx,ptfpx-eq" if negptfpx_eq == 1
@@ -331,13 +331,13 @@ replace negptfpx_eq = 0 if aux == 1
 cap swapval ptfrx_eq ptfpx_eq if aux == 1 
 replace ptfrx_eq = abs(ptfrx_eq) if aux == 1
 replace ptfpx_eq = abs(ptfpx_eq) if aux == 1
-replace q_ptfrx_eq = min(3,cond(ptfrx_eq >= ptfpx_eq, q_ptfrx_eq, q_ptfpx_eq)) if negptfpx_eq == 1
+replace q_ptfrx_eq = cond(ptfrx_eq >= ptfpx_eq, q_ptfrx_eq, q_ptfpx_eq) if negptfpx_eq == 1
 replace s_ptfrx_eq = "ptfrx-eq,ptfpx-eq" if negptfpx_eq == 1
 replace   ptfrx_eq = ptfrx_eq - ptfpx_eq if negptfpx_eq == 1
 replace q_ptfpx_eq = 0 if negptfpx_eq == 1 
 replace s_ptfpx_eq = "assumed" if negptfpx_eq == 1 
 replace   ptfpx_eq = 0 if negptfpx_eq == 1 
-replace q_ptfpx_eq = min(3,cond(ptfpx_eq >= ptfrx_eq, q_ptfpx_eq, q_ptfrx_eq)) if negptfrx_eq == 1
+replace q_ptfpx_eq = cond(ptfpx_eq >= ptfrx_eq, q_ptfpx_eq, q_ptfrx_eq) if negptfrx_eq == 1
 replace s_ptfpx_eq = "ptfpx-eq,ptfrx-eq" if negptfrx_eq == 1
 replace   ptfpx_eq = ptfpx_eq - ptfrx_eq if negptfrx_eq == 1
 replace q_ptfrx_eq = 0 if negptfrx_eq == 1
@@ -345,10 +345,10 @@ replace s_ptfrx_eq = "assumed" if negptfrx_eq == 1
 replace   ptfrx_eq = 0 if negptfrx_eq == 1
 drop aux 
 
-replace q_pinrx = min(3,cond(pinrx >= fdirx, q_pinrx, q_fdirx)) if negfdirx == 1
-replace q_pinrx = min(3,cond(pinrx >= fdipx, q_pinrx, q_fdipx)) if negfdipx == 1
-replace q_pinpx = min(3,cond(pinpx >= fdipx, q_pinpx, q_fdipx)) if negfdipx == 1
-replace q_pinpx = min(3,cond(pinpx >= fdirx, q_pinpx, q_fdirx)) if negfdirx == 1
+replace q_pinrx = cond(pinrx >= fdirx, q_pinrx, q_fdirx) if negfdirx == 1
+replace q_pinrx = cond(pinrx >= fdipx, q_pinrx, q_fdipx) if negfdipx == 1
+replace q_pinpx = cond(pinpx >= fdipx, q_pinpx, q_fdipx) if negfdipx == 1
+replace q_pinpx = cond(pinpx >= fdirx, q_pinpx, q_fdirx) if negfdirx == 1
 replace s_pinrx = "pinrx,fdirx" if negfdirx == 1
 replace s_pinrx = "pinrx,fdipx" if negfdipx == 1
 replace s_pinpx = "pinpx,fdipx" if negfdipx == 1
@@ -358,10 +358,10 @@ replace   pinrx = pinrx - fdipx if negfdipx == 1
 replace   pinpx = pinpx - fdipx if negfdipx == 1
 replace   pinpx = pinpx - fdirx if negfdirx == 1
 
-replace q_finrx = min(3,cond(finrx >= fdirx, q_finrx, q_fdirx)) if negfdirx == 1
-replace q_finrx = min(3,cond(finrx >= fdipx, q_finrx, q_fdipx)) if negfdipx == 1
-replace q_finpx = min(3,cond(finpx >= fdipx, q_finpx, q_fdipx)) if negfdipx == 1
-replace q_finpx = min(3,cond(finpx >= fdirx, q_finpx, q_fdirx)) if negfdirx == 1
+replace q_finrx = cond(finrx >= fdirx, q_finrx, q_fdirx) if negfdirx == 1
+replace q_finrx = cond(finrx >= fdipx, q_finrx, q_fdipx) if negfdipx == 1
+replace q_finpx = cond(finpx >= fdipx, q_finpx, q_fdipx) if negfdipx == 1
+replace q_finpx = cond(finpx >= fdirx, q_finpx, q_fdirx) if negfdirx == 1
 replace s_finrx = "finrx,fdirx" if negfdirx == 1
 replace s_finrx = "finrx,fdipx" if negfdipx == 1
 replace s_finpx = "finpx,fdipx" if negfdipx == 1
@@ -377,13 +377,13 @@ replace negfdipx = 0 if aux == 1
 cap swapval fdirx fdipx if aux == 1 
 replace fdirx = abs(fdirx) if aux == 1
 replace fdipx = abs(fdipx) if aux == 1
-replace q_fdirx = min(3,cond(fdirx >= fdipx, q_fdirx, q_fdipx)) if negfdipx == 1
+replace q_fdirx = cond(fdirx >= fdipx, q_fdirx, q_fdipx) if negfdipx == 1
 replace s_fdirx = "fdirx,fdipx" if negfdipx == 1
 replace   fdirx = fdirx - fdipx if negfdipx == 1
 replace q_fdipx = 0         if negfdipx == 1 
 replace s_fdipx = "assumed" if negfdipx == 1 
 replace   fdipx = 0         if negfdipx == 1 
-replace q_fdipx = min(3,cond(fdipx >= fdirx, q_fdipx, q_fdirx)) if negfdirx == 1
+replace q_fdipx = cond(fdipx >= fdirx, q_fdipx, q_fdirx) if negfdirx == 1
 replace s_fdipx = "fdipx,fdirx" if negfdirx == 1
 replace   fdipx = fdipx - fdirx if negfdirx == 1
 replace q_fdirx = 0         if negfdirx == 1
@@ -391,10 +391,10 @@ replace s_fdirx = "assumed" if negfdirx == 1
 replace   fdirx = 0         if negfdirx == 1
 drop aux 
 
-replace q_finrx = min(3,cond(finrx >= fsubx, q_finrx, q_fsubx)) if negfsubx == 1
-replace q_finrx = min(3,cond(finrx >= ftaxx, q_finrx, q_ftaxx)) if negftaxx == 1
-replace q_finpx = min(3,cond(finpx >= ftaxx, q_finpx, q_ftaxx)) if negftaxx == 1
-replace q_finpx = min(3,cond(finpx >= fsubx, q_finpx, q_fsubx)) if negfsubx == 1
+replace q_finrx = cond(finrx >= fsubx, q_finrx, q_fsubx) if negfsubx == 1
+replace q_finrx = cond(finrx >= ftaxx, q_finrx, q_ftaxx) if negftaxx == 1
+replace q_finpx = cond(finpx >= ftaxx, q_finpx, q_ftaxx) if negftaxx == 1
+replace q_finpx = cond(finpx >= fsubx, q_finpx, q_fsubx) if negfsubx == 1
 replace s_finrx = "finrx,fsubx" if negfsubx == 1
 replace s_finrx = "finrx,ftaxx" if negftaxx == 1
 replace s_finpx = "finpx,ftaxx" if negftaxx == 1
@@ -409,13 +409,13 @@ replace negftaxx = 0 if aux == 1
 cap swapval fsubx ftaxx if aux == 1 
 replace fsubx = abs(fsubx) if aux == 1
 replace ftaxx = abs(ftaxx) if aux == 1
-replace q_fsubx = min(3,cond(fsubx >= ftaxx,q_fsubx, q_ftaxx))  if negftaxx == 1
+replace q_fsubx = cond(fsubx >= ftaxx,q_fsubx, q_ftaxx)  if negftaxx == 1
 replace s_fsubx = "fsubx,ftaxx" if negftaxx == 1
 replace   fsubx = fsubx - ftaxx if negftaxx == 1
 replace q_ftaxx = 0 if negftaxx == 1 
 replace s_ftaxx = "assumed" if negftaxx == 1 
 replace   ftaxx = 0 if negftaxx == 1 
-replace q_ftaxx = min(3,cond(ftaxx >= fsubx, q_ftaxx, q_fsubx)) if negfsubx == 1
+replace q_ftaxx = cond(ftaxx >= fsubx, q_ftaxx, q_fsubx) if negfsubx == 1
 replace s_ftaxx = "ftaxx,fsubx" if negfsubx == 1
 replace   ftaxx = ftaxx - fsubx if negfsubx == 1
 replace q_fsubx = 0 if negfsubx == 1
@@ -423,10 +423,10 @@ replace s_fsubx = "assumed" if negfsubx == 1
 replace   fsubx = 0 if negfsubx == 1
 drop aux 
 
-replace q_finrx = min(3,cond(finrx >= comrx, q_finrx, q_comrx)) if negcomrx == 1
-replace q_finrx = min(3,cond(finrx >= compx, q_finrx, q_compx)) if negcompx == 1
-replace q_finpx = min(3,cond(finpx >= compx, q_finpx, q_compx)) if negcompx == 1
-replace q_finpx = min(3,cond(finpx >= comrx, q_finpx, q_comrx)) if negcomrx == 1
+replace q_finrx = cond(finrx >= comrx, q_finrx, q_comrx) if negcomrx == 1
+replace q_finrx = cond(finrx >= compx, q_finrx, q_compx) if negcompx == 1
+replace q_finpx = cond(finpx >= compx, q_finpx, q_compx) if negcompx == 1
+replace q_finpx = cond(finpx >= comrx, q_finpx, q_comrx) if negcomrx == 1
 replace s_finrx = "finrx,comrx" if negcomrx == 1
 replace s_finrx = "finrx,compx" if negcompx == 1
 replace s_finpx = "finpx,compx" if negcompx == 1
@@ -443,13 +443,13 @@ replace negcompx = 0 if aux == 1
 cap swapval comrx compx if aux == 1 
 replace comrx = abs(comrx) if aux == 1
 replace compx = abs(compx) if aux == 1
-replace q_comrx = min(3,cond(comrx >= compx, q_comrx, q_compx)) if negcompx == 1
+replace q_comrx = cond(comrx >= compx, q_comrx, q_compx) if negcompx == 1
 replace s_comrx = "comrx,compx" if negcompx == 1
 replace   comrx = comrx - compx if negcompx == 1
 replace q_compx = 0         if negcompx == 1 
 replace s_compx = "assumed" if negcompx == 1 
 replace   compx = 0         if negcompx == 1 
-replace q_compx = min(3,cond(compx >= comrx, q_compx, q_comrx)) if negcomrx == 1
+replace q_compx = cond(compx >= comrx, q_compx, q_comrx) if negcomrx == 1
 replace s_compx = "compx,comrx" if negcomrx == 1
 replace   compx = compx - comrx if negcomrx == 1
 replace q_comrx = 0         if negcomrx == 1
@@ -467,10 +467,10 @@ replace ptfpx_deb = ptfpx_deb + cond(missing(ptfpx_oth), 0, ptfpx_oth)
 drop ptfrx_oth ptfpx_oth
 
 // completing
-replace q_ptfrx = min(3,cond(pinrx >= fdirx, q_pinrx, q_fdirx)) if (missing(ptfrx) | ptfrx == 0) & (!missing(pinrx) & pinrx !=0) & (!missing(fdirx) & fdirx !=0) & (fdirx < pinrx)
-replace q_ptfpx = min(3,cond(pinpx >= fdipx, q_pinpx, q_fdipx)) if (missing(ptfpx) | ptfpx == 0) & (!missing(pinpx) & pinpx !=0) & (!missing(fdipx) & fdipx !=0) & (fdipx < pinpx)
-replace q_fdirx = min(3,cond(pinrx >= ptfrx, q_pinrx, q_ptfrx)) if (missing(fdirx) | fdirx == 0) & (!missing(pinrx) & pinrx !=0) & (!missing(ptfrx) & ptfrx !=0) & (ptfrx < pinrx) 
-replace q_fdipx = min(3,cond(pinpx >= ptfpx, q_pinpx, q_ptfpx)) if (missing(fdipx) | fdipx == 0) & (!missing(pinpx) & pinpx !=0) & (!missing(ptfpx) & ptfpx !=0) & (ptfpx < pinpx) 
+replace q_ptfrx = cond(pinrx >= fdirx, q_pinrx, q_fdirx) if (missing(ptfrx) | ptfrx == 0) & (!missing(pinrx) & pinrx !=0) & (!missing(fdirx) & fdirx !=0) & (fdirx < pinrx)
+replace q_ptfpx = cond(pinpx >= fdipx, q_pinpx, q_fdipx) if (missing(ptfpx) | ptfpx == 0) & (!missing(pinpx) & pinpx !=0) & (!missing(fdipx) & fdipx !=0) & (fdipx < pinpx)
+replace q_fdirx = cond(pinrx >= ptfrx, q_pinrx, q_ptfrx) if (missing(fdirx) | fdirx == 0) & (!missing(pinrx) & pinrx !=0) & (!missing(ptfrx) & ptfrx !=0) & (ptfrx < pinrx) 
+replace q_fdipx = cond(pinpx >= ptfpx, q_pinpx, q_ptfpx) if (missing(fdipx) | fdipx == 0) & (!missing(pinpx) & pinpx !=0) & (!missing(ptfpx) & ptfpx !=0) & (ptfpx < pinpx) 
 replace s_ptfrx = "pinrx,fdirx" if (missing(ptfrx) | ptfrx == 0) & (!missing(pinrx) & pinrx !=0) & (!missing(fdirx) & fdirx !=0) & (fdirx < pinrx)
 replace s_ptfpx = "pinpx,fdipx" if (missing(ptfpx) | ptfpx == 0) & (!missing(pinpx) & pinpx !=0) & (!missing(fdipx) & fdipx !=0) & (fdipx < pinpx)
 replace s_fdirx = "pinrx,ptfrx" if (missing(fdirx) | fdirx == 0) & (!missing(pinrx) & pinrx !=0) & (!missing(ptfrx) & ptfrx !=0) & (ptfrx < pinrx) 
@@ -513,20 +513,20 @@ replace   ptfrx_comp = ptfrx - ptfrx_comp
 gen     s_ptfrx_comp = "ptfrx,ptfrx-comp"
 
 // allocating to deb and eq and reserves will be done below
-replace q_ptfrx_deb = min(3,q_ptfrx_comp) if mi(ptfrx_deb) & ptfrx_comp > 0 & !mi(ptfrx_eq)
+replace q_ptfrx_deb = q_ptfrx_comp if mi(ptfrx_deb) & ptfrx_comp > 0 & !mi(ptfrx_eq)
 replace s_ptfrx_deb = "ptfrx-comp" if mi(ptfrx_deb) & ptfrx_comp > 0 & !mi(ptfrx_eq)
 replace   ptfrx_deb = ptfrx_comp   if mi(ptfrx_deb) & ptfrx_comp > 0 & !mi(ptfrx_eq)
-replace q_ptfrx_eq = min(3,q_ptfrx_comp)  if mi(ptfrx_eq) & ptfrx_comp > 0 & !mi(ptfrx_deb)
-replace s_ptfrx_eq = "ptfrx-comp" if mi(ptfrx_eq) & ptfrx_comp > 0 & !mi(ptfrx_deb)
-replace   ptfrx_eq = ptfrx_comp   if mi(ptfrx_eq) & ptfrx_comp > 0 & !mi(ptfrx_deb)
+replace q_ptfrx_eq  = q_ptfrx_comp if mi(ptfrx_eq) & ptfrx_comp > 0 & !mi(ptfrx_deb)
+replace s_ptfrx_eq  = "ptfrx-comp" if mi(ptfrx_eq) & ptfrx_comp > 0 & !mi(ptfrx_deb)
+replace   ptfrx_eq  = ptfrx_comp   if mi(ptfrx_eq) & ptfrx_comp > 0 & !mi(ptfrx_deb)
 drop ptfrx_comp
 
 // paid
-replace q_ptfpx_eq  = min(3, cond(ptfpx >= ptfpx_deb, q_ptfpx, q_ptfpx_deb)) if (missing(ptfpx_eq) | ptfpx_eq == 0) & (!missing(ptfpx) & ptfpx !=0) ///
+replace q_ptfpx_eq  = cond(ptfpx >= ptfpx_deb, q_ptfpx, q_ptfpx_deb) if (missing(ptfpx_eq) | ptfpx_eq == 0) & (!missing(ptfpx) & ptfpx !=0) ///
 																				& (!missing(ptfpx_deb) & ptfpx_deb !=0) & (ptfrx_deb < ptfpx) 
 replace s_ptfpx_eq  = "ptfpx,ptfpx-deb" if (missing(ptfpx_eq) | ptfpx_eq == 0) & (!missing(ptfpx) & ptfpx !=0) & (!missing(ptfpx_deb) & ptfpx_deb !=0) & (ptfrx_deb < ptfpx)
 replace   ptfpx_eq  = ptfpx - ptfpx_deb if (missing(ptfpx_eq) | ptfpx_eq == 0) & (!missing(ptfpx) & ptfpx !=0) & (!missing(ptfpx_deb) & ptfpx_deb !=0) & (ptfrx_deb < ptfpx) 
-replace q_ptfpx_deb = min(3, cond(ptfpx >= ptfpx_eq, q_ptfpx, q_ptfpx_eq)) if (missing(ptfpx_deb) | ptfpx_deb == 0) & (!missing(ptfpx) & ptfpx !=0) ///
+replace q_ptfpx_deb = cond(ptfpx >= ptfpx_eq, q_ptfpx, q_ptfpx_eq) if (missing(ptfpx_deb) | ptfpx_deb == 0) & (!missing(ptfpx) & ptfpx !=0) ///
 																				& (!missing(ptfpx_eq) & ptfpx_eq !=0) & (ptfpx_eq < ptfpx)  
 replace s_ptfpx_deb = "ptfpx,ptfpx-eq" if (missing(ptfpx_deb) | ptfpx_deb == 0) & (!missing(ptfpx) & ptfpx !=0) & (!missing(ptfpx_eq) & ptfpx_eq !=0) & (ptfpx_eq < ptfpx) 
 replace   ptfpx_deb = ptfpx - ptfpx_eq if (missing(ptfpx_deb) | ptfpx_deb == 0) & (!missing(ptfpx) & ptfpx !=0) & (!missing(ptfpx_eq) & ptfpx_eq !=0) & (ptfpx_eq < ptfpx) 
@@ -566,37 +566,37 @@ foreach x in a d {
 gen negptfrx = 1 if negptfrx_deb == 1 & negptfrx_eq == 1 
 gen negptfpx = 1 if negptfpx_deb == 1 & negptfpx_eq == 1 
 
-replace q_fdirx = min(3, q_pinrx)  if  missing(fdirx) | fdirx == 0  & negfdirx != 1
-replace q_ptfrx = min(3, q_pinrx)  if  missing(ptfrx) | ptfrx == 0  & negptfrx != 1 
-replace q_fdipx = min(3, q_pinrx)  if  missing(fdipx) | fdipx == 0  & negfdipx != 1
-replace q_ptfpx = min(3, q_pinrx)  if  missing(ptfpx) | ptfpx == 0  & negptfpx != 1 
+replace q_fdirx = q_pinrx  if  missing(fdirx) | fdirx == 0  & negfdirx != 1
+replace q_ptfrx = q_pinrx  if  missing(ptfrx) | ptfrx == 0  & negptfrx != 1 
+replace q_fdipx = q_pinpx  if  missing(fdipx) | fdipx == 0  & negfdipx != 1
+replace q_ptfpx = q_pinpx  if  missing(ptfpx) | ptfpx == 0  & negptfpx != 1 
 replace s_fdirx = "pinrx_ratiolag" + s_share_fdixa 	if  missing(fdirx) | fdirx == 0  & negfdirx != 1
 replace s_ptfrx = "pinrx_ratiolag" + s_share_ptfxa 	if  missing(ptfrx) | ptfrx == 0  & negptfrx != 1 
-replace s_fdipx = "pinrx_ratiolag" + s_share_fdixd 	if  missing(fdipx) | fdipx == 0  & negfdipx != 1
-replace s_ptfpx = "pinrx_ratiolag" + s_share_ptfxd 	if  missing(ptfpx) | ptfpx == 0  & negptfpx != 1 
+replace s_fdipx = "pinpx_ratiolag" + s_share_fdixd 	if  missing(fdipx) | fdipx == 0  & negfdipx != 1
+replace s_ptfpx = "pinpx_ratiolag" + s_share_ptfxd 	if  missing(ptfpx) | ptfpx == 0  & negptfpx != 1 
 replace   fdirx = pinrx*l.share_fdixa 				if  missing(fdirx) | fdirx == 0  & negfdirx != 1
 replace   ptfrx = pinrx*l.share_ptfxa 				if  missing(ptfrx) | ptfrx == 0  & negptfrx != 1 
 replace   fdipx = pinpx*l.share_fdixd 				if  missing(fdipx) | fdipx == 0  & negfdipx != 1
 replace   ptfpx = pinpx*l.share_ptfxd 				if  missing(ptfpx) | ptfpx == 0  & negptfpx != 1 // Should we have parenthesis here as below? 
 
 
-replace q_fdirx = min(q_pinrx,3)   if (missing(fdirx) | fdirx == 0) & year == 1970 & negfdirx != 1
-replace q_ptfrx = min(q_pinrx,3)   if (missing(ptfrx) | ptfrx == 0) & year == 1970 & negptfrx != 1
-replace q_fdipx = min(q_pinrx,3)   if (missing(fdipx) | fdipx == 0) & year == 1970 & negfdipx != 1
-replace q_ptfpx = min(q_pinrx,3)   if (missing(ptfpx) | ptfpx == 0) & year == 1970 & negptfpx != 1
+replace q_fdirx = q_pinrx   if (missing(fdirx) | fdirx == 0) & year == 1970 & negfdirx != 1
+replace q_ptfrx = q_pinrx   if (missing(ptfrx) | ptfrx == 0) & year == 1970 & negptfrx != 1
+replace q_fdipx = q_pinpx   if (missing(fdipx) | fdipx == 0) & year == 1970 & negfdipx != 1
+replace q_ptfpx = q_pinpx   if (missing(ptfpx) | ptfpx == 0) & year == 1970 & negptfpx != 1
 replace s_fdirx = "pinrx_ratio" + s_share_fdixa if (missing(fdirx) | fdirx == 0) & year == 1970 & negfdirx != 1
 replace s_ptfrx = "pinrx_ratio" + s_share_ptfxa if (missing(ptfrx) | ptfrx == 0) & year == 1970 & negptfrx != 1
-replace s_fdipx = "pinrx_ratio" + s_share_fdixd if (missing(fdipx) | fdipx == 0) & year == 1970 & negfdipx != 1
-replace s_ptfpx = "pinrx_ratio" + s_share_ptfxd if (missing(ptfpx) | ptfpx == 0) & year == 1970 & negptfpx != 1
+replace s_fdipx = "pinpx_ratio" + s_share_fdixd if (missing(fdipx) | fdipx == 0) & year == 1970 & negfdipx != 1
+replace s_ptfpx = "pinpx_ratio" + s_share_ptfxd if (missing(ptfpx) | ptfpx == 0) & year == 1970 & negptfpx != 1
 replace   fdirx = pinrx*share_fdixa if (missing(fdirx) | fdirx == 0) & year == 1970 & negfdirx != 1
 replace   ptfrx = pinrx*share_ptfxa if (missing(ptfrx) | ptfrx == 0) & year == 1970 & negptfrx != 1
 replace   fdipx = pinpx*share_fdixd if (missing(fdipx) | fdipx == 0) & year == 1970 & negfdipx != 1
 replace   ptfpx = pinpx*share_ptfxd if (missing(ptfpx) | ptfpx == 0) & year == 1970 & negptfpx != 1
 
-replace q_ptfrx = min(3, cond(pinrx >= fdirx, q_pinrx, q_fdirx)) if checkptfrx == 1 & pinrx > fdirx
-replace q_fdirx = min(3, cond(pinrx >= ptfrx, q_pinrx, q_ptfrx)) if checkfdirx == 1 & pinrx > ptfrx
-replace q_ptfpx = min(3, cond(pinpx >= fdipx, q_pinpx, q_fdipx)) if checkptfpx == 1 & pinpx > fdipx
-replace q_fdipx = min(3, cond(pinpx >= ptfpx, q_pinpx, q_ptfpx)) if checkfdipx == 1 & pinpx > ptfpx
+replace q_ptfrx = cond(pinrx >= fdirx, q_pinrx, q_fdirx) if checkptfrx == 1 & pinrx > fdirx
+replace q_fdirx = cond(pinrx >= ptfrx, q_pinrx, q_ptfrx) if checkfdirx == 1 & pinrx > ptfrx
+replace q_ptfpx = cond(pinpx >= fdipx, q_pinpx, q_fdipx) if checkptfpx == 1 & pinpx > fdipx
+replace q_fdipx = cond(pinpx >= ptfpx, q_pinpx, q_ptfpx) if checkfdipx == 1 & pinpx > ptfpx
 replace s_ptfrx = "pinrx,fdirx" if checkptfrx == 1 & pinrx > fdirx
 replace s_fdirx = "pinrx,ptfrx" if checkfdirx == 1 & pinrx > ptfrx
 replace s_ptfpx = "pinpx,fdipx" if checkptfpx == 1 & pinpx > fdipx
@@ -641,18 +641,18 @@ foreach x in ptfrx_eq ptfrx_deb ptfrx_res ptfpx_eq ptfpx_deb {
 }
 
 // received
-replace q_ptfrx_eq  = min(q_ptfrx, 3) if (missing(ptfrx_eq)  | ptfrx_eq  == 0) & !missing(ptfrx)
+replace q_ptfrx_eq  = q_ptfrx if (missing(ptfrx_eq)  | ptfrx_eq  == 0) & !missing(ptfrx)
 replace s_ptfrx_eq  = "ptfrx_ratio"+s_share_ptfxa_eq       if (missing(ptfrx_eq)  | ptfrx_eq  == 0) & !missing(ptfrx)
 replace   ptfrx_eq  = ptfrx*l.share_ptfxa_eq            if (missing(ptfrx_eq)  | ptfrx_eq  == 0) 
 
-replace q_ptfrx_deb = min(q_ptfrx, 3) if (missing(ptfrx_deb) | ptfrx_deb == 0) & !missing(ptfrx)
+replace q_ptfrx_deb = q_ptfrx if (missing(ptfrx_deb) | ptfrx_deb == 0) & !missing(ptfrx)
 replace s_ptfrx_deb = "ptfrx_ratio"+s_share_ptfxa_deb      if (missing(ptfrx_deb) | ptfrx_deb == 0) & !missing(ptfrx)
 replace   ptfrx_deb = ptfrx*l.share_ptfxa_deb           if (missing(ptfrx_deb) | ptfrx_deb == 0) 
 
 // since many years reserves are not reported, we substract them from debt
-replace q_ptfrx_res = min(q_ptfrx, 3) if (missing(ptfrx_res) | ptfrx_res     == 0) & !missing(ptfrx)
-replace q_ptfrx_deb = min(3, cond(ptfrx_deb >= ptfrx_res, q_ptfrx_deb, q_ptfrx_res)) if  missptfrx_res == 1 & missptfrx_deb == 0  & !mi(ptfrx_deb) & !mi(ptfrx_res) & ptfrx_deb > ptfrx_res 
-replace q_ptfrx_eq  = min(3, cond(ptfrx_eq  >= ptfrx_res, q_ptfrx_eq, q_ptfrx_res))  if  missptfrx_res == 1 & missptfrx_eq  == 0  & !mi(ptfrx_eq)  & !mi(ptfrx_res) & ptfrx_deb < ptfrx_res & ptfrx_eq > ptfrx_res
+replace q_ptfrx_res = q_ptfrx if (missing(ptfrx_res) | ptfrx_res     == 0) & !missing(ptfrx)
+replace q_ptfrx_deb = cond(ptfrx_deb >= ptfrx_res, q_ptfrx_deb, q_ptfrx_res) if  missptfrx_res == 1 & missptfrx_deb == 0  & !mi(ptfrx_deb) & !mi(ptfrx_res) & ptfrx_deb > ptfrx_res 
+replace q_ptfrx_eq  = cond(ptfrx_eq  >= ptfrx_res, q_ptfrx_eq, q_ptfrx_res)  if  missptfrx_res == 1 & missptfrx_eq  == 0  & !mi(ptfrx_eq)  & !mi(ptfrx_res) & ptfrx_deb < ptfrx_res & ptfrx_eq > ptfrx_res
 replace s_ptfrx_res = "ptfrx_ratio"+ s_share_ptfxa_res if (missing(ptfrx_res) | ptfrx_res    == 0) & !missing(ptfrx)
 replace s_ptfrx_deb = "ptfrx-deb,ptfrx-res"          if missptfrx_res == 1 & missptfrx_deb == 0 & !mi(ptfrx_deb) & !mi(ptfrx_res) & ptfrx_deb > ptfrx_res 
 replace s_ptfrx_eq  = "ptfrx-eq,ptfrx-res"           if missptfrx_res == 1 & missptfrx_eq  == 0 & !mi(ptfrx_eq)  & !mi(ptfrx_res) & ptfrx_deb < ptfrx_res & ptfrx_eq > ptfrx_res
@@ -661,9 +661,9 @@ replace   ptfrx_deb = ptfrx_deb - ptfrx_res   if missptfrx_res == 1 & missptfrx_
 replace   ptfrx_eq  = ptfrx_eq - ptfrx_res    if missptfrx_res == 1 & missptfrx_eq  == 0 & !mi(ptfrx_eq)  & !mi(ptfrx_res) & ptfrx_deb < ptfrx_res & ptfrx_eq > ptfrx_res
 
 
-replace q_ptfrx_eq  = min(q_ptfrx, 3)   if (missing(ptfrx_eq)  | ptfrx_eq  == 0 & year == 1970) & !missing(ptfrx)
-replace q_ptfrx_deb = min(q_ptfrx, 3)  if (missing(ptfrx_deb) | ptfrx_deb == 0 & year == 1970) & !missing(ptfrx)
-replace q_ptfrx_res = min(q_ptfrx, 3)  if (missing(ptfrx_res) | ptfrx_res == 0 & year == 1970) & !missing(ptfrx)
+replace q_ptfrx_eq  = q_ptfrx  if (missing(ptfrx_eq)  | ptfrx_eq  == 0 & year == 1970) & !missing(ptfrx)
+replace q_ptfrx_deb = q_ptfrx  if (missing(ptfrx_deb) | ptfrx_deb == 0 & year == 1970) & !missing(ptfrx)
+replace q_ptfrx_res = q_ptfrx  if (missing(ptfrx_res) | ptfrx_res == 0 & year == 1970) & !missing(ptfrx)
 replace s_ptfrx_eq  = "ptfrx_ratiolag"+ s_share_ptfxa_eq   if (missing(ptfrx_eq)  | ptfrx_eq  == 0 & year == 1970) & !missing(ptfrx)
 replace s_ptfrx_deb = "ptfrx_ratiolag"+ s_share_ptfxa_deb  if (missing(ptfrx_deb) | ptfrx_deb == 0 & year == 1970) & !missing(ptfrx)
 replace s_ptfrx_res = "ptfrx_ratiolag"+ s_share_ptfxa_res  if (missing(ptfrx_res) | ptfrx_res == 0 & year == 1970) & !missing(ptfrx)
@@ -679,30 +679,30 @@ replace ratio = 0 if mi(ratio)
 
 foreach var in ptfrx_deb ptfrx_eq ptfrx_res {
 	local v_dash = subinstr("`var'", "_", "-", .)
-	replace q_`var' = min(3, q_`var')
+	*replace q_`var' = q_`var'
 	replace s_`var' = "`v_dash'_ratio(ptfrx-deb + ptfrx_eq + ptfrx-res)/ptfrx"
 	replace `var' = `var'/ratio 
 }
 
 // replacing proportionally
-replace q_ptfrx_eq  = min(3, cond(ptfrx_eq >= ptfrx_deb, q_ptfrx_eq, q_ptfrx_deb))   if missptfrx_eq == 0 & missptfrx_res == 0 & missptfrx_deb == 1 & ratio > 1
+replace q_ptfrx_eq  = cond(ptfrx_eq >= ptfrx_deb, q_ptfrx_eq, q_ptfrx_deb)   if missptfrx_eq == 0 & missptfrx_res == 0 & missptfrx_deb == 1 & ratio > 1
 replace s_ptfrx_eq  = "ptfrx-eq,ptfrx-deb_ratioptfrx-eq/ptfrx"   if missptfrx_eq == 0 & missptfrx_res == 0 & missptfrx_deb == 1 & ratio > 1
 replace   ptfrx_eq  = ptfrx_eq - ptfrx_deb*(ptfrx_eq/ptfrx)   if missptfrx_eq == 0 & missptfrx_res == 0 & missptfrx_deb == 1 & ratio > 1
-replace q_ptfrx_res = min(3, cond(ptfrx_res >= ptfrx_deb, q_ptfrx_res, q_ptfrx_deb)) if missptfrx_eq == 0 & missptfrx_res == 0 & missptfrx_deb == 1 & ratio > 1
+replace q_ptfrx_res = cond(ptfrx_res >= ptfrx_deb, q_ptfrx_res, q_ptfrx_deb) if missptfrx_eq == 0 & missptfrx_res == 0 & missptfrx_deb == 1 & ratio > 1
 replace s_ptfrx_res = "ptfrx-res,ptfrx-deb_ratioptfrx-res/ptfrx" if missptfrx_eq == 0 & missptfrx_res == 0 & missptfrx_deb == 1 & ratio > 1
 replace   ptfrx_res = ptfrx_res - ptfrx_deb*(ptfrx_res/ptfrx) if missptfrx_eq == 0 & missptfrx_res == 0 & missptfrx_deb == 1 & ratio > 1
 
-replace q_ptfrx_deb = min(3, cond(ptfrx_deb >= ptfrx_eq, q_ptfrx_deb, q_ptfrx_eq))  if missptfrx_eq == 1 & missptfrx_res == 0 & missptfrx_deb == 0 & ratio > 1
+replace q_ptfrx_deb = cond(ptfrx_deb >= ptfrx_eq, q_ptfrx_deb, q_ptfrx_eq)  if missptfrx_eq == 1 & missptfrx_res == 0 & missptfrx_deb == 0 & ratio > 1
 replace s_ptfrx_deb = "ptfrx-deb,ptfrx-eq_ratioptfrx-deb/ptfrx"  if missptfrx_eq == 1 & missptfrx_res == 0 & missptfrx_deb == 0 & ratio > 1
 replace   ptfrx_deb = ptfrx_deb - ptfrx_eq*(ptfrx_deb/ptfrx)  if missptfrx_eq == 1 & missptfrx_res == 0 & missptfrx_deb == 0 & ratio > 1
-replace q_ptfrx_res = min(3, cond(ptfrx_res >= ptfrx_eq, q_ptfrx_res, q_ptfrx_eq)) if missptfrx_eq == 1 & missptfrx_res == 0 & missptfrx_deb == 0 & ratio > 1
+replace q_ptfrx_res = cond(ptfrx_res >= ptfrx_eq, q_ptfrx_res, q_ptfrx_eq) if missptfrx_eq == 1 & missptfrx_res == 0 & missptfrx_deb == 0 & ratio > 1
 replace s_ptfrx_res = "ptfrx-res,ptfrx-eq_ratioptfrx-res/ptfrx"  if missptfrx_eq == 1 & missptfrx_res == 0 & missptfrx_deb == 0 & ratio > 1
 replace   ptfrx_res = ptfrx_res - ptfrx_eq*(ptfrx_res/ptfrx)  if missptfrx_eq == 1 & missptfrx_res == 0 & missptfrx_deb == 0 & ratio > 1
 
-replace q_ptfrx_deb = min(3, cond(ptfrx_deb >= ptfrx_res, q_ptfrx_deb, q_ptfrx_res)) if missptfrx_eq == 0 & missptfrx_res == 1 & missptfrx_deb == 0 & ratio > 1
+replace q_ptfrx_deb = cond(ptfrx_deb >= ptfrx_res, q_ptfrx_deb, q_ptfrx_res) if missptfrx_eq == 0 & missptfrx_res == 1 & missptfrx_deb == 0 & ratio > 1
 replace s_ptfrx_deb = "ptfrx-deb,ptfrx-res_ratioptfrx-deb/ptfrx" if missptfrx_eq == 0 & missptfrx_res == 1 & missptfrx_deb == 0 & ratio > 1
 replace   ptfrx_deb = ptfrx_deb - ptfrx_res*(ptfrx_deb/ptfrx) if missptfrx_eq == 0 & missptfrx_res == 1 & missptfrx_deb == 0 & ratio > 1
-replace q_ptfrx_eq  = min(3, cond(ptfrx_eq >= ptfrx_res, q_ptfrx_eq, q_ptfrx_res))   if missptfrx_eq == 0 & missptfrx_res == 1 & missptfrx_deb == 0 & ratio > 1 
+replace q_ptfrx_eq  = cond(ptfrx_eq >= ptfrx_res, q_ptfrx_eq, q_ptfrx_res)   if missptfrx_eq == 0 & missptfrx_res == 1 & missptfrx_deb == 0 & ratio > 1 
 replace s_ptfrx_eq  = "ptfrx-eq,ptfrx-res_ratioptfrx-eq/ptfrx"   if missptfrx_eq == 0 & missptfrx_res == 1 & missptfrx_deb == 0 & ratio > 1 
 replace   ptfrx_eq  = ptfrx_eq - ptfrx_res*(ptfrx_eq/ptfrx)   if missptfrx_eq == 0 & missptfrx_res == 1 & missptfrx_deb == 0 & ratio > 1 
 
@@ -737,32 +737,32 @@ replace ratio = 0 if mi(ratio)
 
 foreach var in ptfrx_deb ptfrx_eq ptfrx_res {
 	local v_dash = subinstr("`var'", "_", "-", .)
-	replace q_`var' = min(3, q_`var')
+	*replace q_`var' =  q_`var'
 	replace s_`var' = "`v_dash'_ratio(ptfrx-deb + ptfrx-eq + ptfrx-res)/ptfrx"
 	replace `var' = `var'/ratio 
 }
 drop check ratio 
 
 // paid
-replace q_ptfpx_eq  = min(3,q_ptfpx)  if missing(ptfpx_eq) | ptfpx_eq == 0 
+replace q_ptfpx_eq  = q_ptfpx  if missing(ptfpx_eq) | ptfpx_eq == 0 
 replace s_ptfpx_eq  = "ptfpx_ratiolag" + s_share_ptfxd_eq  if missing(ptfpx_eq) | ptfpx_eq == 0 
 replace   ptfpx_eq  = ptfpx*l.share_ptfxd_eq  if missing(ptfpx_eq) | ptfpx_eq == 0 
-replace q_ptfpx_deb = min(3,q_ptfpx)  if missing(ptfpx_deb) | ptfpx_deb == 0 
+replace q_ptfpx_deb = q_ptfpx  if missing(ptfpx_deb) | ptfpx_deb == 0 
 replace s_ptfpx_deb = "ptfpx_ratiolag" + s_share_ptfxd_deb if missing(ptfpx_deb) | ptfpx_deb == 0 
 replace   ptfpx_deb = ptfpx*l.share_ptfxd_deb if missing(ptfpx_deb) | ptfpx_deb == 0 
 
-replace q_ptfpx_eq  = min(3, cond(ptfpx >= ptfpx_deb, q_ptfpx, q_ptfpx_deb)) if checkptfpx_eq == 1
+replace q_ptfpx_eq  = cond(ptfpx >= ptfpx_deb, q_ptfpx, q_ptfpx_deb) if checkptfpx_eq == 1
 replace s_ptfpx_eq  = "ptfpx,ptfpx-deb" if checkptfpx_eq == 1
 replace   ptfpx_eq  = ptfpx - ptfpx_deb if checkptfpx_eq == 1
-replace q_ptfpx_deb = min(3, cond(ptfpx >= ptfpx_eq, q_ptfpx, q_ptfpx_eq))  if checkptfpx_deb == 1
+replace q_ptfpx_deb = cond(ptfpx >= ptfpx_eq, q_ptfpx, q_ptfpx_eq)  if checkptfpx_deb == 1
 replace s_ptfpx_deb = "ptfpx,ptfpx-eq"  if checkptfpx_deb == 1
 replace   ptfpx_deb = ptfpx - ptfpx_eq  if checkptfpx_deb == 1
 
-replace q_ptfpx_eq  = min(3,q_ptfpx)          if missing(ptfpx_eq) | ptfpx_eq == 0 & year == 1970
+replace q_ptfpx_eq  = q_ptfpx          if missing(ptfpx_eq) | ptfpx_eq == 0 & year == 1970
 replace s_ptfpx_eq  = "ptfpx_ratiolag" + s_share_ptfxd_eq if missing(ptfpx_eq) | ptfpx_eq == 0 & year == 1970
 replace   ptfpx_eq  = ptfpx*l.share_ptfxd_eq  if missing(ptfpx_eq) | ptfpx_eq == 0 & year == 1970
 replace s_ptfpx_deb = "ptfpx_ratiolag" + s_share_ptfxd_deb if missing(ptfpx_deb) | ptfpx_deb == 0 & year == 1970
-replace q_ptfpx_deb = min(3,q_ptfpx)          if missing(ptfpx_deb) | ptfpx_deb == 0 & year == 1970
+replace q_ptfpx_deb = q_ptfpx          if missing(ptfpx_deb) | ptfpx_deb == 0 & year == 1970
 replace   ptfpx_deb = ptfpx*l.share_ptfxd_deb if missing(ptfpx_deb) | ptfpx_deb == 0 & year == 1970
 
 // now adjust 
@@ -874,10 +874,10 @@ replace   pinpx = auxpinpx if !missing(auxpinpx)
 drop q_*2
 
 gen s_flcir = "pinrx,comrx" if !mi(pinrx) & !mi(comrx)
-gen q_flcir = min(3, cond(pinrx >= comrx, q_pinrx,  q_comrx)) if !mi(pinrx) & !mi(comrx)
+gen q_flcir = cond(pinrx >= comrx, q_pinrx,  q_comrx) if !mi(pinrx) & !mi(comrx)
 gen   flcir = pinrx + comrx
 gen  auxfinrx = flcir + fsubx
-replace q_finrx = min(3, cond(flcir >=  fsubx, q_flcir,  q_fsubx)) if !missing(auxfinrx)
+replace q_finrx = cond(flcir >=  fsubx, q_flcir,  q_fsubx) if !missing(auxfinrx)
 replace s_finrx = "flcir,fsubx" if !missing(auxfinrx)
 replace   finrx = auxfinrx    if !missing(auxfinrx)
 
@@ -886,10 +886,10 @@ replace   finrx = auxfinrx    if !missing(auxfinrx)
 //replace finrx = auxfinrx if !missing(auxfinrx)
 
 gen s_flcip = "pinpx,compx"    if !mi(pinpx) & !mi(compx)
-gen q_flcip = min(3, cond(pinpx >= compx, q_pinpx,  q_compx)) if !mi(pinpx) & !mi(compx)
+gen q_flcip = cond(pinpx >= compx, q_pinpx,  q_compx) if !mi(pinpx) & !mi(compx)
 gen flcip = pinpx + compx
 gen auxfinpx = flcip + ftaxx 
-replace q_finpx = min(3, cond(flcip >= ftaxx, q_flcip,  q_ftaxx)) if !missing(auxfinrx)
+replace q_finpx = cond(flcip >= ftaxx, q_flcip,  q_ftaxx) if !missing(auxfinrx)
 replace s_finpx = "flcip,ftaxx" if !missing(auxfinpx)
 replace   finpx = auxfinpx    if !missing(auxfinpx)
 
@@ -917,7 +917,7 @@ gen   ptfnx = ptfrx - ptfpx
 gen   taxnx = fsubx - ftaxx
 
 gen    auxnnfin = finrx - finpx 
-replace q_nnfin = min( 3, cond(finrx >= finpx, q_finrx,  q_finpx)) if !missing(auxnnfin)
+replace q_nnfin = cond(finrx >= finpx, q_finrx,  q_finpx) if !missing(auxnnfin)
 replace s_nnfin = "finrx,finpx" if !missing(auxnnfin)
 replace   nnfin = auxnnfin    if !missing(auxnnfin)
 drop aux* // non*  min* share* 

@@ -80,8 +80,8 @@ replace source=`"[URL][URL_LINK]https://wid.world/document/wid-income-and-wealth
 		+ `"[URL_TEXT]Arias-Osorio, M., Bauluz, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Moshrif, R., Piketty, T. (2025) WID Income and Wealth Distributional Series: Updated and Extended Coverage, 1800-2024[/URL_TEXT][/URL]"' if strpos(treat1,"arias2025")
 		
 * Method
-replace method=  "This variable was estimated as an aggregation of the regions that compose this region"  if strpos(treat1, "reginhouse") & !inlist(sixlet,"xlcusx","xlcusp","xlceux","xlceup","xlcyux","xlcyup","inyixx")
-replace method = "These data are computed by comparing the estimated nninc values of countries in this region; See  [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) `Distributional National Accounts Guidelines'[/URL_TEXT][/URL]" if  missing(method) & inlist(sixlet,"xlcusx","xlcusp","xlceux","xlceup","xlcyux","xlcyup","inyixx") & strpos(treat1, "reginhouse")
+replace method=  "This variable was estimated as an aggregation of the regions that compose this region"  if strpos(treat1, "reginhouse") 
+replace method = "These data are computed by comparing the added nninc values in differente currencies and terms of countries in this region; See  [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) `Distributional National Accounts Guidelines'[/URL_TEXT][/URL]" if  missing(method) & inlist(sixlet,"xlcusx","xlcusp","xlceux","xlceup","xlcyux","xlcyup","inyixx") & strpos(treat1, "inplicitnninc")
 
 replace method = "In-house calculation (see method)"  if treat1=="inhouse"
 
@@ -375,7 +375,7 @@ replace source = `"[URL][URL_LINK]https://www.imf.org/en/publications/weo/weo-da
 		+ `"World Economic Outlook (04/$year)[/URL_TEXT][/URL]"' if regexm(metadata, "weo") & strpos(sixlet,"gdpro") 
 		
 replace source = `"[URL][URL_LINK]https://www.brookings.edu/articles/the-external-wealth-of-nations-database/[/URL_LINK][URL_TEXT]"' ///
-		+ `"[/URL_TEXT]Milesi-Ferretti, J.M., The external wealth of nations database. Bookings[/URL]"' if regexm(metadata, "lmf") & strpos(sixlet,"gdpro") 
+		+ `"[/URL_TEXT]Milesi-Ferretti, J.M., The external wealth of nations database. Bookings (04/$year)[/URL]"' if regexm(metadata, "lmf") & strpos(sixlet,"gdpro") 
 		
 replace source = `"[URL][URL_LINK]https://wid.world/document/unequal-exchange-and-north-south-relations-evidence-from-global-trade-flows-and-the-world-balance-of-payments-1800-2025-world-inequality-lab-working-paper-2025-11/[/URL_LINK][URL_TEXT]"' ///
 		+ `"Nievas, G., Piketty, T. (2025). "' ///
@@ -412,7 +412,7 @@ replace source=`"[URL][URL_LINK]https://jenmana.info/projects/ [/URL_LINK]"' ///
 		+ `"[URL_TEXT]Jenmana, T., Document forthcoming[/URL_TEXT][/URL]"' if strpos(treat1,"Jenmana")
 
 replace source=`"[URL][URL_LINK]https://www.brookings.edu/articles/the-external-wealth-of-nations-database/[/URL_LINK]"' ///
-		+ `"[URL_TEXT]Milesi-Ferretti G-M. The external wealth of nations database. Brookings(04/$year)[/URL_TEXT][/URL]"' if strpos(treat1,"MilesiFerretti")
+		+ `"[URL_TEXT]Milesi-Ferretti G-M. The external wealth of nations database. Brookings (04/$year)[/URL_TEXT][/URL]"' if strpos(treat1,"MilesiFerretti")
 
 replace source=`"[URL][URL_LINK]https://wid.world/document/soviets-oligarchs-inequality-property-russia-1905-2016/[/URL_LINK]"' ///
 		+ `"[URL_TEXT]Novokmet, F., Piketty, T., Zucman, G.(2018) From Soviets to Oligarchs: Inequality and Property in Russia 1905-2016[/URL_TEXT][/URL]"' if strpos(treat1, "NovokmetPikettyZucman2017")
@@ -674,7 +674,7 @@ replace technote = " See [URL][URL_LINK]https://wid.world/document/wid-national-
 																											inlist(substr(sixlet,2,.),"finrx","finpx","scinx","scirx","scipx","ncanx","nwnxa","nwgxa") | /// 
 																											inlist(substr(sixlet,2,.),"nwgxd","nyixx","rerus","reryu","rereu")																										
 */																											
-replace technote=  " For more details on the latest data update round, see [URL][URL_LINK]https://wid.world/document/world-inequality-lab-technical-note-2026-04/[/URL_LINK][URL_TEXT] Arias-Osorio, M., Moshrif R., Nievas, G., Piketty, T., Van Der Ree A.(2024) Global Inequality Update 2026: Insights from WID Macro Series 1800-2025 [/URL_TEXT][/URL]" if missing(technote) 
+replace technote=  " For more details on the latest data update round, see [URL][URL_LINK]https://wid.world/document/world-inequality-lab-technical-note-2026-04/[/URL_LINK][URL_TEXT] Arias-Osorio, M., Moshrif R., Nievas, G., Piketty, T., Van Der Ree A. (2026) Global Inequality Update 2026: Insights from WID Macro Series 1800-2025 [/URL_TEXT][/URL]" if missing(technote) 
 
 replace method= method + technote + "; For more details on the WID.world methods, see [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) Distributional National Accounts Guidelines[/URL_TEXT][/URL]. " 
 

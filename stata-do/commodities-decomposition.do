@@ -107,8 +107,8 @@ foreach v in AG MA MI {
 	
 	replace s_sh_exp_`v' = s_export`v' if !missing(exportTO)
 	replace s_sh_imp_`v' = s_import`v' if !missing(importTO)
-	replace q_sh_exp_`v' = min(3,q_export`v')
-	replace q_sh_imp_`v' = min(3,q_import`v')
+	replace q_sh_exp_`v' = q_export`v'
+	replace q_sh_imp_`v' = q_import`v'
 }
 
 foreach f in exp imp {
@@ -421,10 +421,10 @@ replace tgxmx = tgxmx*((((2*tgxmx_wo)+(0*tgmmx_wo)))/2)/tgxmx_wo
 replace tgmmx = tgmmx*((((2*tgmmx_wo)+(0*tgxmx_wo)))/2)/tgmmx_wo
 
 // step 3:
-replace q_tgxmx = min(3, cond(tgxrx >= tgxcx,q_tgxrx, q_tgxcx))
+replace q_tgxmx = cond(tgxrx >= tgxcx,q_tgxrx, q_tgxcx)
 replace s_tgxmx = "tgxrx,tgxcx"
 replace   tgxmx = tgxrx - tgxcx
-replace q_tgmmx = min(3, cond(tgmpx >= tgmcx, q_tgmpx, q_tgmcx))
+replace q_tgmmx = cond(tgmpx >= tgmcx, q_tgmpx, q_tgmcx)
 replace s_tgmmx = "tgmpx,tgmcx"
 replace   tgmmx = tgmpx - tgmcx
 

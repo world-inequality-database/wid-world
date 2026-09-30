@@ -109,7 +109,7 @@ preserve
 restore
 */
 
-reshape wide value q_ s_, i(iso year p) j (widcode) string
+greshape wide value q_ s_, i(iso year p) j (widcode) string
 
 * call updated price index for NP data in 2023 prices
 preserve	
@@ -229,7 +229,7 @@ preserve
 	drop if strpos(iso,"CN-")
 	replace iso=substr(iso,1,2)
 	drop if inlist(iso,"OK","OL","QF","QP")
-	reshape long value q_ s_, i(iso year p) j(widcode) string
+	greshape long value q_ s_, i(iso year p) j(widcode) string
 
 	rename value value_wid
 	rename q_ q_wid
@@ -262,27 +262,27 @@ preserve
 	//-------------------
 	
 	* -------------  Recompute derived wealth variables	
-	reshape wide value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
+	greshape wide value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
 	* 1. If our updated gwass & gwdeb are available, let's recompute gweal = gwass - gwdeb.
 	replace    s_widygweal999i = "gwass,gwdeb"                              if missing(value_widygweal999i) & !missing(value_widygwass999i) & !missing(value_widygwdeb999i)
-	replace    q_widygweal999i = min(3,cond(value_widygwass999i >= value_widygwdeb999i, q_widygwass999i, q_widygwdeb999i)) ///
+	replace    q_widygweal999i = cond(value_widygwass999i >= value_widygwdeb999i, q_widygwass999i, q_widygwdeb999i) ///
 																			if missing(value_widygweal999i) & !missing(value_widygwass999i) & !missing(value_widygwdeb999i)
 	replace value_widygweal999i = value_widygwass999i - value_widygwdeb999i if missing(value_widygweal999i) & !missing(value_widygwass999i) & !missing(value_widygwdeb999i)
 
 	
 	* 2. If our gweal is updated but gwass and/or gwdeb are not, anchor GWP gweal whenever our updated gweal is available and rescale gwass and gwdeb so that gweal = gwass - gwdeb.
 	replace    s_widygwass999i = "gweal,gwdeb"                              if missing(value_widygwass999i) & !missing(value_widygwdeb999i) & !missing(value_widygweal999i)
-	replace    q_widygwass999i = min(3,cond(value_widygweal999i >= value_widygwdeb999i, q_widygweal999i, q_widygwdeb999i)) ///
+	replace    q_widygwass999i = cond(value_widygweal999i >= value_widygwdeb999i, q_widygweal999i, q_widygwdeb999i) ///
 																			if missing(value_widygwass999i) & !missing(value_widygwdeb999i) & !missing(value_widygweal999i)
 	replace value_widygwass999i = value_widygweal999i + value_widygwdeb999i if missing(value_widygwass999i) & !missing(value_widygwdeb999i) & !missing(value_widygweal999i)
 	
 	replace    s_widygwdeb999i = "gweal,gwass"                              if missing(value_widygwdeb999i) & !missing(value_widygwass999i) &  missing(value_widygwdeb999i) & !missing(value_widygweal999i)
-	replace    q_widygwdeb999i = min(3,cond(value_widygweal999i >= value_widygwass999i, q_widygweal999i, q_widygwass999i)) ///
+	replace    q_widygwdeb999i = cond(value_widygweal999i >= value_widygwass999i, q_widygweal999i, q_widygwass999i) ///
 																			if missing(value_widygwdeb999i) & !missing(value_widygwass999i) &  missing(value_widygwdeb999i) & !missing(value_widygweal999i)
 	replace value_widygwdeb999i = - value_widygweal999i + value_widygwass999i  if missing(value_widygwdeb999i) &  !missing(value_widygwass999i) &  missing(value_widygwdeb999i) & !missing(value_widygweal999i)
 
 	
-	reshape long  value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
+	greshape long  value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
 
 	* 3. Generate anchor values for the wealth aggregate updated (WID)
 	foreach v in bau wid {
@@ -306,7 +306,7 @@ preserve
 		replace value_`v'=value_`v' - 10
 	}
 	keep iso year p widcode value_* s_* q_* 
-	reshape wide value_spl s_spl q_spl value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
+	greshape wide value_spl s_spl q_spl value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
 		
 	* 4. If our gweal is updated but gwass and/or gwdeb are not, anchor GWP gweal whenever our updated gweal is available and rescale gwass and gwdeb so that gweal = gwass - gwdeb.
 	gen delta_adj = value_splygweal999i - (value_splygwass999i - value_splygwdeb999i) ///
@@ -359,7 +359,7 @@ preserve
 
 	* 7.  Recompute / replace:
 	gen    s_splynweal999i = "pweal,gweal"                              if !missing(value_splypweal999i) & !missing(value_splygweal999i)
-	gen    q_splynweal999i = min(3,cond(value_splypweal999i >= value_splygweal999i, q_splypweal999i, q_splygweal999i)) ///
+	gen    q_splynweal999i = cond(value_splypweal999i >= value_splygweal999i, q_splypweal999i, q_splygweal999i) ///
 																	    if !missing(value_splypweal999i) & !missing(value_splygweal999i) 
 	gen value_splynweal999i = value_splypweal999i + value_splygweal999i if !missing(value_splypweal999i) & !missing(value_splygweal999i)
 	
@@ -367,7 +367,7 @@ preserve
 	keep iso year p value_spl* s_spl* q_spl* value_bau* s_bau* q_bau* value_wid* s_wid* q_wid*
 	keep if year<1980   
 	
-	reshape long value_spl s_spl q_spl value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
+	greshape long value_spl s_spl q_spl value_bau s_bau q_bau value_wid s_wid q_wid, i(iso year p) j(widcode) string
 	*---------------- 
 	
 	keep iso year p widcode value_spl s_spl q_spl
@@ -459,21 +459,21 @@ merge m:1 region using "`indx_xlc'" , nogenerate keep(master match)
 replace value = value/inyixx_23 if widcode=="inyixx999i" 
 drop inyixx_23
 
-reshape wide value q_ s_, i(region year p) j(widcode) string
+greshape wide value q_ s_, i(region year p) j(widcode) string
 
 // --------- 2.3.  Calculate mnninc999i and mndpro999i -------------------------
 *Generate national income
 gen double valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) // ygdpro999i==1
-gen           q_ynninc999i = min(3, cond(valueyconfc999i >= valueynnfin999i, q_yconfc999i, q_ynnfin999i)) // ygdpro999i==1
+gen           q_ynninc999i = cond(valueyconfc999i >= valueynnfin999i, q_yconfc999i, q_ynnfin999i) // ygdpro999i==1
 gen           s_ynninc999i = "confc,nnfin" // ygdpro999i==1
 
 replace valueyndpro999i= 1 - valueyconfc999i // ygdpro999i==1
-replace    q_yndpro999i= min(3, q_yconfc999i) // ygdpro999i==1
+replace    q_yndpro999i= q_yconfc999i // ygdpro999i==1
 replace    s_yndpro999i= "gdpro,confc" // ygdpro999i==1
 
 foreach v in nwdka nwnfa {
 	replace s_y`v'999i    = "nweal,nwnxa"                     if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
-	replace q_y`v'999i    = min(3,cond(valueynweal999i >= valueynwnxa999i, q_ynweal999i, q_ynwnxa999i)) if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
+	replace q_y`v'999i    = cond(valueynweal999i >= valueynwnxa999i, q_ynweal999i, q_ynwnxa999i) if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
 	replace valuey`v'999i = valueynweal999i - valueynwnxa999i if !missing(valueynweal999i) & !missing(valueynwnxa999i)
 }
 
@@ -484,7 +484,7 @@ gen double valueyhweal999i = valueypweal999i*rat_weal
 gen           q_yhweal999i = q_ypweal999i if !missing(valueyhweal999i)
 gen           s_yhweal999i = "pweal_ratiohweal/pweal(1980)" if !missing(valueyhweal999i)
 gen double valueyiweal999i = valueypweal999i- valueyhweal999i
-gen           q_yiweal999i = min(3, cond(valueypweal999i >= valueyhweal999i, q_ypweal999i, q_yhweal999i)) if !missing(valueyiweal999i)
+gen           q_yiweal999i = cond(valueypweal999i >= valueyhweal999i, q_ypweal999i, q_yhweal999i) if !missing(valueyiweal999i)
 gen           s_yiweal999i = "pweal,hweal" if !missing(valueyiweal999i)
 drop rat_weal
 
@@ -515,7 +515,7 @@ foreach v of varlist `r(varlist)' {
 	gen     s_`v_clean'_w = s_`v_clean' 
 }
 
-reshape long value q_ s_, i(region year p) j(widcode) string
+greshape long value q_ s_, i(region year p) j(widcode) string
 replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"m_w")
 replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"_w")
 replace widcode = "m" + substr(widcode,2,9) if strpos(widcode,"_m")
@@ -611,7 +611,7 @@ preserve
 	
 	keep if inlist(widcode,"inyixx999i", "xlcusp999i") // , "xlcyup999i")
 
-	reshape wide value q_ s_, i(region year p) j(widcode) string
+	greshape wide value q_ s_, i(region year p) j(widcode) string
 	append using "`indx_pasty'"
 	append using "`pppusa'"
 	
@@ -644,7 +644,7 @@ preserve
 	}
 	drop localindex2021
 	
-	replace q_xlcusp999i = 0
+	replace q_xlcusp999i = q_inyixx999i
 	replace s_xlcusp999i = "inhouse"
 	
 	 keep if year<1970 	& !inlist(region,"US") // ,"CN")
@@ -663,7 +663,7 @@ preserve
 	 drop ppp_* /*refyear*/ *inyixx999i *_cn *_ea
 	 
 	 
-	reshape long value q_ s_ , i(region year p) j(widcode) string   
+	greshape long value q_ s_ , i(region year p) j(widcode) string   
 	gen new=1
 
 	
@@ -691,9 +691,9 @@ preserve
 	keep if substr(region,3,4)!="-PPP"
 	keep if widcode=="mnninc999i" | inlist(widcode,"xlcusp999i", 				/// "xlcusx999i",
 													"xlceup999i","xlceux999i", /// 
-													"xlcyup999i","xlcyux999i") // 
-	keep region year widcode value                                                               
-	reshape wide value, i(region year) j(widcode) string
+													"xlcyup999i","xlcyux999i")  
+	keep region year widcode value  q_                                                             
+	greshape wide value q_, i(region year) j(widcode) string
 	rename value* *
 	rename *999i *
 	
@@ -713,18 +713,27 @@ preserve
 	gen xlceux999i= mnninc_usp / mnninc_eux
 	gen xlcyux999i= mnninc_usp / mnninc_yux
 	
+	gen q_xlcusx999i= 5
+	gen q_xlceux999i= q_xlceux
+	gen q_xlcyux999i= q_xlcyux
+	
 	gen xlcusp999i= 1 // mnninc_usp / mnninc_usp
 	gen xlceup999i= mnninc_usp / mnninc_eup
 	gen xlcyup999i= mnninc_usp / mnninc_yup
 	
+	gen q_xlcusp999i= q_xlcusp
+	gen q_xlceup999i= q_xlceup
+	gen q_xlcyup999i= q_xlcyup
+	
 	* Format
-	drop mnninc_*
+	drop mnninc_* q_mnninc*
 	rename xlc* valuexlc*
+	keep region year *999i
 	replace region=region+"-PPP"
 	
-	reshape long value, i(region year) j(widcode) string
-	gen q_=0
-	gen s_="reginhouse"
+	greshape long value q_, i(region year) j(widcode) string
+	*gen q_=0
+	gen s_="inplicitnninc"
 	gen p="pall"
 	gen new=1
 	tempfile ppp_mer_regppp_pre70
@@ -746,9 +755,9 @@ preserve
 	keep if substr(region,3,4)!="-PPP"
 	keep if inlist(widcode,"mnninc999i","inyixx999i","xlcusp999i")
 	*drop currency
-	keep region year p widcode value
+	keep region year p widcode value q_
 	* Wide variables
-	reshape wide value, i(region year p) j(widcode) string
+	greshape wide value q_, i(region year p) j(widcode) string
 	rename value* *
 	
 	* Gen PPP pastyear 	
@@ -764,18 +773,19 @@ preserve
 	
 	* Calculate Price index
 	generate double inyixx999i_ppp = mnninc999i_nomusp/mnninc999i_pppusd
-	
+	generate      q_inyixx999i_ppp = q_inyixx999i
 	* Format
 	keep region year p  *_ppp
 	
-	rename inyixx999i_ppp value
+	rename (inyixx999i_ppp q_inyixx999i_ppp) (value q_)
+
 	
 	gen widcode = "inyixx999i"
 	replace region = region + "-PPP"
 	
 	gen new=1
-	gen q_=0
-	gen s_="reginhouse"
+	*gen q_=0
+	gen s_="inplicitnninc"
 	
 	tempfile idx_regpp_pre70
 	save    `idx_regpp_pre70'
@@ -910,7 +920,7 @@ drop dup* npd
 keep if !inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"QL", "QM","WO","QE")
 
 drop if widcode=="inyixx999i"
-reshape wide value s_ q_, i(iso year p) j(widcode) string
+greshape wide value s_ q_, i(iso year p) j(widcode) string
 
 merge 1:1 iso year p using "`country_confc'", nogen keep(master match)
 
@@ -922,15 +932,15 @@ drop *_raw
 * calculate nninc and ndpro
 replace valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) if !missing(valueyconfc999i) & !missing(valueynnfin999i)
 replace s_ynninc999i = "confc,nnfin"                              if !missing(valueyconfc999i) & !missing(valueynnfin999i)
-replace q_ynninc999i = min(3, cond( valueyconfc999i  >= valueynnfin999i, q_yconfc999i, q_ynnfin999i))  if !missing(valueyconfc999i) & !missing(valueynnfin999i)
+replace q_ynninc999i = cond( valueyconfc999i  >= valueynnfin999i, q_yconfc999i, q_ynnfin999i)  if !missing(valueyconfc999i) & !missing(valueynnfin999i)
 
-replace q_yndpro999i    = min(3, q_yconfc999i) if !missing(valueyconfc999i) // valueygdpro999i==1
+replace q_yndpro999i    = q_yconfc999i if !missing(valueyconfc999i) // valueygdpro999i==1
 replace s_yndpro999i    = "gdpro,confc"        if !missing(valueyconfc999i) // valueygdpro999i==1
 replace valueyndpro999i = 1 - valueyconfc999i  if !missing(valueyconfc999i) // valueygdpro999i==1
 
 foreach v in nwdka nwnfa {
 	replace s_y`v'999i    = "nweal,nwnxa"                     if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
-	replace q_y`v'999i    = min(3,cond(valueynweal999i >= valueynwnxa999i, q_ynweal999i, q_ynwnxa999i)) if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
+	replace q_y`v'999i    = cond(valueynweal999i >= valueynwnxa999i, q_ynweal999i, q_ynwnxa999i) if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
 	replace valuey`v'999i = valueynweal999i - valueynwnxa999i if !missing(valueynweal999i) & !missing(valueynwnxa999i)
 }
 
@@ -941,7 +951,7 @@ gen           q_yhweal999i = q_ypweal999i if !missing(valueyhweal999i)
 gen           s_yhweal999i = "pweal_ratiohweal/pweal(1980)" if !missing(valueyhweal999i)
 
 gen double valueyiweal999i = valueypweal999i- valueyhweal999i
-gen           q_yiweal999i = min(3, cond(valueypweal999i >= valueyhweal999i, q_ypweal999i, q_yhweal999i)) if !missing(valueyiweal999i)
+gen           q_yiweal999i = cond(valueypweal999i >= valueyhweal999i, q_ypweal999i, q_yhweal999i) if !missing(valueyiweal999i)
 gen           s_yiweal999i = "pweal,hweal" if !missing(valueyiweal999i)
 drop rat_weal
 
@@ -981,7 +991,7 @@ foreach v of varlist `r(varlist)' {
 }
  
 
-reshape long value s_ q_, i(iso year p) j(widcode) string
+greshape long value s_ q_, i(iso year p) j(widcode) string
 replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"m_w")
 replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"_w")
 replace widcode = "m" + substr(widcode,2,9) if strpos(widcode,"_m")
@@ -995,7 +1005,7 @@ drop if missing(value)
 preserve 	
 	keep if inlist(widcode,"inyixx999i", "xlcusp999i", "xlcusx999i") // , "xlcyup999i")
 
-	reshape wide value s_ q_, i(iso year p) j(widcode) string
+	greshape wide value s_ q_, i(iso year p) j(widcode) string
 	append using "`pppusa_iso'"
 	append using "`indx_pasty_iso'"
 	
@@ -1029,15 +1039,15 @@ preserve
 	drop localindex2021
 	
 	keep if year<1970 	& !inlist(iso,"US") // ,"CN") 
-	drop *inyixx999i
+	
 	 
 	gen widcode="xlcusp999i"
-	replace q_xlcusp999i = 0         if missing(q_xlcusp999i)
+	replace q_xlcusp999i = q_inyixx999i  if missing(q_xlcusp999i)
 	replace s_xlcusp999i = "extendedPPP" if missing(s_xlcusp999i)
 	rename valuexlcusp999i value_new
 	rename    q_xlcusp999i q_new
 	rename    s_xlcusp999i s_new
-
+	drop *inyixx999i
 	
 	tempfile ppp_complete_iso
 	save `ppp_complete_iso'
@@ -1055,7 +1065,7 @@ drop *_new
 preserve
 	keep if inlist(substr(widcode,1,5),"xlceu","xlcyu","xlcus")
 	keep iso year p widcode value q_ s_
-	reshape wide value q_ s_, i(iso year p) j(widcode) string
+	greshape wide value q_ s_, i(iso year p) j(widcode) string
 	
 	** Complete PPP exange rates
 	merge m:1 year using "$work_data/ppp_ea_cn_weithgted.dta", nogenerate
@@ -1072,7 +1082,7 @@ preserve
 	merge m:1 year using "$work_data/xrate_ea_cn_weithgted.dta", nogenerate
 	
 	replace valuexlcyux999i = valuexlcusx999i/xr_cn      if missing(valuexlcyux999i)
-	replace    q_xlcyux999i = min(q_xlcusx999i, q_xr_cn) if missing(   q_xlcyux999i)
+	replace    q_xlcyux999i = min(q_xlcusx999i, q_xr_cn) if missing(  q_xlcyux999i)
 	replace    s_xlcyux999i = "triang"                   if missing(   s_xlcyux999i)
 	
 	replace valuexlceux999i = valuexlcusx999i/xr_ea      if missing(valuexlceux999i)
@@ -1083,7 +1093,7 @@ preserve
 	keep if year<1970
 	drop ppp_* *xr_* *_ea *_cn
 	
-	reshape long value q_ s_, i(iso year p) j(widcode) string
+	greshape long value q_ s_, i(iso year p) j(widcode) string
 	
 	rename value value_new
 	rename  q_ q_new

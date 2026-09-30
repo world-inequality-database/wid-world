@@ -104,7 +104,7 @@ reshape long value, i(iso year) j(widcode) string
 replace widcode ="y"+ widcode + "999i"
 gen p="pall"
 
-gen q_ = 4
+gen q_ = 5
 gen s_ = "bauluz25"
 
 //-------- 3. Export data ----------------------------------------------------//

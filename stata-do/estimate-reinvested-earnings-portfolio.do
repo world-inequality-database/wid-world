@@ -269,10 +269,10 @@ use "`netpos'", clear
 // Estimate the fraction of equities owned by foreigners
 // -------------------------------------------------------------------------- //
 gen cond =1 if !mi(ptf_liabi) & !mi(ratio_equ_liabi_row) & !mi(equ_liabi_dom) & !mi(ratio_equ_liabi_dom) & !mi(fdi_asset) & !mi(fdi_liabi)
-generate q_share_foreign = min(3, ptf_liabi)                                                                               if cond==1
-generate s_share_foreign = "EquitysOwnedByForeigners"         if cond==1
+generate q_share_foreign = q_ptf_liabi                                                                                     if cond==1
+generate s_share_foreign = "EquitysOwnedByForeigners"                                                                      if cond==1
 generate   share_foreign = ptf_liabi * ratio_equ_liabi_row / (equ_liabi_dom * ratio_equ_liabi_dom + fdi_asset - fdi_liabi) if cond==1
-generate q_ratio_liab = min(3, q_ptf_liabi)                 if cond==1
+generate q_ratio_liab = q_ptf_liabi                if cond==1
 generate s_ratio_liab = "EquitysOwnedByForeigners" if cond==1
 generate   ratio_liab = ptf_liabi * ratio_equ_liabi_row / gdp
 
@@ -416,14 +416,14 @@ assert !missing(secco)
 
 merge 1:1 iso year using "`share_foreign'", nogenerate
 
-generate q_foreign_secco = min(3, q_secco)
+generate q_foreign_secco = q_secco
 generate s_foreign_secco = "secco_ratio"+s_share_foreign
 generate   foreign_secco = secco*share_foreign
 
 // Add GDP data in USD
 merge 1:1 iso year using "`gdp'", nogenerate
 
-generate q_ptfrp = min(3,q_foreign_secco)
+generate q_ptfrp = q_foreign_secco
 generate s_ptfrp = "foreign-secco"
 generate   ptfrp = foreign_secco
 
@@ -522,7 +522,7 @@ replace value = 0 if missing(value) & nnmiss > 0
 drop nnmiss nnmiss_value
 */
 
-gen q_value=5 		if !missing(value)
+gen q_value=5 		 if !missing(value)
 gen s_value="IMFPIP" if !missing(value)
 
 // Match with net foreign asset position
@@ -535,7 +535,7 @@ merge n:1 iso year using "`netpos'", keepusing(*ptf_asset *ratio_equ_asset_row) 
 rename iso iso2
 
 // Compute as a share of a country total foreign assets
-replace q_value = min(3, q_value) if !mi(value) & !mi(ratio_equ_asset_row) & !mi(ratio_equ_liabi_row) 
+replace q_value = q_value if !mi(value) & !mi(ratio_equ_asset_row) & !mi(ratio_equ_liabi_row) 
 *replace s_value = s_value
 replace value = value*ratio_equ_asset_row*ratio_equ_liabi_row
 gegen   total = total(value), by(iso1 year)
@@ -587,7 +587,7 @@ by iso iso2 : carryforward value if iso2 == "KY" & year >= 2011, replace
 replace q_value = 1              if iso2 == "KY" & year >= 2011 & !missing(value) & !missing(q_value)
 replace s_value = "carryfor"     if iso2 == "KY" & year >= 2011 & !missing(value) & !missing(     s_value)
 
-*replace q_foreign_secco = min(3,q_value)
+*replace q_foreign_secco = q_value
 *replace s_foreign_secco = s_value
 replace foreign_secco = value*foreign_secco
 gen check3 = foreign_secco/value 
@@ -648,8 +648,8 @@ by year : replace foreign_secco = foreign_secco + abs(dif) if _n == 1 & dif > 0
 sort iso year
 by iso: carryforward foreign_secco_r foreign_secco, replace
 foreach v in foreign_secco_r foreign_secco {
-	replace q_`v' = 1              if !missing(`v') & !missing(q_`v')
-	replace s_`v' = "carryfor"    if !missing(`v') & !missing(      s_`v')
+	replace q_`v' = 1            if !missing(`v') & !missing(q_`v')
+	replace s_`v' = "carryfor"   if !missing(`v') & !missing(s_`v')
 }
 
 bys year : egen totfs_r2 = total(foreign_secco_r)
@@ -668,7 +668,7 @@ replace   ptfrp = 0 if year == 1970
 
 keep iso year *ptfrr *ptfrp
 
-generate q_ptfrn = min(3, cond(ptfrr >= ptfrp, q_ptfrr, q_ptfrp))
+generate q_ptfrn = cond(ptfrr >= ptfrp, q_ptfrr, q_ptfrp)
 generate s_ptfrn = "ptfrr,ptfrp"
 generate   ptfrn = ptfrr - ptfrp
 

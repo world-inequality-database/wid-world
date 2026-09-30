@@ -328,7 +328,7 @@ replace data_quality = 4 if strpos(growth_src,"_forecast")
 
 replace data_quality = 3 if strpos(growth_src,"interp")
 
-replace data_quality = 2 if strpos(growth_src,"_GDP_")
+replace data_quality = 1 if strpos(growth_src,"_GDP_")
 
 replace data_quality = 1 if strpos(growth_src,"carryforward")
 

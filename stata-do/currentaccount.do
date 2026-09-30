@@ -195,13 +195,13 @@ foreach v in capital goods trans travel otherservices remittances foreignaid oth
     cap swapval `v'_credit `v'_debit if aux == 1
     replace   `v'_credit = abs(`v'_credit) if aux == 1
     replace   `v'_debit  = abs(`v'_debit)  if aux == 1
-	replace q_`v'_credit = min(3, cond(`v'_credit >= `v'_debit, q_`v'_credit, q_`v'_debit)) if neg`v'_debit  == 1
+	replace q_`v'_credit = cond(`v'_credit >= `v'_debit, q_`v'_credit, q_`v'_debit) if neg`v'_debit  == 1
 	replace s_`v'_credit = "`v'-credit,`v'-debit" if neg`v'_debit  == 1
     replace   `v'_credit = `v'_credit - `v'_debit if neg`v'_debit  == 1
     replace q_`v'_debit  = 0                      if neg`v'_debit  == 1
 	replace s_`v'_debit  = "assumed"              if neg`v'_debit  == 1
 	replace   `v'_debit  = 0                      if neg`v'_debit  == 1
-    replace q_`v'_debit  = min(3, cond(`v'_debit >= `v'_credit,`v'_debit, `v'_credit)) if neg`v'_credit == 1
+    replace q_`v'_debit  = cond(`v'_debit >= `v'_credit,q_`v'_debit, q_`v'_credit) if neg`v'_credit == 1
     replace s_`v'_debit  = "`v'-debit,`v'-credit" if neg`v'_credit == 1
     replace   `v'_debit  = `v'_debit - `v'_credit if neg`v'_credit == 1
     replace q_`v'_credit = 0                      if neg`v'_credit == 1
@@ -363,7 +363,7 @@ bys iso : egen aux2 = mode(aux)
 replace capital_credit = aux2 if iso == "IQ" & year < 2005
 drop aux*
 replace s_capital_credit = "carryfor" if  iso == "IQ" & year < 2005
-replace q_capital_credit = 1              if  iso == "IQ" & year < 2005
+replace q_capital_credit = 1          if  iso == "IQ" & year < 2005
 
 *KW presents issues with too low value for secinc_credit due to the gulf war in 1991. we use the value in 1993 rather than 1992 to carrybackwards
 gen aux = secinc_credit      if iso == "KW" & year == 1993 
@@ -371,7 +371,7 @@ bys iso : egen aux2 = mode(aux)
 replace secinc_credit = aux2 if iso == "KW" & year < 1992
 drop aux*
 replace s_secinc_credit = "carryfor" if  iso == "KW" & year < 1992 
-replace q_secinc_credit = 1              if  iso == "KW" & year < 1992 
+replace q_secinc_credit = 1          if  iso == "KW" & year < 1992 
 
 // ----------------- 7.3 Fill missing with regional means 
 foreach v in compemp_credit compemp_debit otherpinc_credit goods_credit goods_debit ///  total_debit total_credit errors_net
@@ -416,17 +416,17 @@ drop av*
 *issues with NA in otherpinc 2009 onward 
 bys geoundet year : egen avundetotherpinc_credit = mean(otherpinc_credit) if corecountry == 1 & TH == 0 & iso != "NA" & flagcountryotherpinc_credit == 0
 bys year : egen aux = mode(avundetotherpinc_credit)
-replace otherpinc_credit = aux                  if flagcountryotherpinc_credit == 1 & geoundet == "Southern Africa"
+replace otherpinc_credit = aux                if flagcountryotherpinc_credit == 1 & geoundet == "Southern Africa"
 drop aux* 
 replace s_otherpinc_credit = "reg" + geoundet if flagcountryotherpinc_credit == 1 & geoundet == "Southern Africa"
-replace q_otherpinc_credit = 0                  if flagcountryotherpinc_credit == 1 & geoundet == "Southern Africa"
+replace q_otherpinc_credit = 0                if flagcountryotherpinc_credit == 1 & geoundet == "Southern Africa"
 
 bys geoundet year : egen avundetotherpinc_debit = mean(otherpinc_debit) if corecountry == 1 & TH == 0 & iso != "NA" & flagcountryotherpinc_debit == 0
 bys year : egen aux = mode(avundetotherpinc_debit)
-replace otherpinc_debit= aux                   if flagcountryotherpinc_debit == 1 & geoundet == "Southern Africa"
+replace otherpinc_debit= aux                 if flagcountryotherpinc_debit == 1 & geoundet == "Southern Africa"
 drop aux* av*
 replace s_otherpinc_debit = "reg" + geoundet if flagcountryotherpinc_debit == 1 & geoundet == "Southern Africa"
-replace q_otherpinc_debit = 0                  if flagcountryotherpinc_debit == 1 & geoundet == "Southern Africa"
+replace q_otherpinc_debit = 0                if flagcountryotherpinc_debit == 1 & geoundet == "Southern Africa"
 
 /*
 //Fill missing with TH average for TH
@@ -442,7 +442,7 @@ drop med*
 */
 
 foreach x in credit debit {
-	replace   otherpinc_`x' =.    if year < 1991
+	replace   otherpinc_`x' =.  if year < 1991
 	replace s_otherpinc_`x' ="" if year < 1991
 	replace q_otherpinc_`x' =.  if year < 1991        
 }
@@ -564,7 +564,7 @@ foreach x in credit debit {
 	gen   s_service_`x' = "travel-`x',trans-`x',otherservices-`x'"
 
 	replace   trade_`x' = goods_`x' + service_`x'
-	replace q_trade_`x' = min(3, cond(goods_`x' >= service_`x', q_goods_`x', q_service_`x'))
+	replace q_trade_`x' = cond(goods_`x' >= service_`x', q_goods_`x', q_service_`x')
 	replace s_trade_`x' = "goods-`x',service-`x'"  
 } 
 
@@ -717,7 +717,7 @@ enforce (tbxrx = tgxrx + tsxrx) ///
 foreach v of varlist new* {
     local base = subinstr("`v'", "new", "", .)
 
-    replace q_`base' = 3 if missing(`base') & !missing(`v')
+    replace q_`base' = 3         if missing(`base') & !missing(`v')
 	replace s_`base' = "enforce" if missing(`base') & !missing(`v')
     replace   `base' = `v'
 }

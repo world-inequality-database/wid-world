@@ -50,13 +50,13 @@ replace neggoods_debit  = 0                   if aux == 1
 cap swapval goods_credit goods_debit          if aux == 1 
 replace   goods_credit    = abs(goods_credit) if aux == 1
 replace   goods_debit     = abs(goods_debit)  if aux == 1
-replace q_goods_credit    = min(3, cond(goods_credit >= goods_debit, q_goods_credit, q_goods_debit)) if neggoods_debit == 1
+replace q_goods_credit    = cond(goods_credit >= goods_debit, q_goods_credit, q_goods_debit) if neggoods_debit == 1
 replace s_goods_credit    = "tgxrx,tgmpx" if neggoods_debit == 1
 replace   goods_credit    = goods_credit - goods_debit if neggoods_debit == 1
 replace q_goods_debit     = 0                 if neggoods_debit == 1 
 replace s_goods_debit     = "assumed"         if neggoods_debit == 1 
 replace   goods_debit     = 0                 if neggoods_debit == 1 
-replace q_goods_debit     = min(3, cond(goods_debit >= goods_credit, q_goods_debit, q_goods_credit)) if neggoods_credit == 1 
+replace q_goods_debit     = cond(goods_debit >= goods_credit, q_goods_debit, q_goods_credit) if neggoods_credit == 1 
 replace s_goods_debit     = "tgmpx,tgxrx" if neggoods_credit == 1 
 replace   goods_debit     = goods_debit - goods_credit if neggoods_credit == 1 
 replace q_goods_credit    = 0                 if neggoods_credit == 1

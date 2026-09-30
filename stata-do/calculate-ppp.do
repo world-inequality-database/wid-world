@@ -274,7 +274,7 @@ save "`ppp'", replace
 //------------- 3.1. Bring price indices
 use "$work_data/price-index.dta", clear
 keep iso year index currency data_quality
-rename data_quality data_quality_idx
+rename data_quality data_quality_idx_country
 tempfile index
 save "`index'"
 
@@ -303,8 +303,9 @@ save "`index'", replace
 */
 //------------- 3.3.  Keep only the US index
 keep if iso == "US"
-drop iso data_quality_idx
+drop iso 
 rename index index_us 
+rename data_quality_idx_country  data_quality_idx_us
 tempfile index_us
 save "`index_us'"
 
@@ -347,8 +348,8 @@ drop if missing(ppp)
 
 // Complete data_quality
 bysort iso (year): egen mode_ppp = mode(data_quality)
-replace data_quality = min(data_quality_idx , mode_ppp) if missing(data_quality) & !mi(ppp)
-drop data_quality_idx mode_ppp
+replace data_quality = min(data_quality_idx_country, data_quality_idx_us, mode_ppp) if missing(data_quality) & !mi(ppp)
+drop data_quality_idx* mode_ppp
 
 //------- 5. Generate Metadata ------------------------------------------------------------
 preserve

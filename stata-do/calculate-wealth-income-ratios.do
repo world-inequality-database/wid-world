@@ -12,7 +12,7 @@ keep if inlist(substr(widcode, 1, 6), "mpweal", "mhweal", "miweal", "mgweal", "m
 replace p="pall" if p=="p0p100"
 
 drop currency
-reshape wide value data_quality s_, i(iso year) j(widcode) string
+greshape wide value data_quality s_, i(iso year) j(widcode) string
 
 foreach l in n p h i g {
 	generate        valuewweal`l'999i = valuem`l'weal999i/valuemnninc999i
@@ -151,7 +151,7 @@ preserve
 	drop currency p s_
 	keep if inlist(widcode,"mnninc999i","mgdpro999i") 
 
-	reshape wide value data_quality, i(iso year) j (widcode) string
+	greshape wide value data_quality, i(iso year) j (widcode) string
 	rename (*mnninc999i *mgdpro999i)(*w *y)
 	
 	
@@ -171,7 +171,7 @@ gen           s__w=s_ // for W
 keep iso year p widcode currency *_y *_w
 
 * Format
-reshape long value s_ data_quality, i(iso year widcode p currency) j(ratio) string
+greshape long value s_ data_quality, i(iso year widcode p currency) j(ratio) string
 replace widcode= substr(ratio,2,1) +substr(widcode,2,.)
 drop ratio 
 drop  if inlist(widcode,"wnninc999i","ygdpro999i") // ilogical values

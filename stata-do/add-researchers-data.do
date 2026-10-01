@@ -108,7 +108,7 @@ append using "$wid_dir/Country-Updates/Hungary/2017/September/hungary-mosberger2
 append using "$wid_dir/Country-Updates/France/2018/January/france-goupille2018-gender.dta"
 
 // India 2018 (Bharti2018) -  distributional series (ahweal, bhweal, shweal, thweal)
-append using "$wid_dir/Country-Updates/India/2018/November/india-bharti2018.dta"
+*append using "$wid_dir/Country-Updates/India/2018/November/india-bharti2018.dta"
 drop if widcode=="bhweal992j" & iso=="IN" // reconstructed in calc-pareto-ceof
 
 assert !missing(iso, year, widcode)

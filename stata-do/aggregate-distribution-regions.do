@@ -467,9 +467,9 @@ drop *tag
 // -------- Add data quality back  ---------------------------------------------
 // Attach yearly population-weighted grades to all regional percentiles.
 assert (strpos(iso, "-PPP") | strpos(iso, "-MER"))
-gen fivelet = substr(widcode, 2, 5)
-gen pop = substr(widcode, 7, 3)
-merge m:1 iso year fivelet pop using `regional_quality', keep(master match) assert(match using) nogenerate
+gen concept = substr(widcode, 2, 5)
+gen population_group = substr(widcode, 7, 3)
+merge m:1 iso year concept population_group using `regional_quality', keep(master match) assert(match using) nogenerate
 assert !missing(data_quality) 
 drop fivelet pop
 

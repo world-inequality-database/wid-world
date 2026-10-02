@@ -714,7 +714,16 @@ drop if iso == ""
 // -------------------------------------------------------------------------- //
 
 generate gdpro = 1
-gen q_gdpro=5
+preserve
+	*Call GDPRO grades
+	use "$work_data/retropolate-gdp.dta", clear
+	keep iso year data_quality
+	rename data_quality q_gdpro
+	
+	tempfile dq_gdpro
+	save    `dq_gdpro'
+restore
+merge m:1 iso year using "`dq_gdpro'", nogenerate keep(master match)
 gen s_gdpro="OECD"
 
 // Foreign income

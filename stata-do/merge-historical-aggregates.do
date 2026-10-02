@@ -147,7 +147,7 @@ preserve
 	rename       (*inyixx999i *mgdpro999i *ynninc999i) (*inyixx999ib *mgdpro999ib *ynninc999ib)
 	
 	gen region=iso
-	
+	rename value* *
 	tempfile agg_70s
 	save `agg_70s'
 restore
@@ -183,7 +183,7 @@ restore
 preserve
 	keep if year<=1980
 	keep  iso year *inyixx999i *xlcusp999i *xlceup999i *xlcyup999i *xlcusx999i *xlceux999i *xlcyux999i
-	
+	rename value* *
 	tempfile country_idx
 	save    `country_idx'
 restore
@@ -215,6 +215,8 @@ preserve
 				 inlist("UG","ZM","ZW")
 	keep iso year p *confc*
 	rename *confc* *confc*_raw
+	
+	rename value* *
 	
 	tempfile country_confc
 	save `country_confc'		 
@@ -460,61 +462,75 @@ replace value = value/inyixx_23 if widcode=="inyixx999i"
 drop inyixx_23
 
 greshape wide value q_ s_, i(region year p) j(widcode) string
-
+rename value* *
 // --------- 2.3.  Calculate mnninc999i and mndpro999i -------------------------
+* Mimic the y for gdpro
+gen   ygdpro999i = 1 
+gen q_ygdpro999i = q_mgdpro999i
+gen s_ygdpro999i = s_mgdpro999i
+
 *Generate national income
-gen double valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) // ygdpro999i==1
-gen           q_ynninc999i = cond(valueyconfc999i >= valueynnfin999i, q_yconfc999i, q_ynnfin999i) // ygdpro999i==1
+gen double ynninc999i = (ygdpro999i - yconfc999i + ynnfin999i) // ygdpro999i==1
+quality ygdpro999i yconfc999i  ynnfin999i, gen(aux1)
+gen           q_ynninc999i =aux1 // ygdpro999i==1
 gen           s_ynninc999i = "confc,nnfin" // ygdpro999i==1
 
-replace valueyndpro999i= 1 - valueyconfc999i // ygdpro999i==1
-replace    q_yndpro999i= q_yconfc999i // ygdpro999i==1
-replace    s_yndpro999i= "gdpro,confc" // ygdpro999i==1
+
+replace yndpro999i = ygdpro999i - yconfc999i // ygdpro999i==1
+quality ygdpro999i yconfc999i, gen(aux2)
+replace    q_yndpro999i = aux2 // ygdpro999i==1
+replace    s_yndpro999i = "gdpro,confc" // ygdpro999i==1
+drop aux*
+
+* Drop mimic (they will be generated later)
+drop ygdpro999i q_ygdpro999i s_ygdpro999i
 
 foreach v in nwdka nwnfa {
-	replace s_y`v'999i    = "nweal,nwnxa"                     if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
-	replace q_y`v'999i    = cond(valueynweal999i >= valueynwnxa999i, q_ynweal999i, q_ynwnxa999i) if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
-	replace valuey`v'999i = valueynweal999i - valueynwnxa999i if !missing(valueynweal999i) & !missing(valueynwnxa999i)
+	replace s_y`v'999i    = "nweal,nwnxa"                     if !missing(ynweal999i) & !missing(ynwnxa999i) & missing(y`v'999i)
+	replace q_y`v'999i    = cond(ynweal999i >= ynwnxa999i, q_ynweal999i, q_ynwnxa999i) if !missing(ynweal999i) & !missing(ynwnxa999i) & missing(y`v'999i)
+	replace y`v'999i = ynweal999i - ynwnxa999i if !missing(ynweal999i) & !missing(ynwnxa999i)
 }
 
 
 * Generate personal wealth 
 merge m:1 region using "`rat_weal_80'", nogen keep(master match) keepusing(rat_weal)
-gen double valueyhweal999i = valueypweal999i*rat_weal
-gen           q_yhweal999i = q_ypweal999i if !missing(valueyhweal999i)
-gen           s_yhweal999i = "pweal_ratiohweal/pweal(1980)" if !missing(valueyhweal999i)
-gen double valueyiweal999i = valueypweal999i- valueyhweal999i
-gen           q_yiweal999i = cond(valueypweal999i >= valueyhweal999i, q_ypweal999i, q_yhweal999i) if !missing(valueyiweal999i)
-gen           s_yiweal999i = "pweal,hweal" if !missing(valueyiweal999i)
+gen double yhweal999i = ypweal999i*rat_weal
+gen           q_yhweal999i = q_ypweal999i if !missing(yhweal999i)
+gen           s_yhweal999i = "pweal_ratiohweal/pweal(1980)" if !missing(yhweal999i)
+gen double yiweal999i = ypweal999i- yhweal999i
+gen           q_yiweal999i = cond(ypweal999i >= yhweal999i, q_ypweal999i, q_yhweal999i) if !missing(yiweal999i)
+gen           s_yiweal999i = "pweal,hweal" if !missing(yiweal999i)
 drop rat_weal
 
 merge 1:1 region year using "`agg_70s'", nogenerate keep(master match) 
 foreach v in mgdpro inyixx ynninc {
-	replace value`v'999i = value`v'999ib if missing(value`v'999i) 
+	replace `v'999i = `v'999ib if missing(`v'999i) 
 	replace    q_`v'999i =    q_`v'999ib if missing(q_`v'999i) 
 	replace    s_`v'999i =    s_`v'999ib if missing(s_`v'999i) 
 }
 drop *b iso
 
-// --------- 2.4. Generate constant $pastyear monetary values (m)  ---------- //
-replace valuemgdpro999i= valuemgdpro999i/ valueinyixx999i if year<1970
-ds region year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlcusx999i s_* q_* valueylsgdp999i valueycsgdp999i , not // We don't want the Factro Shares to be extended
+// --------- 2.4. Generate constant $pastyear monetary s (m)  ---------- //
+replace mgdpro999i= mgdpro999i/ inyixx999i if year<1970
+ds region year p intlcu999i inyixx999i mgdpro999i xlcusx999i s_* q_* ylsgdp999i ycsgdp999i , not // We don't want the Factro Shares to be extended
 foreach v in `r(varlist)' {
-	local v_clean = subinstr("`v'", "value", "", .)
-	gen double       `v'_m = `v' *  valuemgdpro999i
+	local v_clean = subinstr("`v'", "", "", .)
+	gen double       `v'_m = `v' *  mgdpro999i
 	gen      q_`v_clean'_m = q_`v_clean' 
 	gen      s_`v_clean'_m = s_`v_clean' 
 }
 
 // --------- 2.5. Calculate wealth to income ratios (w) --------------------- //
-ds value*_m  valuemgdpro999i 
+ds y*_m  mgdpro999i 
 foreach v of varlist `r(varlist)' {
-	local v_clean = subinstr("`v'", "value", "", .)
-	gen double      `v'_w = `v' /  valueynninc999i_m
+	local v_clean = subinstr("`v'", "", "", .)
+	gen double      `v'_w = `v' /  ynninc999i_m
 	gen     q_`v_clean'_w = q_`v_clean' 
 	gen     s_`v_clean'_w = s_`v_clean' 
 }
 
+rename (y* i* m* x*) (valuey* valuei* valuem* valuex*)
+rename valueyear year
 greshape long value q_ s_, i(region year p) j(widcode) string
 replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"m_w")
 replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"_w")
@@ -885,6 +901,7 @@ save "`regions_pre70'"
 * Bring Wealth to product ratio (Y)
 use  "$work_data/nievaspiketty2025_hist.dta", clear
 gen np=1
+
 append using "$wid_dir/Country-Updates/Historical_series/2025_Nov/output6_Extended_macro_non_benchmark.dta"
 replace  q_ = 4           if missing(q_)
 replace  s_ = "arias2025" if missing(s_)
@@ -921,50 +938,64 @@ keep if !inlist(substr(iso, 1, 1), "X", "O") & !inlist(iso,"QL", "QM","WO","QE")
 
 drop if widcode=="inyixx999i"
 greshape wide value s_ q_, i(iso year p) j(widcode) string
+rename value* *
 
 merge 1:1 iso year p using "`country_confc'", nogen keep(master match)
 
-replace q_yconfc999i    = q_yconfc999i_raw    if missing(valueyconfc999i) & !missing(valueyconfc999i_raw)
-replace s_yconfc999i    = s_yconfc999i_raw    if missing(valueyconfc999i) & !missing(valueyconfc999i_raw)
-replace valueyconfc999i = valueyconfc999i_raw if missing(valueyconfc999i) & !missing(valueyconfc999i_raw)
+replace q_yconfc999i    = q_yconfc999i_raw    if missing(yconfc999i) & !missing(yconfc999i_raw)
+replace s_yconfc999i    = s_yconfc999i_raw    if missing(yconfc999i) & !missing(yconfc999i_raw)
+replace yconfc999i = yconfc999i_raw if missing(yconfc999i) & !missing(yconfc999i_raw)
 drop *_raw
 
-* calculate nninc and ndpro
-replace valueynninc999i = (1 - valueyconfc999i + valueynnfin999i) if !missing(valueyconfc999i) & !missing(valueynnfin999i)
-replace s_ynninc999i = "confc,nnfin"                              if !missing(valueyconfc999i) & !missing(valueynnfin999i)
-replace q_ynninc999i = cond( valueyconfc999i  >= valueynnfin999i, q_yconfc999i, q_ynnfin999i)  if !missing(valueyconfc999i) & !missing(valueynnfin999i)
+* Mimic the y for gdpro
+gen ygdpro999i = 1 
+gen    q_ygdpro999i = q_mgdpro999i
+gen    s_ygdpro999i = s_mgdpro999i
 
-replace q_yndpro999i    = q_yconfc999i if !missing(valueyconfc999i) // valueygdpro999i==1
-replace s_yndpro999i    = "gdpro,confc"        if !missing(valueyconfc999i) // valueygdpro999i==1
-replace valueyndpro999i = 1 - valueyconfc999i  if !missing(valueyconfc999i) // valueygdpro999i==1
+*Generate national income
+replace ynninc999i = (ygdpro999i  - yconfc999i + ynnfin999i) if !missing(yconfc999i) & !missing(ynnfin999i)
+replace s_ynninc999i = "gdpro,confc,nnfin"                   if !missing(yconfc999i) & !missing(ynnfin999i)
+quality ygdpro999i yconfc999i  ynnfin999i, gen(aux1)
+replace q_ynninc999i = aux1                                  if !missing(yconfc999i) & !missing(ynnfin999i)
+
+quality ygdpro999i yconfc999i, gen(aux2)
+replace q_yndpro999i = aux2                    if !missing(yconfc999i) // ygdpro999i==1
+replace s_yndpro999i = "gdpro,confc"           if !missing(yconfc999i) // ygdpro999i==1
+replace   yndpro999i = ygdpro999i - yconfc999i if !missing(yconfc999i) // ygdpro999i==1
+drop aux*
+
+* Drop mimic (they will be generated later)
+drop ygdpro999i q_ygdpro999i s_ygdpro999i
 
 foreach v in nwdka nwnfa {
-	replace s_y`v'999i    = "nweal,nwnxa"                     if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
-	replace q_y`v'999i    = cond(valueynweal999i >= valueynwnxa999i, q_ynweal999i, q_ynwnxa999i) if !missing(valueynweal999i) & !missing(valueynwnxa999i) & missing(valuey`v'999i)
-	replace valuey`v'999i = valueynweal999i - valueynwnxa999i if !missing(valueynweal999i) & !missing(valueynwnxa999i)
+	replace s_y`v'999i = "nweal,nwnxa"           if !missing(ynweal999i) & !missing(ynwnxa999i) & missing(y`v'999i)
+	quality ynweal999i ynwnxa999i, gen(aux)
+	replace q_y`v'999i = aux                     if !missing(ynweal999i) & !missing(ynwnxa999i) & missing(y`v'999i)
+	replace   y`v'999i = ynweal999i - ynwnxa999i if !missing(ynweal999i) & !missing(ynwnxa999i)
+	drop aux
 }
 
 * Generate personal wealth 
 merge m:1 iso using "`rat_weal_80'", nogen keep(master match) keepusing(rat_weal)
-gen double valueyhweal999i = valueypweal999i*rat_weal
-gen           q_yhweal999i = q_ypweal999i if !missing(valueyhweal999i)
-gen           s_yhweal999i = "pweal_ratiohweal/pweal(1980)" if !missing(valueyhweal999i)
+gen double yhweal999i = ypweal999i*rat_weal
+gen           q_yhweal999i = q_ypweal999i if !missing(yhweal999i)
+gen           s_yhweal999i = "pweal_ratiohweal/pweal(1980)" if !missing(yhweal999i)
 
-gen double valueyiweal999i = valueypweal999i- valueyhweal999i
-gen           q_yiweal999i = cond(valueypweal999i >= valueyhweal999i, q_ypweal999i, q_yhweal999i) if !missing(valueyiweal999i)
-gen           s_yiweal999i = "pweal,hweal" if !missing(valueyiweal999i)
+gen double yiweal999i = ypweal999i- yhweal999i
+gen           q_yiweal999i = cond(ypweal999i >= yhweal999i, q_ypweal999i, q_yhweal999i) if !missing(yiweal999i)
+gen           s_yiweal999i = "pweal,hweal" if !missing(yiweal999i)
 drop rat_weal
 
 
 merge 1:1 iso year using "`country_idx'", nogenerate keep(master match)
 
 * Calculate LCU constant Prices $pastyear
-replace valuemgdpro999i= valuemgdpro999i/valueinyixx999i
+replace mgdpro999i= mgdpro999i/inyixx999i
 
 merge 1:1 iso year using "`agg_70s'", nogenerate keep(master match) 
 
 foreach v in mgdpro ynninc {
-	replace value`v'999i = value`v'999ib if missing(value`v'999i ) 
+	replace `v'999i = `v'999ib if missing(`v'999i ) 
 	replace    q_`v'999i =    q_`v'999ib if missing(q_`v'999i ) 
 	replace    s_`v'999i =    s_`v'999ib if missing(s_`v'999i ) 
 }
@@ -973,23 +1004,26 @@ drop *b region
 
 
 * Generate aggregates
-ds iso year p valueintlcu999i valueinyixx999i valuemgdpro999i valuexlc* q_* s_* valueylsgdp999i valueycsgdp999i, not // we dont want the Fractor shaares to be extended to other onlets
+ds iso year p intlcu999i inyixx999i mgdpro999i xlc* q_* s_* ylsgdp999i ycsgdp999i, not // we dont want the Fractor shaares to be extended to other onlets
 foreach v in `r(varlist)' {
-	local v_clean = subinstr("`v'", "value", "", .)
-	gen double       `v'_m = `v' *  valuemgdpro999i
+	local v_clean = subinstr("`v'", "", "", .)
+	gen double       `v'_m = `v' *  mgdpro999i
 	gen      q_`v_clean'_m = q_`v_clean' 
 	gen      s_`v_clean'_m = s_`v_clean' 
 }
 
 * generate  wealth to income ratios (W)
-ds value*_m  valuemgdpro999i 
+ds y*_m  mgdpro999i 
 foreach v of varlist `r(varlist)' {
-	local v_clean = subinstr("`v'", "value", "", .)
-	gen double      `v'_w = `v' /  valueynninc999i_m
+	local v_clean = subinstr("`v'", "", "", .)
+	gen double      `v'_w = `v' /  ynninc999i_m
 	gen     q_`v_clean'_w = q_`v_clean' 
 	gen     s_`v_clean'_w = s_`v_clean' 
 }
  
+rename (y* i* m* x*) (valuey* valuei* valuem* valuex*)
+rename valueyear year
+rename valueiso iso
 
 greshape long value s_ q_, i(iso year p) j(widcode) string
 replace widcode = "w" + substr(widcode,2,9) if strpos(widcode,"m_w")

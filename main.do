@@ -326,7 +326,6 @@ do "$do_dir/complete-variables.do"
 do "$do_dir/calculate-wealth-income-ratios.do"
 
 // Per capita/per adults series
-
 do "$do_dir/calculate-per-capita-series.do"
 
 // Generate Macro metadata

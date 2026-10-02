@@ -471,7 +471,7 @@ gen concept = substr(widcode, 2, 5)
 gen population_group = substr(widcode, 7, 3)
 merge m:1 iso year concept population_group using `regional_quality', keep(master match) assert(match using) nogenerate
 assert !missing(data_quality) 
-drop fivelet pop
+drop concept pop
 
 tempfile final
 save `final'

@@ -86,7 +86,18 @@ foreach v in fdipx fdirx pinpx pinrx ptfpx ptfrx ptfrx_deb ptfrx_eq ptfrx_res pt
 // Ensure that imputations do not distort net national income
 // -------------------------------------------------------------------------- //
 replace         gdpro = 1 if missing(gdpro)
-gen             q_gdpro=5
+
+preserve
+	*Call GDPRO grades
+	use "$work_data/retropolate-gdp.dta", clear
+	keep iso year data_quality
+	rename data_quality q_gdpro
+	
+	tempfile dq_gdpro
+	save    `dq_gdpro'
+restore
+merge 1:1 iso year using "`dq_gdpro'", nogenerate keep(master match)
+           
 
 gen               aux = nnfin
 replace           aux = 0       if missing(nnfin)

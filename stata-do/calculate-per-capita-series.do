@@ -41,14 +41,14 @@ gen new=1
 
 append using "$work_data/calculate-wealth-income-ratio-output.dta"
 
-
-//* ensure consistency across joint distrbuiton non distrbutional series
-
+/*
+// ensure consistency across joint distrbuiton non distrbutional series
 gen fivelet = substr(widcode, 2,5)
 gen q_0 = data_quality if p!="pall" & p != "p0p100"
 bysort iso year fivelet: egen mode_dq = mode(q_0) if inlist(fivelet, "fiinc", "hweal") & inlist(substr(widcode,7,3),"992","999") & inlist(substr(widcode,10,1),"i","j")
 replace data_quality = mode_dq                    if inlist(fivelet, "fiinc", "hweal") & inlist(substr(widcode,7,3),"992","999") & inlist(substr(widcode,10,1),"i","j")
 drop fivelet q_0 mode_dq
+*/
 
 
 duplicates tag iso year p widcode, gen(dup)

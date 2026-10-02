@@ -110,8 +110,8 @@ assert avg_quality != . if fivelet!="fainc" & !(iso=="TH" & fivelet=="fiinc")
 
 preserve
 	import excel "$quality_file", sheet("Summarized_Scores") cellrange(A2) firstrow clear
-	keep B
-	ren B iso
+	keep A
+	ren A iso
 	drop if iso==""
 	replace iso = substr(iso, 1, 2) if substr(iso, 3, .) == " "
 	gen fivelet = "quali"
@@ -156,32 +156,7 @@ sort alpha2 twolet threelet
 *capture mkdir "$output_dir/$time"
 *capture mkdir "$output_dir/$time/metadata"
 
-*export delimited "$output_dir/$time/metadata/var-notes-$time.csv", replace delimiter(";") quote
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export delimited "$output_dir/$time/metadata/var-notes-$time-all_distributions2025_Update.csv", replace delimiter(";") quote
 
 
 

@@ -13,8 +13,8 @@ u "$work_data/calculate-coefficients-output.dta", clear
 // ------- 7. Export the distributions to data to CSV --------------------------
 replace value = round(value, 0.1)    if inlist(substr(widcode, 1, 1), "a", "t")
 replace value = round(value, 1)      if inlist(substr(widcode, 1, 1), "m", "n")
-replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s")
-					  
+replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s", "y","w")
+
 drop if missing(value)
 keep iso year p widcode value data_quality
 
@@ -31,6 +31,7 @@ order Alpha2 year perc widcode
 // NOTE: if updating pretax, please update fainc, cainc and fiinc as well!!
 // This is necessary because the monetary values have to be updated to the 
 // price level of the latest year 
+/*
 preserve
 	keep if strpos(widcode,"ptinc")
 	keep if inlist(substr(widcode, 1, 1), "a", "t", "s")
@@ -95,12 +96,14 @@ preserve
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
 	*export delim "$output_dir/$time/wid-data-$time-cainc2025_Update.csv", delimiter(";") replace
 restore
-
+*/
 //------------- 7.7 Generating all distributions data .csv
 preserve
 	keep if strpos(widcode,"ptinc") | strpos(widcode,"diinc") | strpos(widcode,"hweal") ///
 			| strpos(widcode,"fainc") |strpos(widcode,"fiinc") | strpos(widcode,"cainc")
-	keep if inlist(substr(widcode, 1, 1), "a", "t","s")
+	keep if inlist(substr(widcode, 1, 1), "a", "t","s","y","w","m") 	
+	
+	drop if inlist(widcode, "ahweal999i", "mhweal999i","yhweal999i","whweal999i") & p=="p0p100"
 	export delim "$output_dir/$time/wid-data-$time-all_distributions2025_Update.csv", delimiter(";") replace
 restore
 
@@ -110,7 +113,7 @@ restore
 //         2.  Indexes                                                        //
 //----------------------------------------------------------------------------//
 
-u "$work_data/calculate-gini-coef-output.dta", clear
+u "$work_data/calculate-coefficients-output.dta", clear
 drop if missing(value)
 keep iso year p widcode value data_quality
 
@@ -119,6 +122,7 @@ drop if iso=="XX"
 
 
 //-------- 8.1  Generating the population data CSV 
+/*
 preserve
 	// Extract relevant observations
 	rename iso Alpha2
@@ -130,6 +134,7 @@ preserve
 	// Export
 	*export delim "$output_dir/$time/wid-data-$time-npopul2024Update.csv", delimiter(";") replace
 restore
+*/
 //-------- 8.2  Generating the trasnparency index csv
 preserve
 	// Extract relevant observations
@@ -154,7 +159,7 @@ preserve
 	keep if strpos(widcode,"diinc") | strpos(widcode,"ptinc") | strpos(widcode,"hweal") | strpos(widcode,"fainc") | ///
 	strpos(widcode,"fiinc") | strpos(widcode,"cainc")
 	*replace value = round(value, 0.0001)
-
+	replace data_quality=. if strpos(widcode,"fiinc")
 	// Export
 	export delim "$output_dir/$time/wid-data-$time-RGB_ptinc_fainc_cainc_fiinc_hweal_diinc_2025Update.csv", delimiter(";") replace
 restore

@@ -641,8 +641,10 @@ append using `quality'
 
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")
-assert data_quality !=. if strpos(widcode, "hweal") & year>= 1980 & p !="pall"  & p!="p0p100"
-bysort iso year widcode: assert data_quality == data_quality[1] // assuring dataquality is constant at iso-year-widcode
+assert data_quality !=. if strpos(widcode, "hweal") & year>= 1980 
+
+bysort iso year widcode: assert data_quality == data_quality[1] ///
+		if !strpos(widcode, "fiinc") & !strpos(widcode, "hweal992i") & !strpos(widcode, "hweal999i")
 
 // Save
 sort iso year p widcode

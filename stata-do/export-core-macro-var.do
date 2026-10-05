@@ -95,8 +95,6 @@ keep if tokeep == 1
 drop if inlist(widcode, "aTH999992i", "aTH999999i", "mTH999i", "wicwtoq999i", "micwtoq999i") 
 
 
-
-
 replace value = round(value, 0.1)    if inlist(substr(widcode, 1, 1), "a", "t")
 replace value = round(value, 1)      if inlist(substr(widcode, 1, 1), "m", "n")
 replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s","y","w")

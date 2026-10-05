@@ -43,7 +43,7 @@ generate n = round(p_max - p_min, 1)
 sort iso widcode year p_min
 gduplicates drop iso year widcode p, force
 
-*save "$work_data/calculate-coefficients-output-parsed.dta", replace
+save "$work_data/calculate-coefficients-output-parsed.dta", replace
 *u "$work_data/calculate-coefficients-output-parsed.dta", clear 
 
 //==============================================================================

@@ -70,6 +70,7 @@ drop if iso=="GB" & (strpos(widcode, "hweal992i") ///
 					| strpos(widcode, "sdiinc992t") | strpos(widcode, "sdiinc992i"))
 drop if iso=="CA" & widcode=="sdiinc992i"
 
+// Drop aggregate obs for dq clashes in hweal and fiinc series 
 drop if p=="p0p100" | p=="pall"
 
 gen fivelet = substr(widcode, 2, 5)

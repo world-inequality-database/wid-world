@@ -233,6 +233,7 @@ preserve
     isid iso year concept population_group
 	
     save `regional_quality', replace
+	*save "$work_data/regional-quality-output.dta", replace
 restore
 
 // ------------ 3.2.2 Main Aggregation of values/series for regions 
@@ -359,7 +360,7 @@ bys concept iso year (p) : replace t = min(0, 2*a) if missing(t)
 merge n:1 iso year using "`aggregates'", nogenerate keep(master match)
 
 //--- Checkpoint 2.1 -----------------//
-save "$work_data/aux2a.dta", replace
+*save "$work_data/aux2a.dta", replace
 *use "$work_data/aux2a.dta", clear
 //---------------------------------//
 
@@ -453,7 +454,7 @@ drop if strpos(widcode, "diinc") & year<1980
 *drop x
 
 //--- Checkpoint 3 -----------------//
-save"$work_data/aux3.dta", replace
+*save"$work_data/aux3.dta", replace
 *u "$work_data/aux3.dta", clear
 //----------------------------------//
 
@@ -489,20 +490,10 @@ drop if inlist(widcode, "aptinc992j", "sptinc992j", "tptinc992j", "aptinc999j", 
 		
 append using "`final'"
 
-// ------- give mhweal999i regional observations the distributional dq -------//
-//	so that dq is consistent at fivelet hweal 
-
-bysort iso year: egen double q_hweal = ///
-    max(cond(widcode == "ahweal999j", data_quality, .))
-
-replace data_quality = q_hweal if widcode == "mhweal999i" ///
-		& (strpos(iso, "-PPP") | strpos(iso, "-MER")) & !missing(q_hweal)
-
-drop q_hweal
-
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")
 assert data_quality!=. if strpos(widcode, "diinc")
+assert data_quality!=. if strpos(widcode, "hweal")
 
 isid iso year p widcode
 

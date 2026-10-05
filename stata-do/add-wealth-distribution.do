@@ -231,11 +231,9 @@ assert data_quality !=. if strpos(widcode, "hweal")
 
 // grabbing data quality to then apply to rest of series from add-researchers
 preserve
-	gen type1 = substr(widcode, 2,5) // to apply dq to "m" hweal observations too
-	keep iso year type data_quality
+	keep iso year widcode data_quality
 	duplicates drop
-	isid iso year type 
-	rename data_quality dq
+	isid iso year widcode 
 	tempfile dataqualitywealth
 	save `dataqualitywealth'
 restore 
@@ -507,25 +505,13 @@ duplicates tag iso year p widcode, gen(dup2)
 assert dup2 == 0
 drop dup* core
 
-** Ensure coherence of the udated hweal
-gen type1 = substr(widcode, 2,5)
-merge m:1 iso year type1 using "`dataqualitywealth'", nogen keep(master match)
-replace data_quality=dq if inlist(substr(widcode,1,1),"y","w","m","a") & p=="pall" & type1=="hweal" & !missing(dq)
-
-** Ensure coherence from not updated hweals
-gen type2 = substr(widcode, 2,.)
-gen aux = data_quality if strpos(widcode, "hweal999i") | strpos(widcode, "hweal992i") // So it matches with the macro a, y, w and m hweal999i
-bysort iso year type2: egen mode_dq = mode(aux) 
-replace data_quality= mode_dq if missing(dq) & !missing(mode_dq)
-drop type* dq aux  mode_dq
-
-drop if value==. & p==""
+merge m:1 iso year widcode using `dataqualitywealth', update nogen
 
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")
 assert data_quality !=. if strpos(widcode, "hweal") & year>= 1980 
 
-bysort iso year widcode: assert data_quality == data_quality[1] if !strpos(widcode, "fiinc") 
+bysort iso year widcode: assert data_quality == data_quality[1] if !strpos(widcode, "fiinc") & !strpos(widcode, "hweal992i") & !strpos(widcode, "hweal999i")
 
 // -----------------------------------------------------------------------------
 //	                  VI. Export

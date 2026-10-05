@@ -229,20 +229,9 @@ assert duplicate==0
 drop duplicate
 //---------------------------
 
-
-// -------- Assign mfiinc999i observations the distributional fiinc data quality 
-// only for years where there are distributions 
-keep iso year p widcode currency value data_quality 
-
-bysort iso year: egen double q_fiinc_distibutional = max(cond(strpos(widcode, "sfiinc"), data_quality, .))
-
-replace data_quality = q_fiinc_distibutional if inlist(widcode, "mfiinc999i", "wfiinc999i", "yfiinc999i") & !missing(q_fiinc_distibutional)
-drop q_fiinc_distibutional
-
 assert data_quality!=. if strpos(widcode, "ptinc") 
 assert data_quality!=. if strpos(widcode, "cainc")
-*assert data_quality!=. if strpos(widcode, "fiinc") // & p!="pall" & widcode!="mfiinc999i" 
-// above is a temp. fix while we assign dq in calcualte-wealth-income-ratios.do
+assert data_quality!=. if strpos(widcode, "fiinc") & p!="pall"
 
 bysort iso year widcode: assert data_quality == data_quality[1] if strpos(widcode, "ptinc") 
 

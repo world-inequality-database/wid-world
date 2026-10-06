@@ -138,6 +138,7 @@ save "`data'"
 keep if strpos(widcode,"fiinc")>0
 
 preserve
+	drop if inlist(p,"pall","p0p100")
 	keep iso year widcode data_quality
 	gen vartype = substr(widcode, 2,.)
 	drop widcode
@@ -538,6 +539,7 @@ duplicates drop iso year p widcode, force
 //----------------------------------//
 
 preserve
+	drop if inlist(p,"pall","p0p100")
 	keep iso year widcode data_quality
 	duplicates drop
 	duplicates tag iso year widcode, gen(dup)

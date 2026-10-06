@@ -328,6 +328,12 @@ replace oldobs = 0 if missing(oldobs)
 
 *drop if iso == "ES" & year == 1900 & missing(value) & p == "p0p100"
 
+// Extend available data_quality for the missing values
+bysort iso year widcode p : egen mode_dq = mode(data_quality)
+*bysort iso year widcode p : egen  mode_s = mode(s_)
+replace data_quality = mode_dq if mi(data_quality) & p=="pall" & strpos(widcode,"fiinc")
+drop mode_dq
+
 // Drop old rows available in new data
 sort iso year p widcode oldobs
 gduplicates tag iso year p widcode, gen(dup)

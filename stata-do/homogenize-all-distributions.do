@@ -32,6 +32,7 @@ merge m:1 iso year using "`aggregates'" , update nogen
 
 // saving data quality to add back at the end of file 
 preserve
+	drop if inlist(p,"pall","p0p100")
 	keep iso year widcode data_quality
 	duplicates drop
 	isid iso year widcode 

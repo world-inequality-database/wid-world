@@ -17,7 +17,7 @@ use "$work_data/correct-bottom20-output.dta", clear
 drop data_quality
 keep if inlist(widcode, "anninc992i", "npopul992i", "npopul999i", "inyixx999i", "xlceup999i", "xlceux999i")
 keep if p == "pall"
-drop p currency
+drop p currency 
 
 greshape wide value, i(iso year) j(widcode) string
 renvars value*, predrop(5)

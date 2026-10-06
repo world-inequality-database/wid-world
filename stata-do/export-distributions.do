@@ -103,7 +103,7 @@ preserve
 			| strpos(widcode,"fainc") |strpos(widcode,"fiinc") | strpos(widcode,"cainc")
 	keep if inlist(substr(widcode, 1, 1), "a", "t","s","y","w","m") 	
 	
-	drop if inlist(widcode, "ahweal999i", "mhweal999i","yhweal999i","whweal999i") & p=="p0p100"
+	*keep if inlist(widcode, "ahweal999i", "mhweal999i","yhweal999i","whweal999i") & perc=="p0p100"
 	export delim "$output_dir/$time/wid-data-$time-all_distributions2025_Update.csv", delimiter(";") replace
 restore
 

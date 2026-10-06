@@ -298,6 +298,7 @@ use  "$work_data/clean-up-revised-output.dta", clear
 // temporary fix because in clean-up.do we generate deciles and groups but not
 // in this file, so need to fill data quality for those percentiles
 preserve
+	drop if inlist(p,"pall","p0p100")
 	keep iso year widcode data_quality
 	drop if data_quality ==.
 	duplicates drop 

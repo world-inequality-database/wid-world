@@ -30,7 +30,9 @@ drop if iso == "WO"
 
 // saving data quality to add back at the end 
 preserve
+	drop if inlist(p,"p0p100","pall")
 	keep iso year widcode data_quality
+	
 	duplicates drop
 	isid iso year widcode 
 	tempfile dataquality

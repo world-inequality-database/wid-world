@@ -60,7 +60,7 @@ foreach l in `fivelet' {
 }
 replace tokeep = 1 if inlist(substr(widcode, 1, 6), "npopul")
 replace tokeep = 1 if inlist(substr(widcode, 2, 5), "nyixx", "ntlcu", "lceux", "lceup", "lcyux", "lcyup", "lcusx", "lcusp")
-*replace tokeep = 1 if inlist(substr(widcode, 2, 5), "rerus", "rereu", "reryu")
+replace tokeep = 1 if inlist(substr(widcode, 2, 5), "rerus", "rereu", "reryu")
 replace tokeep = 0 if inlist(substr(widcode, 1, 1), "s", "t", "o")
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "fdimp", "fdion", "fdiop", "fdior",           "fkfiw", "nwoff")
 replace tokeep = 0 if inlist(substr(widcode, 2, 5), "ptfor",           "ptfhr", "ptfon", "ptfop", "ptfop", "comco")

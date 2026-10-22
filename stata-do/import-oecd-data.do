@@ -563,6 +563,13 @@ replace widcode = "colgo" if transact == "NFP32P"
 
 replace widcode = "ceugo" if transact == "NFD1P"
 
+//--------Country corrections ---------------
+* For some countries the provisional values are presente a strong rupture with the 
+*  previous trend so it is better to 
+assert $pastyear == 2025
+drop if country=="Korea" & widcode == "gsrgo"  & flagcodes == "P"
+//-----------------------
+
 drop if missing(widcode)
 keep location year series widcode value
 collapse (mean) value, by(location year series widcode)

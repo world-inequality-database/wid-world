@@ -151,6 +151,7 @@ foreach v of varlist new* {
 drop new* 
 		
 // Use production taxes from generation of income account if necessary
+gen flag = 1 if missing(ptxgo)
 replace q_ptxgo = cond(missing(taxnx), q_ptxgo_va, cond(ptxgo_va >= taxnx, q_ptxgo_va, q_taxnx)) if missing(ptxgo)
 replace s_ptxgo = "ptxgo-va" + cond(missing(taxnx), "", ", taxnx") if missing(ptxgo)
 replace   ptxgo = ptxgo_va + cond(missing(taxnx), 0, taxnx) if missing(ptxgo)
@@ -161,7 +162,21 @@ replace q_spigo = cond(missing(fsubx), q_spigo_va, cond(spigo_va >= fsubx, q_spi
 replace s_spigo = "spigo-va" + cond(missing(fsubx), "", ", fsubx") if missing(spigo)
 replace   spigo = spigo_va + cond(missing(fsubx), 0, fsubx) if missing(spigo)
 
+//-----Corretion for KR 2023
+assert $pastyear == 2025
+replace q_ptxgo = .  if ptxgo_va<0 & mi(taxnx) & flag==1
+replace s_ptxgo = "" if ptxgo_va<0 & mi(taxnx) & flag==1
+replace   ptxgo = .  if ptxgo_va<0 & mi(taxnx) & flag==1
+drop flag
+//--------------
 drop *ptxgo_va *tpigo_va *spigo_va 
+
+//-----Correction for KR 2023 II
+* Note: This because the uncomplete data of this year generate problems to compx during the enfore
+//ds iso year series footnot* q_* s_*, not
+assert $pastyear == 2025
+drop  if iso=="KR" & year==2023 & series ==1100
+//--------------
 
 // Consumption of fixed capital
 enforce (confc = cfchn + cfcco + cfcgo), fixed(confc) prefix(new) replace

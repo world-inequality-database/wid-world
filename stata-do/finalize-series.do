@@ -166,7 +166,7 @@ enforce (comnx = comrx - compx) ///
 		/// Combination of sectors
 		(prihn = priho + prinp) ///
 		/// (comhn = comho + comnp) ///    
-		(prphn = prpho + prpnp) ///
+		/// (prphn = prpho + prpnp) /// (repeated)
 		(caphn = capho + capnp) ///
 		(caghn = cagho + cagnp) ///
 		(nsmhn = nsmho + nsrnp) ///
@@ -178,8 +178,8 @@ enforce (comnx = comrx - compx) ///
 		(ccmhn = ccmho) ///
 		(sechn = secho + secnp) ///
 		(taxhn = taxho + taxnp) ///
-		(tiwhn = tiwho + tiwnp) ///
-		(sschn = sscho + sscnp) ///
+		/// (tiwhn = tiwho + tiwnp) /// (repeated)
+		/// (sschn = sscho + sscnp) /// (repeated)
 		(ssbhn = ssbho + ssbnp) ///
 		(seghn = segho + segnp) ///
 		(savhn = savho + savnp) ///
@@ -208,7 +208,7 @@ enforce (comnx = comrx - compx) ///
 		(segnf = secnf + cfcnf) ///
 		/// Combination of sectors
 		(prico = prifc + prinf) ///
-		(prpco = prpfc + prpnf) ///
+		/// (prpco = prpfc + prpnf) /// (repeated)
 		(nsrco = nsrfc + nsrnf) ///
 		(gsrco = gsrfc + gsrnf) ///
 		(cfcco = cfcfc + cfcnf) ///
@@ -235,8 +235,8 @@ enforce (comnx = comrx - compx) ///
 		(savgo = saggo - cfcgo) ///
 		/// Taxes paid = taxes received
 		(taxgo + sscco = taxhn + taxco) ///
-		(tiwgo = tiwhn + taxco) ///
-		(sschn = sscgo + sscco) ///
+		/// (tiwgo = tiwhn + taxco) /// (repeated)
+		/// (sschn = sscgo + sscco) /// (repeated)
 		/// Structure of gov spending
 		(congo = gpsgo + defgo + polgo + ecogo + envgo + hougo + heago + recgo + edugo + sopgo + othgo) ///
 		/// Labor + capital income decomposition

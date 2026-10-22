@@ -396,10 +396,7 @@ drop if missing(value)
 rename series series_
 
 preserve
-save "$work_data/aux.do",replace
-
-
-u "$work_data/aux.do", clear
+	save "$work_data/aux.do",replace
 restore
 
 

@@ -69,15 +69,15 @@ drop if ppp >= .
 
 // Fill metadata
 replace ppp_src = ///
-`"[URL][URL_LINK]http://data.worldbank.org/[/URL_LINK][URL_TEXT]World Bank[/URL_TEXT][/URL]; "' ///
+`"[URL][URL_LINK]http://data.worldbank.org/[/URL_LINK][URL_TEXT]World Bank[/URL_TEXT][/URL]"' ///
 if (ppp_src == "ppp_wb")
 
 replace ppp_src = ///
-`"[URL][URL_LINK]http://stats.oecd.org/Index.aspx?DataSetCode=PPP2011[/URL_LINK][URL_TEXT]OECD[/URL_TEXT][/URL]; "' ///
+`"[URL][URL_LINK]http://stats.oecd.org/Index.aspx?DataSetCode=PPP2011[/URL_LINK][URL_TEXT]OECD[/URL_TEXT][/URL] "' ///
 if (ppp_src == "ppp_oecd")
 
 replace ppp_src = ///
-`"[URL][URL_LINK]https://www.imf.org/external/datamapper/PPPEX@WEO/OEMDC[/URL_LINK][URL_TEXT]International Monetary Fund[/URL_TEXT][/URL]; "' ///
+`"[URL][URL_LINK]https://www.imf.org/external/datamapper/PPPEX@WEO/OEMDC[/URL_LINK][URL_TEXT]International Monetary Fund[/URL_TEXT][/URL]"' ///
 if (ppp_src == "ppp_imf")
 
 replace ppp_src = ppp_src + " Data corrected by the World Bank exchange rate of the ZWD" ///
@@ -260,8 +260,8 @@ keep if iso == "YU"
 generate currency = "YUN"
 generate ppp_method = "We define a PPP so that the GDP in 1990 matches the sum of its successor states"
 generate ppp_src = ///
-`"[URL][URL_LINK]http://data.worldbank.org/[/URL_LINK][URL_TEXT]World Bank[/URL_TEXT][/URL]; "' + ///
-`"[URL][URL_LINK]http://stats.oecd.org/Index.aspx?DataSetCode=PPP2011[/URL_LINK][URL_TEXT]OECD[/URL_TEXT][/URL]; "'
+`"[URL][URL_LINK]http://data.worldbank.org/[/URL_LINK][URL_TEXT]World Bank[/URL_TEXT][/URL];"' + ///
+`"[URL][URL_LINK]http://stats.oecd.org/Index.aspx?DataSetCode=PPP2011[/URL_LINK][URL_TEXT]OECD[/URL_TEXT][/URL]"'
 keep iso year ppp ppp_src ppp_method currency
 
 gen data_quality = 1
@@ -354,7 +354,7 @@ drop data_quality_idx* mode_ppp
 //------- 5. Generate Metadata ------------------------------------------------------------
 preserve
 	drop if ppp_method == "" & ppp_src == ""
-	replace ppp_method = ppp_method + "."
+	*replace ppp_method = ppp_method + "."
 	keep iso ppp_method ppp_src
 	rename ppp_method method
 	rename ppp_src source

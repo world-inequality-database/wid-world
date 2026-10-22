@@ -473,7 +473,7 @@ gen s_ygdpro999i = s_mgdpro999i
 gen double ynninc999i = (ygdpro999i - yconfc999i + ynnfin999i) // ygdpro999i==1
 quality ygdpro999i yconfc999i  ynnfin999i, gen(aux1)
 gen           q_ynninc999i =aux1 // ygdpro999i==1
-gen           s_ynninc999i = "confc,nnfin" // ygdpro999i==1
+gen           s_ynninc999i = "gdpro,confc,nnfin" // ygdpro999i==1
 
 
 replace yndpro999i = ygdpro999i - yconfc999i // ygdpro999i==1

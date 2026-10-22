@@ -33,13 +33,22 @@ foreach x in `varlist' {
 	gen int data_quality`x' =.
 }	
 
+
 ds *_type
 local varlist `r(varlist)'
 foreach x in `varlist' {
 	local v = substr("`x'", 1, 5)
-	di "`v'"
 	replace data_quality`v' = `x'           if `x' < 10
+	//------* Shifting 2 by 3 and Vice versa
+	replace data_quality`v' = 3             if `x' < 10 & `x' == 2
+	replace data_quality`v' = 2             if `x' < 10 & `x' == 3
+	//------
+	
 	replace data_quality`v' = floor(`x'/10) if `x' >= 10
+	//------* Shifting 2 by 3 and Vice versa
+	replace data_quality`v' = 3 if `x' >= 10 & floor(`x'/10) == 2
+	replace data_quality`v' = 2 if `x' >= 10 & floor(`x'/10) == 3
+	//------
 }
 drop *_type
 
@@ -47,9 +56,9 @@ drop *_type
 ds iso year data_quality*, not
 local varlist `r(varlist)'
 foreach v in `varlist' {
-	di "`v'"
+
 	replace data_quality`v' = 5             if missing(data_quality`v') & !missing(`v') & year< 1980
-	replace data_quality`v' = 2             if missing(data_quality`v') & !missing(`v') & year>=1980
+	replace data_quality`v' = 3             if missing(data_quality`v') & !missing(`v') & year>=1980
 }
 
 tempfile wealth_shares
@@ -61,7 +70,7 @@ drop s_
 
 keep if inlist(widcode, /* "mnweal999i", "mhweal999i", "mpweal999i", "mgweal999i",*/ "mnninc999i", "mgdpro999i")
 drop p currency data_quality
-reshape wide value, i(iso year) j(widcode) string
+greshape wide value, i(iso year) j(widcode) string
 
 
 *merge 1:1 iso year using "$wid_dir/Country-Updates/Wealth/2023_December/wealth-aggregates-2023.dta", nogen

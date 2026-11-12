@@ -495,8 +495,6 @@ replace source = "For distributed wealth: " + source_wealth_dist ///
 				+ ". For aggregate wealth: " + source ///
 				if source != "" & source_wealth_dist != "" & strpos(fivelet, "weal") > 0
 				
-// Remove trailing punctuation and spaces
-replace source = ustrregexra(ustrtrim(source), "[[:punct:][:space:]]+$", "")
 keep iso fivelet method source
 isid iso fivelet
 

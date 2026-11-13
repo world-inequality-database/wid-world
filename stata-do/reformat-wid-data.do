@@ -119,7 +119,7 @@ save "$work_data/sna-wid.dta", replace
 
 use "$work_data/correct-widcodes-metadata.dta", clear
 
-keep if sixlet == "mnninc"
+keep if fivelet == "nninc"
 
 collapse (firstnm) source, by(iso)
 

@@ -34,21 +34,19 @@ drop if strpos(widcode,"cwtoq") & substr(widcode,1,1)!="i" & corecountry!=1
 drop if  substr(widcode,1,1)=="a" & corecountry!=1
 drop corecountry
 
-* Generate sixlet
-gen sixlet=substr(widcode,1,6)
+* Generate fivelet
+gen fivelet=substr(widcode,2,5)
 drop widcode
 
-sort iso sixlet year metadata
-
-sort iso sixlet year
-bysort iso sixlet (year): ///
+sort iso fivelet year metadata
+bysort iso fivelet (year): ///
 gen spell = sum(metadata != metadata[_n-1])
-bysort iso sixlet spell: egen firstyear = min(year)
-bysort iso sixlet spell: egen lastyear = max(year)
+bysort iso fivelet spell: egen firstyear = min(year)
+bysort iso fivelet spell: egen lastyear = max(year)
 
-collapse (first) metadata , by(iso sixlet firstyear lastyear)
+collapse (first) metadata , by(iso fivelet firstyear lastyear)
 
-bysort iso sixlet (firstyear lastyear): gen categ = sum(firstyear != firstyear[_n-1] | lastyear  != lastyear[_n-1])
+bysort iso fivelet (firstyear lastyear): gen categ = sum(firstyear != firstyear[_n-1] | lastyear  != lastyear[_n-1])
 
 
 *Split source and method
@@ -81,22 +79,22 @@ replace source=`"[URL][URL_LINK]https://wid.world/document/wid-income-and-wealth
 		
 * Method
 replace method=  "This variable was estimated as an aggregation of the regions that compose this region"  if strpos(treat1, "reginhouse") 
-replace method = "These data are computed by comparing the added nninc values in differente currencies and terms of countries in this region; See  [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) `Distributional National Accounts Guidelines'[/URL_TEXT][/URL]" if  missing(method) & inlist(sixlet,"xlcusx","xlcusp","xlceux","xlceup","xlcyux","xlcyup","inyixx") & strpos(treat1, "inplicitnninc")
+replace method = "These data are computed by comparing the added nninc values in differente currencies and terms of countries in this region; See  [URL][URL_LINK]https://wid.world/document/distributional-national-accounts-dina-guidelines-2025-methods-and-concepts-used-in-the-world-inequality-database/[/URL_LINK][URL_TEXT] Chancel, L., Flores, I., Moshirf, R., Nievas, G., Piketty, T. (2025) `Distributional National Accounts Guidelines'[/URL_TEXT][/URL]" if  missing(method) & inlist(fivelet,"lcusx","lcusp","lceux","lceup","lcyux","lcyup","nyixx") & strpos(treat1, "inplicitnninc")
 
 replace method = "In-house calculation (see method)"  if treat1=="inhouse"
 
 //---  3.  Fill metadata of the PPP  -----------------------------------------//
 * Import metadata of xlcUSp
-merge m:1  iso sixlet using "$work_data/ppp-metadata.dta", update replace keepusing(method source)
+merge m:1  iso fivelet using "$work_data/ppp-metadata.dta", update replace keepusing(method source)
 drop _merge
 * Fill metadata of xlcusp
-replace method = "These data are computed by comparing the estimated nninc values of countries in this region" if  missing(method) & sixlet=="xlcusp"
+replace method = "These data are computed by comparing the estimated nninc values of countries in this region" if  missing(method) & fivelet=="lcusp"
 
 * Fill metadata of triangulations
-replace method = "This indicator was triangulated from xlcusp using a <<Euro xlcusp>> weighting of DE, ES, FR, IT, NL" if missing(method) & sixlet=="xlceup" 
-replace method = "This indicator was triangulated from xlcusp by a xlcusp of CN" if missing(method) & sixlet=="xlcyup"
+replace method = "This indicator was triangulated from xlcusp using a <<Euro xlcusp>> weighting of DE, ES, FR, IT, NL" if missing(method) & fivelet=="lceup" 
+replace method = "This indicator was triangulated from xlcusp by a xlcusp of CN" if missing(method) & fivelet=="lcyup"
 	
-replace source = "In-house calculation (see method)"  if missing(source) & substr(sixlet,1,3)=="xlc" &  substr(sixlet,6,1)=="p"
+replace source = "In-house calculation (see method)"  if missing(source) & substr(fivelet,1,2)=="lc" &  substr(fivelet,5,1)=="p"
 
 
 //---  4.  Fill metadata of the Exchange rate  -------------------------------//
@@ -104,95 +102,95 @@ replace source = "In-house calculation (see method)"  if missing(source) & subst
 replace method =  "This exchange rate is estimated as the " /// 
 				+ "ratio between in-house GDP estimates in USD and the same variable " ///
 				+ "in LCU for countries succeeding the former Yugoslavia (BA, HR, MK, " ///
-				+ "RS, YU, KS, SI, ME)"                                      if strpos(metadata,"calculationfromGDP_yugosl") & sixlet=="xlcusx"
+				+ "RS, YU, KS, SI, ME)"                                      if strpos(metadata,"calculationfromGDP_yugosl") & fivelet=="lcusx"
 replace method = "This exchange rate is estimated as the " /// 
 				+ "ratio between in-house GDP estimates in USD and the same variable " ///
 				+ "in LCU for countries succeeding the former USSR (AM, AZ, BY, " ///
-				+ "KG, KZ, TJ, TM, UZ, EE, LT, LV, MD, GE, RU, UA)"          if strpos(metadata,"calculationfromGDP_soviet") & sixlet=="xlcusx"
+				+ "KG, KZ, TJ, TM, UZ, EE, LT, LV, MD, GE, RU, UA)"          if strpos(metadata,"calculationfromGDP_soviet") & fivelet=="lcusx"
 				
-replace method = "Data carried forward from the last available year" if strpos(metadata,"carryforward") & sixlet=="xlcusx"
-replace method = "Data interpolated"                                 if strpos(metadata,"interpolated") & sixlet=="xlcusx"
+replace method = "Data carried forward from the last available year" if strpos(metadata,"carryforward") & fivelet=="lcusx"
+replace method = "Data interpolated"                                 if strpos(metadata,"interpolated") & fivelet=="lcusx"
 
 
 replace method = "Data projected backwards using the growth of exchange rates of " ///
-				+ "the former USSR"                                          if strpos(metadata,"extrapolated_ratiosoviet") & sixlet=="xlcusx"
+				+ "the former USSR"                                          if strpos(metadata,"extrapolated_ratiosoviet") & fivelet=="lcusx"
 replace method = "Data projected backwards using the growth of exchange rates of " ///
-				+ "the former Yugoslavia"                                    if strpos(metadata,"extrapolated_ratioyugosl") & sixlet=="xlcusx"
+				+ "the former Yugoslavia"                                    if strpos(metadata,"extrapolated_ratioyugosl") & fivelet=="lcusx"
 replace method = "Data projected backwards using the average growth of exchange rates of " ///
 				+ "countries with complete spliced exchange rate series (AD, AT, BE, CY, FI, " ///
-				+ "FR, DE, GR, IE, IT, LU, MT, MC, ME, NL, PT, SM, ES)"      if strpos(metadata,"extrapolated_ratioeuro") & sixlet=="xlcusx"
+				+ "FR, DE, GR, IE, IT, LU, MT, MC, ME, NL, PT, SM, ES)"      if strpos(metadata,"extrapolated_ratioeuro") & fivelet=="lcusx"
 replace method = "Data projected backwards using the growth of exchange rates of " ///
-				+ "Former Yemen Arab Republic"                               if strpos(metadata,"extrapolated_ratioyemen") & sixlet=="xlcusx"
+				+ "Former Yemen Arab Republic"                               if strpos(metadata,"extrapolated_ratioyemen") & fivelet=="lcusx"
 replace method = "Data projected backwards using the average growth of exchange rates of " ///
-				+ "modern Montenegro and Serbia"                              if strpos(metadata,"extrapolated_ratio_RSMK") & sixlet=="xlcusx"
+				+ "modern Montenegro and Serbia"                              if strpos(metadata,"extrapolated_ratio_RSMK") & fivelet=="lcusx"
 
-replace method = "Currency assumed to be " + substr(treat2, 1, 3) if substr(treat2,4,.)=="assumed"   & inlist(sixlet, "xlcusx", "xlceux", "xlcyux")
-replace method = "Data extended from "     + substr(treat2, 1, 2) if substr(treat2,3,.)=="assumedas" & sixlet=="xlcusx"
+replace method = "Currency assumed to be " + substr(treat2, 1, 3) if substr(treat2,4,.)=="assumed"   & inlist(fivelet, "lcusx", "lceux", "lcyux")
+replace method = "Data extended from "     + substr(treat2, 1, 2) if substr(treat2,3,.)=="assumedas" & fivelet=="lcusx"
 
 * Generate source
 replace source = `"[URL][URL_LINK]https://www.imf.org/en/publications/weo/weo-database/2025/april/download-entire-database[/URL_LINK][URL_TEXT]IMF "' ///
-		+ `"World Economic Outlook (04/$year)[/URL_TEXT][/URL]"' if strpos(treat1,"IMF") & sixlet=="xlcusx"
-replace source = `"[URL][URL_LINK]http://data.worldbank.org/[/URL_LINK][URL_TEXT]World Bank[/URL_TEXT][/URL]"' if strpos(treat1,"WB") & sixlet=="xlcusx"
+		+ `"World Economic Outlook (04/$year)[/URL_TEXT][/URL]"' if strpos(treat1,"IMF") & fivelet=="lcusx"
+replace source = `"[URL][URL_LINK]http://data.worldbank.org/[/URL_LINK][URL_TEXT]World Bank[/URL_TEXT][/URL]"' if strpos(treat1,"WB") & fivelet=="lcusx"
 replace source = `"[URL][URL_LINK]http://unstats.un.org/unsd/snaama/Introduction.asp[/URL_LINK][URL_TEXT]United"' ///
-		+ `"Nations National Accounts Main Aggregates Database[/URL_TEXT][/URL]"' if strpos(treat1,"UNSNA") & sixlet=="xlcusx"
-replace source = `"[URL][URL_LINK]http://openexchangerates.org/[/URL_LINK][URL_TEXT]Open Exchange rates[/URL_TEXT][/URL]"' if strpos(treat1,"openexchangerate") & sixlet=="xlcusx"
-replace source = `"[URL][URL_LINK]https://www.mataf.net/en[/URL_LINK][URL_TEXT]Mataf.net[/URL_TEXT][/URL]"' if strpos(treat1,"mataf") & sixlet=="xlcusx"
-replace source = `"[URL][URL_LINK]https://fred.stlouisfed.org/series/AEXTAUS[/URL_LINK][URL_TEXT]FRED[/URL_TEXT][/URL]"' if strpos(treat1,"FRED") & sixlet=="xlcusx"
-replace source = `"[URL][URL_LINK]https://unstats.un.org/unsd/snaama/Basic[/URL_LINK][URL_TEXT]UN - National Accounts Analysis of Main Aggregates (AMA)[/URL_TEXT][/URL]"' if strpos(treat1,"UN_PARE") & sixlet=="xlcusx"
+		+ `"Nations National Accounts Main Aggregates Database[/URL_TEXT][/URL]"' if strpos(treat1,"UNSNA") & fivelet=="lcusx"
+replace source = `"[URL][URL_LINK]http://openexchangerates.org/[/URL_LINK][URL_TEXT]Open Exchange rates[/URL_TEXT][/URL]"' if strpos(treat1,"openexchangerate") & fivelet=="lcusx"
+replace source = `"[URL][URL_LINK]https://www.mataf.net/en[/URL_LINK][URL_TEXT]Mataf.net[/URL_TEXT][/URL]"' if strpos(treat1,"mataf") & fivelet=="lcusx"
+replace source = `"[URL][URL_LINK]https://fred.stlouisfed.org/series/AEXTAUS[/URL_LINK][URL_TEXT]FRED[/URL_TEXT][/URL]"' if strpos(treat1,"FRED") & fivelet=="lcusx"
+replace source = `"[URL][URL_LINK]https://unstats.un.org/unsd/snaama/Basic[/URL_LINK][URL_TEXT]UN - National Accounts Analysis of Main Aggregates (AMA)[/URL_TEXT][/URL]"' if strpos(treat1,"UN_PARE") & fivelet=="lcusx"
 
 *** Complete the countries assumed differently
-replace source = source + "(Series inherited from another country with available " + substr(treat2,1,3) + "-denominated series)" if substr(treat2,3,.)=="assumed" & sixlet=="xlcusx"
-replace source = source + "(Series inherited from " + substr(treat2,1,2) + ")"                                                   if substr(treat2,3,.)=="assumedas" & sixlet=="xlcusx"
+replace source = source + "(Series inherited from another country with available " + substr(treat2,1,3) + "-denominated series)" if substr(treat2,3,.)=="assumed" & fivelet=="lcusx"
+replace source = source + "(Series inherited from " + substr(treat2,1,2) + ")"                                                   if substr(treat2,3,.)=="assumedas" & fivelet=="lcusx"
 
 
 * method & source for triangulations
-replace method= "This indicator was triangulated from xlcusx using a <<Euro xlcusx>> weighting of DE, ES, FR, IT, NL" if missing(method) & sixlet=="xlceux" & treat1=="triang"
-replace method= "This indicator was triangulated from xlcusx by a xlcusx of CN"                                               if missing(method) & sixlet=="xlcyux" & treat1=="triang"
-replace method= "Data obtained from an external source (see source)"                                                                                               if missing(method) & sixlet=="xlcusx"
+replace method= "This indicator was triangulated from xlcusx using a <<Euro xlcusx>> weighting of DE, ES, FR, IT, NL" if missing(method) & fivelet=="lceux" & treat1=="triang"
+replace method= "This indicator was triangulated from xlcusx by a xlcusx of CN"                                               if missing(method) & fivelet=="lcyux" & treat1=="triang"
+replace method= "Data obtained from an external source (see source)"                                                                                               if missing(method) & fivelet=="lcusx"
 	
 * Complete missings 
-replace method = "Data obtained from an external source (see source)"        if  missing(method) & !missing(source) & substr(sixlet,1,3)=="xlc" &  substr(sixlet,6,1)=="x"
-replace source = "In-house calculation (see method)" if !missing(method) &  missing(source) & substr(sixlet,1,3)=="xlc" &  substr(sixlet,6,1)=="x"
+replace method = "Data obtained from an external source (see source)"        if  missing(method) & !missing(source) & substr(fivelet,1,2)=="lc" & substr(fivelet,5,1)=="x"
+replace source = "In-house calculation (see method)" if !missing(method) &  missing(source) & substr(fivelet,1,2)=="lc" &  substr(fivelet,5,1)=="x"
 
 
 //---  5. Fill Metadata of the price index -----------------------------------//
 * Source
 replace source = `"[URL][URL_LINK]http://dx.doi.org/10.1017/S0022050712000630[/URL_LINK][URL_TEXT]Frankema "' ///
 		+ `"E., van Waijenburg, M.(2012). Structural Impediments to African Growth? "' ///
-		+ `"New Evidence from Real Wages in British Africa, 1880-1965[/URL_TEXT][/URL]"' if regexm(metadata, "&fw") & sixlet=="inyixx"
+		+ `"New Evidence from Real Wages in British Africa, 1880-1965[/URL_TEXT][/URL]"' if regexm(metadata, "&fw") & fivelet=="nyixx"
 
 replace source = `"[URL][URL_LINK]https://www.globalfinancialdata.com/[/URL_LINK][URL_TEXT]Global Financial Data[/URL_TEXT][/URL]"' ///
-		if regexm(metadata, "&gfd") & sixlet=="inyixx"
+		if regexm(metadata, "&gfd") & fivelet=="nyixx"
 
 replace source = `"[URL][URL_LINK]http://data.worldbank.org/[/URL_LINK][URL_TEXT]World Bank[/URL_TEXT][/URL]"' ///
-		if regexm(metadata, "&wb") & sixlet=="inyixx"
+		if regexm(metadata, "&wb") & fivelet=="nyixx"
 
 replace source = `"[URL][URL_LINK]https://arklemsenglish.wordpress.com/gdp/[/URL_LINK][URL_TEXT]ARKLEMS[/URL_TEXT][/URL]"' ///
-		if regexm(metadata, "&arklems") & sixlet=="inyixx"
+		if regexm(metadata, "&arklems") & fivelet=="nyixx"
 
 replace source = `"[URL][URL_LINK]http://unstats.un.org/unsd/snaama/Introduction.asp[/URL_LINK][URL_TEXT]United "' ///
-		+ `"Nations National Accounts Main Aggregates Database[/URL_TEXT][/URL]"' if regexm(metadata, "&un") & sixlet=="inyixx"
+		+ `"Nations National Accounts Main Aggregates Database[/URL_TEXT][/URL]"' if regexm(metadata, "&un") & fivelet=="nyixx"
 
 replace source = `"[URL][URL_LINK]https://www.imf.org/en/publications/weo/weo-database/2025/april/download-entire-database[/URL_LINK][URL_TEXT]IMF "' ///
-		+ `"World Economic Outlook (04/$year)[/URL_TEXT][/URL]"' if regexm(metadata, "&weo") & sixlet=="inyixx"
+		+ `"World Economic Outlook (04/$year)[/URL_TEXT][/URL]"' if regexm(metadata, "&weo") & fivelet=="nyixx"
 
 replace source = `"[URL][URL_LINK]https://www.rug.nl/ggdc/productivity/pwt/related-research-papers/maddison-wu_draft_jan07.pdf[/URL_LINK][URL_TEXT]Maddison, "' ///
 		+ `"A. & Wu, H.(2007). China's Economic Performance: How Fast Has GDP Grown; How "' ///
 		+ `"Big is it Compared to the USA?. Series updated by Prof. Harry Wu.[/URL_TEXT][/URL]"' ///
-		if regexm(metadata, "&mw") & sixlet=="inyixx"
+		if regexm(metadata, "&mw") & fivelet=="nyixx"
 
 replace source = `"[URL][URL_LINK]http://wid.world/document/t-piketty-l-yang-and-g-zucman-capital-accumulation-private-property-and-inequality-in-china-1978-2015-2016/[/URL_LINK][URL_TEXT]"' ///
 		+ `"Piketty, T., Yang, L., Zucman, G. (2016). "' ///
 		+ `"Capital Accumulation, Private Property and Rising Inequality in China, 1978-2015[/URL_TEXT][/URL]"' ///
-		if regexm(metadata, "&pyz") & sixlet=="inyixx"
+		if regexm(metadata, "&pyz") & fivelet=="nyixx"
 		replace source = `""' ///
 		+ `"Internal Calculations by Filip Novokmet"' ///
-		if regexm(metadata, "&east") & sixlet=="inyixx"
+		if regexm(metadata, "&east") & fivelet=="nyixx"
 	
 replace source = `"[URL][URL_LINK]https://wid.world/document/unequal-exchange-and-north-south-relations-evidence-from-global-trade-flows-and-the-world-balance-of-payments-1800-2025-world-inequality-lab-working-paper-2025-11/[/URL_LINK][URL_TEXT]"' ///
 		+ `"Nievas, G., Piketty, T. (2025). "' ///
 		+ `"Unequal Exchange & North-South Relations: Evidence from Global Trade Flows and the World Balance of Payments, 1800-2025[/URL_TEXT][/URL]"' ///
-		if regexm(metadata, "&np") & sixlet=="inyixx"
+		if regexm(metadata, "&np") & fivelet=="nyixx"
 
 *replace source = sourceicpixx999i if (index_source == "delta_cpi_wid")
 *replace source = sourceinyixx999i if (index_source == "delta_def_wid")
@@ -251,24 +249,24 @@ replace source = "average inflation rate over 1954-1966" ///
 		if metadata == "avg&nga"
 replace source = "average inflation rate of Former Yugoslavia and Euro-zone " ///
 							+"countries (AT, BE, CY, DE, ES, FI, FR, GR, IE, IT, LU, MT, NL, PT, SM)" ///
-		if metadata == "Average Yugoslavia and EU" & sixlet=="inyixx"
+		if metadata == "Average Yugoslavia and EU" & fivelet=="nyixx"
 replace source = "average inflation rate of Russia and Euro-zone " ///
 							+"countries (AT, BE, CY, DE, ES, FI, FR, GR, IE, IT, LU, MT, NL, PT, SM)" ///
-		if metadata ==  "Average Russia and EU" & sixlet=="inyixx"
+		if metadata ==  "Average Russia and EU" & fivelet=="nyixx"
 
 * Imputations
 replace source = "first inflation value carried backward" ///
-		if metadata == "carrybackward" & sixlet=="inyixx"
+		if metadata == "carrybackward" & fivelet=="nyixx"
 replace source = "last inflation value carried forward" ///
-		if metadata == "carryforward" & sixlet=="inyixx"
+		if metadata == "carryforward" & fivelet=="nyixx"
 	
 replace source = "interpolation assuming a constant inflation rate" ///
-		if metadata == "interpolation" & sixlet=="inyixx"
+		if metadata == "interpolation" & fivelet=="nyixx"
 		
 replace source = "zero inflation assumed (no data available)" ///
-		if metadata == "zero&infl" & sixlet=="inyixx"
+		if metadata == "zero&infl" & fivelet=="nyixx"
 replace source = "index frozen at its 1990 value (no data available)" ///
-		if metadata == "frozen" & sixlet=="inyixx"
+		if metadata == "frozen" & fivelet=="nyixx"
 	
 * Other sources
 replace source = "price index from Frankema and Waijenburg (2012)" ///
@@ -296,7 +294,7 @@ replace source = "GDP deflator of the United States" ///
 replace source = "implicit GDP deflator from ARKLEMS" ///
 		if metadata == "delta&def&arklems"
 replace source = "price index of Germany after 1991" ///
-		if regexm(metadata, "&de$") & sixlet=="inyixx"
+		if regexm(metadata, "&de$") & fivelet=="nyixx"
 		
 		
 replace source = "Price index from Nievas & Piketty (2025)" ///
@@ -306,8 +304,8 @@ replace source = "Price index of " + upper(substr(metadata,-2,2)) + " from Nieva
 
 	
 * Complete missings 
-replace method = "Data obtained from an external source (see source)" if  missing(method) & !missing(source) & sixlet=="inyixx"
-replace source = "In-house calculation (see method)" if !missing(method) &  missing(source) & sixlet=="inyixx"
+replace method = "Data obtained from an external source (see source)" if  missing(method) & !missing(source) & fivelet=="nyixx"
+replace source = "In-house calculation (see method)" if !missing(method) &  missing(source) & fivelet=="nyixx"
 	
 	
 //---  6. Fill Metadata of GDP ---------------------------------//
@@ -325,74 +323,74 @@ replace method = "Growth rates extended from the ratio of "+ iso + " relative to
 replace method = "Growth rates calculated taking away the value of " + substr(metadata,1,2) if !strpos(metadata,"GDP&share") &  strpos(metadata,"takeaway")
 
 replace method = "Growth rates from forecast values from IMF WEO" if  strpos(metadata,"&forecast")
-replace method = "Growth rate carried forward" if  metadata=="carryforward" & strpos(sixlet,"gdpro") 
+replace method = "Growth rate carried forward" if  metadata=="carryforward" & strpos(fivelet,"gdpro") 
 replace method = "Growth rate extended from the interpolation of the ratio of " + iso + " relative to the " + substr(metadata,1,2)  + " in " + substr(metadata,4,4)   if  strpos(metadata,"&interp")
 
-replace method = "Growth rate estimated using Maddison's values in USD International Dollars"       if strpos(metadata,"Mad" ) & strpos(metadata,"&usd" ) & strpos(sixlet,"gdpro") 
+replace method = "Growth rate estimated using Maddison's values in USD International Dollars"       if strpos(metadata,"Mad" ) & strpos(metadata,"&usd" ) & strpos(fivelet,"gdpro") 
 *replace method = method +  "(This level was calcualted from data in international Dollars of 2011)"       if level_year==year & !strpos(level_src,"lcu" )
 
 
 * source
 replace source = `"[URL][URL_LINK]http://piketty.pse.ens.fr/fr/capitalisback[/URL_LINK][URL_TEXT]"' ///
-		+ `"Piketty, T. and Zucman, G. (2014). Capital is Back: Wealth-Income Ratios in Rich Countries 1700-2010 [/URL_TEXT][/URL]"' if regexm(metadata, "wid") & (iso != "SE") & strpos(sixlet,"gdpro") 
+		+ `"Piketty, T. and Zucman, G. (2014). Capital is Back: Wealth-Income Ratios in Rich Countries 1700-2010 [/URL_TEXT][/URL]"' if regexm(metadata, "wid") & (iso != "SE") & strpos(fivelet,"gdpro") 
 	
 replace source = `"[URL][URL_LINK]https://wid.world/document/what-determines-the-capital-share-world-inequality-lab-wp-2020-08/[/URL_LINK][URL_TEXT] "' ///
-		+ `"Bengtsson, E., Enrico Rubolino, E., Waldenström D.(2020).What Determines the Capital Share over the Long Run of History? [/URL_TEXT][/URL]"' if regexm(metadata, "wid") & (iso == "SE") & strpos(sixlet,"gdpro") 
+		+ `"Bengtsson, E., Enrico Rubolino, E., Waldenström D.(2020).What Determines the Capital Share over the Long Run of History? [/URL_TEXT][/URL]"' if regexm(metadata, "wid") & (iso == "SE") & strpos(fivelet,"gdpro") 
 		
 replace source = `"[URL][URL_LINK]https://www.cbs.nl/en-gb/our-services/open-data[/URL_LINK][URL_TEXT]"' ///
-		+ `"Statistics Netherlands[/URL_TEXT][/URL]"' if regexm(metadata, "cbs") & strpos(sixlet,"gdpro") 
+		+ `"Statistics Netherlands[/URL_TEXT][/URL]"' if regexm(metadata, "cbs") & strpos(fivelet,"gdpro") 
 	
 replace source = `"[URL][URL_LINK]https://datacatalog.worldbank.org/search/dataset/0037798/global-economic-monitor[/URL_LINK][URL_TEXT] "' ///
-		+ `"The World Bank Global Economic Monitor[/URL_TEXT][/URL]"' if regexm(metadata, "gem") & strpos(sixlet,"gdpro") 
+		+ `"The World Bank Global Economic Monitor[/URL_TEXT][/URL]"' if regexm(metadata, "gem") & strpos(fivelet,"gdpro") 
 		
 replace source = `"[URL][URL_LINK]https://www.rug.nl/ggdc/productivity/pwt/related-research-papers/maddison-wu_draft_jan07.pdf[/URL_LINK][URL_TEXT]Maddison, "' ///
 		+ `"A. & Wu, H. China's Economic Performance: How Fast Has GDP Grown; How "' ///
 		+ `"Big is it Compared to the USA? (2007). Series updated by Prof. Harry Wu[/URL_TEXT][/URL]"' ///
-		if regexm(metadata, "mw") & strpos(sixlet,"gdpro") 
+		if regexm(metadata, "mw") & strpos(fivelet,"gdpro") 
 		
 		
 replace source = `"[URL][URL_LINK]https://unesdoc.unesco.org/ark:/48223/pf0000102385[/URL_LINK][URL_TEXT] "' ///
 		+ `" Maddison, Angus (1995). Monitoring the world economy, 1820-1992[/URL_TEXT][/URL]"' ///
-		if regexm(metadata, "Mad95") & strpos(sixlet,"gdpro") 
+		if regexm(metadata, "Mad95") & strpos(fivelet,"gdpro") 
 		
 *replace source = `"[URL][URL_LINK]http://ndl.ethernet.edu.et/bitstream/123456789/11295/1/116%20.%20Angus_Maddison.pdf[/URL_LINK][URL_TEXT] "' ///
 		*+ `" Maddison, A. (2007). Contours of the World Economy 1-2030 AD[/URL_TEXT][/URL]; "' ///
 		*if regexm(metadata, "Mad07")
 replace source = `"[URL][URL_LINK]https://www.rug.nl/ggdc/historicaldevelopment/maddison/releases/maddison-project-database-2023[/URL_LINK][URL_TEXT] "' ///
 		+ `" MPD version 2023: Bolt, Jutta and Jan Luiten van Zanden (2024). Maddison style estimates of the evolution of the world economy: A new 2023 update [/URL_TEXT][/URL]"' ///
-		if regexm(metadata, "Mad07") & strpos(sixlet,"gdpro") 
+		if regexm(metadata, "Mad07") & strpos(fivelet,"gdpro") 
 		
 replace source = `"[URL][URL_LINK]https://www.oecd.org/en/publications/2003/09/the-world-economy_g1gh38a7.html[/URL_LINK][URL_TEXT]IMF "' ///
-		+ `"Maddison, A.(2003).The World Economic History Madsison. OECD [/URL_TEXT][/URL]"' if regexm(metadata, "OECD") & strpos(sixlet,"gdpro") 
+		+ `"Maddison, A.(2003).The World Economic History Madsison. OECD [/URL_TEXT][/URL]"' if regexm(metadata, "OECD") & strpos(fivelet,"gdpro") 
 		
 replace source = `"[URL][URL_LINK]http://unstats.un.org/unsd/snaama/Introduction.asp[/URL_LINK][URL_TEXT]United "' ///
-		+ `"Nations National Accounts Main Aggregates Database[/URL_TEXT][/URL]"' if regexm(metadata, "un2") & strpos(sixlet,"gdpro") 
+		+ `"Nations National Accounts Main Aggregates Database[/URL_TEXT][/URL]"' if regexm(metadata, "un2") & strpos(fivelet,"gdpro") 
 
 replace source = `"[URL][URL_LINK]http://data.worldbank.org/[/URL_LINK][URL_TEXT]World Bank[/URL_TEXT][/URL]"' ///
-		if regexm(metadata, "wb") & strpos(sixlet,"gdpro") 
+		if regexm(metadata, "wb") & strpos(fivelet,"gdpro") 
 
 replace source = `"[URL][URL_LINK]https://www.imf.org/en/publications/weo/weo-database/2025/april/download-entire-database[/URL_LINK][URL_TEXT]IMF "' ///
-		+ `"World Economic Outlook (04/$year)[/URL_TEXT][/URL]"' if regexm(metadata, "weo") & strpos(sixlet,"gdpro") 
+		+ `"World Economic Outlook (04/$year)[/URL_TEXT][/URL]"' if regexm(metadata, "weo") & strpos(fivelet,"gdpro") 
 		
 replace source = `"[URL][URL_LINK]https://www.brookings.edu/articles/the-external-wealth-of-nations-database/[/URL_LINK][URL_TEXT]"' ///
-		+ `"[/URL_TEXT]Milesi-Ferretti, J.M., The external wealth of nations database. Bookings (04/$year)[/URL]"' if regexm(metadata, "lmf") & strpos(sixlet,"gdpro") 
+		+ `"[/URL_TEXT]Milesi-Ferretti, J.M., The external wealth of nations database. Bookings (04/$year)[/URL]"' if regexm(metadata, "lmf") & strpos(fivelet,"gdpro") 
 		
 replace source = `"[URL][URL_LINK]https://wid.world/document/unequal-exchange-and-north-south-relations-evidence-from-global-trade-flows-and-the-world-balance-of-payments-1800-2025-world-inequality-lab-working-paper-2025-11/[/URL_LINK][URL_TEXT]"' ///
 		+ `"Nievas, G., Piketty, T. (2025). "' ///
 		+ `"Unequal Exchange & North-South Relations: Evidence from Global Trade Flows and the World Balance of Payments, 1800-2025[/URL_TEXT][/URL]"' ///
-		if regexm(treat1, "np") & strpos(sixlet,"gdpro") 
+		if regexm(treat1, "np") & strpos(fivelet,"gdpro") 
 
-replace source = source + " (Growth rate)" if !strpos(metadata,"level") & !missing(source) & strpos(sixlet,"gdpro") 
-replace source = source + " (Level value)" if strpos(metadata,"level") & !missing(source) & strpos(sixlet,"gdpro") 
+replace source = source + " (Growth rate)" if !strpos(metadata,"level") & !missing(source) & strpos(fivelet,"gdpro") 
+replace source = source + " (Level value)" if strpos(metadata,"level") & !missing(source) & strpos(fivelet,"gdpro") 
 
-replace method = "Data obtained from an external source (see source)"        if  missing(method) & !missing(source) & strpos(sixlet,"gdpro") 
-replace source = "In-house calculation (see method)" if !missing(method) &  missing(source) & strpos(sixlet,"gdpro") 
-replace method= method + " (Series adjusted to match with the world regions of Nievas G., & Piketty, T.(2025) Unequal Exchange and North-South Relations: Evidence from Global Trade Flows and the World Balance of Payments 1800-2025)" if strpos(treat2,"adj&np")  & strpos(sixlet,"gdpro") 
+replace method = "Data obtained from an external source (see source)"        if  missing(method) & !missing(source) & strpos(fivelet,"gdpro") 
+replace source = "In-house calculation (see method)" if !missing(method) &  missing(source) & strpos(fivelet,"gdpro") 
+replace method= method + " (Series adjusted to match with the world regions of Nievas G., & Piketty, T.(2025) Unequal Exchange and North-South Relations: Evidence from Global Trade Flows and the World Balance of Payments 1800-2025)" if strpos(treat2,"adj&np")  & strpos(fivelet,"gdpro") 
 	
 //---  7. Fill Metadata of National Accounts ---------------------------------//
 *cleanning
 foreach c in metadata treat1 treat2 treat3 {
-	replace `c'="" if (sixlet=="inyixx" | substr(sixlet,1,3)=="xlc" | strpos(sixlet,"gdpro") )
+	replace `c'="" if (fivelet=="nyixx" | substr(fivelet,1,2)=="lc" | strpos(fivelet,"gdpro") )
 }
 
 * Source:
@@ -556,7 +554,7 @@ replace source = "In-house calculation (see method)"                   if !missi
 drop adjustment adjustment2
 
 //---  8.  Fill Metadata of Populations ---------------------------------------//
-merge m:1 iso sixlet using "$work_data/population-metadata.dta", nogen  update replace keep(master match)
+merge m:1 iso fivelet using "$work_data/population-metadata.dta", nogen  update replace keep(master match)
 
 //---  9.  Fill Metadata of wealth aggregates ---------------------------------//
 
@@ -630,6 +628,7 @@ replace method= method + " (variable is calculated as an aggregate (m), and exte
 replace method= method + " (variable is calculated as a share of GDP (y), and extended to the nninc estimate)" if substr(sixlet,1,1)=="w" & !strpos(sixlet,"gdpro") & lastyear==$pastyear
 */
 drop metadata treat1 treat2 treat3 
+drop if mi(categ) // <<<<<<<<<<<<-----------------------------------------------------
 
 //---  11.  Collapse ---------------------------------------------------------//
 foreach v in source method {
@@ -640,13 +639,13 @@ foreach v in source method {
 			": " + `v' + ";" if  (firstyear != lastyear)  & (`v'!="")
 		drop firstyear lastyear 
 
-		keep iso sixlet categ `v'_new 
+		keep iso fivelet categ `v'_new 
 		drop if `v'_new == ""
 		duplicates drop
 
-		greshape wide `v'_new, i(iso sixlet) j(categ)
+		greshape wide `v'_new, i(iso fivelet) j(categ)
 		egen `v' = concat(`v'_new*), punct(" ")
-		keep iso sixlet `v' 
+		keep iso fivelet `v' 
 		
 		tempfile metadata_`v'
 		save    `metadata_`v''
@@ -654,8 +653,8 @@ foreach v in source method {
 }
 
 u "`metadata_method'", clear
-merge 1:1 iso sixlet using "`metadata_source'", nogen 
-order iso sixlet method source
+merge 1:1 iso fivelet using "`metadata_source'", nogen 
+order iso fivelet method source
 drop if mi(source) & mi(method)
 
 //---  12.  Add technical Note  ----------------------------------------------//
@@ -682,14 +681,6 @@ drop technote
 
 //---  13.  Append to the rest of the data and export  -----------------------//
 gen new=1
-
-// -------- TEMPORARY --------------//
-// 6/11/26: while we wait for macro metadata to become unique at iso-fivelet level
-gen fivelet = substr(sixlet, 2,5)
-drop sixlet
-duplicates drop iso fivelet, force
-// --------------------------------//
-
 append using  "$work_data/correct-widcodes-metadata.dta"
 
 // preserve the macro wealth metadata. In add-wealth-distribution, we add to it

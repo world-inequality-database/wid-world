@@ -1004,8 +1004,8 @@ save "$work_data/populations.dta", replace
 
 //------ 12. Generate metadata -------------------------------------------------
 
-gen sixlet= substr(widcode, 1, 6)
-keep iso sixlet year
+gen fivelet= substr(widcode, 2, 5)
+keep iso fivelet year
 duplicates drop
 
 // MethodC
@@ -1098,7 +1098,7 @@ gen source = ///
  `"[/URL_TEXT][/URL]"'
 
 drop year
-keep iso sixlet method source
+keep iso fivelet method source
 
 duplicates drop
 save "$work_data/population-metadata.dta", replace

@@ -358,15 +358,15 @@ preserve
 	keep iso ppp_method ppp_src
 	rename ppp_method method
 	rename ppp_src source
-	foreach sixlet in xlcusp /*xlceup xlcyup*/ {
-		generate sixlet = "`sixlet'"
-		tempfile `sixlet'
-		save "``sixlet''"
-		drop sixlet
+	foreach fivelet in lcusp /*lceup lcyup*/ {
+		generate fivelet = "`fivelet'"
+		tempfile `fivelet'
+		save "``fivelet''"
+		drop fivelet
 	}
 
 	
-	use "`xlcusp'", clear
+	use "`lcusp'", clear
 	*append using "`xlceup'"
 	*append using "`xlcyup'"
 	drop if iso == "EA" // Drop Euro area

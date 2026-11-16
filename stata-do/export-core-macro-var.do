@@ -296,7 +296,7 @@ restore
 //------------------------------------------------------------------------------
 
 u "`core_macro'", clear
-generate sixlet = substr(widcode, 1, 6)
+generate fivelet = substr(widcode, 2, 5)
 
 //------------------------------------------------------------------------------
 // ------------------- 1. Generate average quality score -----------------------
@@ -306,18 +306,17 @@ generate sixlet = substr(widcode, 1, 6)
 drop if data_quality==.
 
 * Drop the distrubutional fivelets, it will be exported in the distribution part
-drop if inlist(substr(sixlet,2,5),"hweal","ptinc","fiinc","cainc")
+drop if inlist(fivelet,"hweal","ptinc","fiinc","cainc")
 
 // population is the only exception where dq varies in the fivelet because the 
 // different age groups have different sources and hence different dq. 
 // we keep the general population 999i dq for the average quality generation. 
-drop if sixlet == "npopul" & widcode!="npopul999i"
+drop if fivelet == "popul" & widcode!="npopul999i"
 
-keep iso year sixlet data_quality
+keep iso year fivelet data_quality
 duplicates drop
 
 // --------1.2. ensure consistency in data quality
-gen fivelet = substr(sixlet, 2, 5)
 bysort iso year fivelet: assert data_quality == data_quality[1]
 
 // ---------1.3. 	construct weighted average data quality  
@@ -338,26 +337,24 @@ gen double avg_quality = round(sumwquality / sumw, 0.1) // adapt rounding to pre
 
 // ------- 1.4. ensure consistency in average quality score 
 bysort iso fivelet: assert avg_quality == avg_quality[1]
-keep iso sixlet avg_quality
+keep iso fivelet avg_quality
 duplicates drop
-isid iso sixlet
+isid iso fivelet
 
 //------------------------------------------------------------------------------
 // -------------- 2. Bring the rest of the metadata (source, method) -----------
 //------------------------------------------------------------------------------
 
-merge m:1 iso sixlet using "$work_data/generate-macro-metadata.dta" , keep(match) nogen
+merge m:1 iso fivelet using "$work_data/generate-macro-metadata.dta" , keep(match) nogen
 
 * Drop the distrubutional fivelets, it will be exported in the distribution part
-drop if inlist(substr(sixlet,2,5),"hweal","ptinc","fiinc","cainc")
+drop if inlist(fivelet,"hweal","ptinc","fiinc","cainc")
 
 
 //------------------------------------------------------------------------------
 // -------------------- 3. Save final metadata & csv export --------------------
 //------------------------------------------------------------------------------
 
-gen fivelet = substr(sixlet, 2, 5)
-drop sixlet
 duplicates drop
 isid iso fivelet 
 

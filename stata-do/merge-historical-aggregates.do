@@ -1189,7 +1189,11 @@ save `full_pre70'
 append using  "$work_data/aggregate-regions-output.dta"
 
 duplicates tag iso year widcode p, gen(dup0)
-drop if new==1 & dup==1 & (inlist(substr(widcode, 2, 5), "confc", "ndpro","nnfin","nninc", "gvato")) & iso=="PE"
+gen PE_hist= 1 if (inlist(substr(widcode, 2, 5), "confc", "ndpro","nnfin","nninc", "gvato")) & iso=="PE"
+assert $pastyear == 2025 // Note: for update 2027 make sure to keep the data from Castillo-Garcia. 
+drop if new!=1 & dup0==1 & PE_hist==1 & year <  1950 // keep if ==1
+drop if new==1 & dup0==1 & PE_hist==1 & year >= 1950 // keep if ==.
+drop PE_hist
 
 duplicates tag iso year widcode p, gen(dup)
 drop if new!=1 & dup==1 & (!inlist(substr(widcode, 2, 5), "nwdka", "nweal", "gweal", "gwass", "gwdeb", "nwnfa") & ///

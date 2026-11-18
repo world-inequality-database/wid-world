@@ -571,6 +571,49 @@ end
 
 mata:
 
+// fullsvd() occasionally returns an inaccurate decomposition for some of the
+// (rank-deficient) identity matrices: the matrix is not recovered from U*S*V'
+// and the "null space" vectors are not in the null space. This wrapper checks
+// the decomposition and, if needed, recomputes it on a row-permuted copy of
+// the matrix (same SVD up to a permutation of U). Returns 1 if the first
+// fullsvd() was accurate, 0 if it had to be recomputed.
+real scalar enforce_fullsvd(real matrix A, U, s, Vt) {
+    real scalar attempt
+    real colvector p
+    real matrix Up
+
+    fullsvd(A, U, s, Vt)
+    if (enforce_svdcheck(A, U, s, Vt)) return(1)
+
+    // Retry with deterministic row orders (reversed, then rotated), so that
+    // the random-number generator state is not affected
+    for (attempt = 1; attempt <= 10; attempt++) {
+        if (attempt == 1) p = rows(A)::1
+        else p = mod((0::rows(A) - 1) :+ (attempt - 1)*ceil(rows(A)/10), rows(A)) :+ 1
+        fullsvd(A[p, .], Up, s, Vt)
+        U = Up
+        U[p, .] = Up
+        if (enforce_svdcheck(A, U, s, Vt)) return(0)
+    }
+    errprintf("enforce: fullsvd() failed to produce an accurate decomposition\n")
+    exit(error(3498))
+}
+
+real scalar enforce_svdcheck(real matrix A, real matrix U, real colvector s, real matrix Vt) {
+    real scalar k, chk
+
+    if (rows(A) == 0 | cols(A) == 0) return(1)
+    if (hasmissing(U) | hasmissing(s) | hasmissing(Vt)) return(0)
+    chk = 1e-9*max((1, max(abs(A))))
+    k = rows(s)
+    // A = U*S*V'
+    if (max(abs(A - U[., 1::k]*diag(s)*Vt[1::k, .])) > chk) return(0)
+    // U and V orthonormal
+    if (max(abs(Vt*Vt' - I(cols(Vt)))) > 1e-9) return(0)
+    if (max(abs(U'*U - I(cols(U)))) > 1e-9) return(0)
+    return(1)
+}
+
 void calc_discrepancy(string scalar varlist) {
     i = strtoreal(st_local("i"))
 
@@ -597,7 +640,7 @@ void check_identities() {
     // First, look at the system ignoring wether variables are fixed or not
 
     // Full SVD decomposition to analyse the system and get the nullspace
-    fullsvd(matiden, U, s, V)
+    svdok = enforce_fullsvd(matiden, U, s, V)
     _transpose(V)
     rank = rank_from_singular_values(s, tol = tolerance)
     if (rank < cols(matiden)) {
@@ -639,7 +682,7 @@ void check_identities() {
         matidennofix = matiden[., selectindex(!fixedvaridx)]
         nofixvarnames = varnames[selectindex(!fixedvaridx), 1]
 
-        fullsvd(matidennofix, U, s, V)
+        svdok = enforce_fullsvd(matidennofix, U, s, V)
         _transpose(V)
         rank = rank_from_singular_values(s, tol = tolerance)
         // Store the range of the system for later
@@ -678,11 +721,11 @@ void check_identities() {
             missrhs = (rhs[i, .] :>= .)
 
             // First: rank of the coefficient matrix of the system
-            fullsvd(matidennofix[selectindex(!missrhs), .], U, s, V)
+            svdok = enforce_fullsvd(matidennofix[selectindex(!missrhs), .], U, s, V)
             rkcoef = rank_from_singular_values(s, tol = tolerance)
 
             // Second: rank of the augmented matrix
-            fullsvd((matidennofix[selectindex(!missrhs), .], rhs[i, selectindex(!missrhs)]'), U, s, V)
+            svdok = enforce_fullsvd((matidennofix[selectindex(!missrhs), .], rhs[i, selectindex(!missrhs)]'), U, s, V)
             rkaug = rank_from_singular_values(s, tol = tolerance)
 
             // Apply the Rouche–Capelli theorem
@@ -698,9 +741,9 @@ void check_identities() {
                 // after removing zero-valued variables
                 matidennozero = matidennofix[selectindex(!missrhs), selectindex(!zerovars)]
 
-                fullsvd(matidennozero, U, s, V)
+                svdok = enforce_fullsvd(matidennozero, U, s, V)
                 rknozero = rank_from_singular_values(s, tol = tolerance)
-                fullsvd((matidennozero, rhs[i, selectindex(!missrhs)]'), U, s, V)
+                svdok = enforce_fullsvd((matidennozero, rhs[i, selectindex(!missrhs)]'), U, s, V)
                 rknozeroaug = rank_from_singular_values(s, tol = tolerance)
 
                 // Use the Rouche–Capelli theorem
@@ -742,13 +785,20 @@ void fill_missing() {
     // Find a generalized solution of the system: the use of generalized
     // solution allows us to get a reasonable solution even if the system
     // isn't yet consistent
-    X = svsolve(A, B, rank, tol = tolerance)
-
     // Look at the nullspace of the matrix to see which variables may be
     // fully determined
-    fullsvd(A, U, s, V)
+    svdok = enforce_fullsvd(A, U, s, V)
     _transpose(V)
     rank = rank_from_singular_values(s, tol = tolerance)
+
+    if (svdok) {
+        X = svsolve(A, B, rank2, tol = tolerance)
+    } else {
+        // fullsvd() was inaccurate for this matrix: build the same
+        // (minimum-norm) generalized solution from the checked decomposition
+        if (rank == 0) X = J(cols(A), cols(B), 0)
+        else X = V[., 1::rank]*diag(1:/s[1::rank])*U[., 1::rank]'*B
+    }
     missvaridx = selectindex(missstruct)
 
     if (rank == cols(A)) {
@@ -806,7 +856,7 @@ void force_identities() {
 	}
 	
     // Construct a system of equality that only involves nonmissing variables
-    fullsvd(matiden, U, s, V)
+    svdok = enforce_fullsvd(matiden, U, s, V)
     _transpose(V)
     rank = rank_from_singular_values(s, tol = tolerance)
 	if (rank == cols(V)) {
@@ -815,7 +865,7 @@ void force_identities() {
 	} else {
 		nullspace = V[selectindex(!missstruct), (rank + 1)::cols(V)]
 	}
-    fullsvd(nullspace, U, s, V)
+    svdok = enforce_fullsvd(nullspace, U, s, V)
     rank = rank_from_singular_values(s, tol = tolerance)
     if (rank == cols(U)) {
         // No enforcable constraints (all variables linearly independent)

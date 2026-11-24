@@ -474,7 +474,7 @@ if missing(source) & strpos(fivelet, "hweal")
 
 *Adding technote that is updated annually
 replace source = source + ///
-`"Technote for the update: "' + ///
+`"; Technote for the update: "' + ///
 `"[URL][URL_LINK]"' + `"https://wid.world/document/global-wealth-inequality-on-wid-world-estimates-and-imputations-world-inequality-lab-technical-note-2025-01/"' + `"[/URL_LINK]"' + ///
 `"[URL_TEXT]"' + `"Bajard, F., Bauluz, L., Brassac, P., Chancel, L., Martinez-Toledano, C., Piketty, T., Sodano, A. (2025), "Global wealth inequality on WID.world: Estimates and imputations""' + `"[/URL_TEXT][/URL]"'
 
@@ -494,6 +494,10 @@ recast strL source
 replace source = "For distributed wealth: " + source_wealth_dist ///
 				+ ". For aggregate wealth: " + source ///
 				if source != "" & source_wealth_dist != "" & strpos(fivelet, "weal") > 0
+
+// remove trailing semi colons				
+replace source = regexr(source, "[;.]+$", "")
+replace source = ustrregexra(source, "[;.]+[[:space:]]*$", "")
 				
 keep iso fivelet method source
 isid iso fivelet

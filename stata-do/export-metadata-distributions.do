@@ -17,11 +17,19 @@
 
 use "$work_data/World-and-regional-aggregates-metadata.dta", clear
 
-// dropping regions that no longer exist
-drop if inlist(iso, "WF", "XI", "QM", "TK", "VA", "VI", "SH")
-drop if inlist(iso, "NU", "MP", "MF", "CK", "PM", "FO")
-drop if inlist(iso, "GU", "FK", "EH", "BL", "AS", "AN")
-drop if iso == ""
+// ------- Export only iso codes that are in the WID-Admin tool ------------------
+// Nov 2026: iso codes in backend cleaned with software engineer Antonis
+
+preserve
+// load 216 countries + 5 former countries + 61 sub-regions in countries 
+		use "$work_data/import-db-entries-country-codes-output.dta", clear
+// load 22 MER regions + 22 PPP regions
+		append using "$work_data/import-region-currency-codes-output.dta"
+		keep iso
+		tempfile official_isos
+		save `official_isos'
+restore
+merge m:1 iso using `official_isos', keep(match) nogen
 
 /*
 // Dropping macro, fiscal and wealth widcodes that we dont update or dont exist
@@ -102,7 +110,7 @@ duplicates drop
 isid iso fivelet
 
 // bring data quality scores 
-merge 1:1 iso fivelet using `metadata', nogen 
+merge 1:1 iso fivelet using `metadata', keep(using match) nogen 
 assert avg_quality != . if fivelet!="fainc" & !(iso=="TH" & fivelet=="fiinc") & !(iso=="US" & fivelet=="cainc")
 
 // =============================================================================
@@ -135,6 +143,10 @@ drop if fivelet == "quali" & missing(source)
 // =============================================================================
 // ----------------------------- 4. Csv export --------------------------------
 // =============================================================================
+
+// remove trailing semi colons				
+replace source = regexr(source, "[;.]+$", "")
+replace source = ustrregexra(source, "[;.]+[[:space:]]*$", "")
 
 save "$work_data/metadata-final.dta", replace
 

@@ -506,19 +506,13 @@ merge m:1 iso fivelet using `maincountry', gen(maincountry)
 
 // add all 3 long run papers to main countries
 replace source = source + ///
-`"; For the series before 1980, refer to long run papers: First edition: "' + ///
-`"[URL][URL_LINK]"' + ///
-`"http://wid.world/document/countries-with-regional-income-imputations-on-wid-world-world-inequality-lab-technical-note-2021-15/"' + ///
-`"[/URL_LINK][URL_TEXT]"' + ///
-`"Chancel and Piketty (2021), Countries with Regional Income Imputations on WID.world"' + ///
-`"[/URL_TEXT][/URL]"' + ///
-`"; Second edition: "' + ///
+`"; For the series before 1980, refer to the long run papers: First edition: "' + ///
 `"[URL][URL_LINK]"' + ///
 `"http://wid.world/document/longrunpaper/"' + ///
 `"[/URL_LINK][URL_TEXT]"' + ///
-`"Chancel, L., Piketty, T. "Global Income Inequality 1820-2020: The Persistence and Mutation of Extreme Inequality" (2021)"' + ///
+`"Chancel, L., Piketty, T. (2021) "Global Income Inequality 1820-2020: The Persistence and Mutation of Extreme Inequality" "' + ///
 `"[/URL_TEXT][/URL]"' + ///
-`"; "' + ///
+`"; Second edition: "' + ///
 `"[URL][URL_LINK]"' + ///
 `"http://wid.world/document/historical-inequality-series-on-wid-world-updates-world-inequality-lab-technical-note-2023-01/"' + ///
 `"[/URL_LINK][URL_TEXT]"' + ///
@@ -561,7 +555,7 @@ drop m1 newmethod method1 // m2 method2 newsource source1 source2
 keep iso fivelet method source
 
 // removing trailing punctuation at the beginning of the strings
-foreach var in source method {
+foreach var in method {
     replace `var' = ustrregexra(`var', "^[[:punct:][:space:]]+", "")
 }
 

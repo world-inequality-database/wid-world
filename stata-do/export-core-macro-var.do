@@ -50,6 +50,22 @@ use "$work_data/calculate-per-capita-series-output.dta", clear
 *use "/Users/rowaidamoshrif/Downloads/merge-historical-aggregates (22).dta", clear
 replace p = "p0p100" if p=="pall"
 
+// ------- Export only iso codes that are in the WID-Admin tool ----------------
+// Nov 2026: iso codes in backend cleaned with software engineer Antonis
+
+preserve
+// load 216 countries + 5 former countries + 61 sub-regions in countries 
+		use "$work_data/import-db-entries-country-codes-output.dta", clear
+// load 22 MER regions + 22 PPP regions
+		append using "$work_data/import-region-currency-codes-output.dta"
+		keep iso
+		tempfile official_isos
+		save `official_isos'
+restore
+merge m:1 iso using `official_isos', keep(match) nogen
+//------------------------------------------------------------------------------
+
+
 generate fivelet = substr(widcode, 2, 5)
 generate tokeep = 0
 

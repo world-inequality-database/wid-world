@@ -9,8 +9,23 @@
 
 u "$work_data/calculate-coefficients-output.dta", clear
 
+// ------- Export only iso codes that are in the WID-Admin tool ------------------
+// Nov 2026: iso codes in backend cleaned with software engineer Antonis
 
-// ------- 7. Export the distributions to data to CSV --------------------------
+preserve
+// load 216 countries + 5 former countries + 61 sub-regions in countries 
+		use "$work_data/import-db-entries-country-codes-output.dta", clear
+// load 22 MER regions + 22 PPP regions
+		append using "$work_data/import-region-currency-codes-output.dta"
+		keep iso
+		tempfile official_isos
+		save `official_isos'
+restore
+merge m:1 iso using `official_isos', keep(match) nogen
+
+
+
+// -------  Export the distributions to data to CSV --------------------------
 replace value = round(value, 0.1)    if inlist(substr(widcode, 1, 1), "a", "t")
 replace value = round(value, 1)      if inlist(substr(widcode, 1, 1), "m", "n")
 replace value = round(value, 0.0001) if inlist(substr(widcode, 1, 1), "s", "y","w")
